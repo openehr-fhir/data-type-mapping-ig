@@ -1,0 +1,78 @@
+# ╭────────────────────────────────────────────────────────────────────────────────────────────────╮
+# │  SUSHI configuration for the openEHR to FHIR Data Type Mapping Implementation Guide.           │
+# │  The properties below are used to create the ImplementationGuide resource. For a list of       │
+# │  supported properties, see:                                                                    │
+# │  https://fshschool.org/docs/sushi/configuration/                                               │
+# ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+id: hl7.fhir.uv.openehr-data-type-mapping
+canonical: http://hl7.org/fhir/uv/openehr-data-type-mapping
+name: OpenEHRToFHIRDataTypeMapping
+title: "openEHR to FHIR Data Type Mapping"
+status: draft
+version: 0.1.0
+releaseLabel: ci-build #ci-build|draft|qa-preview|ballot|trial-use|release|update|normative+trial-use
+
+publisher:
+  name: HL7 International / FHIR Infrastructure
+  url: http://www.hl7.org/Special/committees/fiwg
+contact:
+  - name: HL7 International / FHIR Infrastructure
+    telecom:
+      - system: url
+        value: http://www.hl7.org/Special/committees/fiwg
+description: >-
+  This Implementation Guide defines mappings between openEHR data types and
+  HL7 FHIR data types, so that data captured in an openEHR system can be
+  exchanged as FHIR and data received as FHIR can be persisted in an openEHR
+  system without loss of meaning.
+license: CC0-1.0
+fhirVersion:
+  - 5.0.0
+copyrightYear: 2026+
+jurisdiction: http://unstats.un.org/unsd/methods/m49/m49.htm#001 "World"
+
+parameters:
+  apply-wg: true
+  default-wg: true
+  show-inherited-invariants: false
+  usage-stats-opt-out: true
+  shownav: 'true'
+
+extension:
+  - url: http://hl7.org/fhir/StructureDefinition/structuredefinition-standards-status
+    valueCode: draft
+  - url: http://hl7.org/fhir/StructureDefinition/structuredefinition-wg
+    valueCode: fhir
+
+# ╭──────────────────────────────────────────dependencies──────────────────────────────────────────╮
+# │  The key is the package id and the value is the version (or dev/current). Pin exact versions —  │
+# │  a floating dependency can move generated URLs and QA output without any change in this repo.  │
+# ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+# dependencies:
+#   hl7.fhir.uv.extensions: 5.3.0
+#   hl7.fhir.uv.tools: 1.1.2
+
+# ╭─────────────────────────────────────────────pages──────────────────────────────────────────────╮
+# │  Every entry here must have a matching file in input/pagecontent/.                             │
+# ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+pages:
+  index.md:
+    title: Home
+  mapping.md:
+    title: Data Type Mapping
+  downloads.md:
+    title: Downloads
+  ig_changelog.md:
+    title: Change Log
+
+# ╭────────────────────────────────────────────menu.xml────────────────────────────────────────────╮
+# │  To use a provided input/includes/menu.xml file, delete the "menu" property below.             │
+# ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+menu:
+  Contents: toc.html
+  Home: index.html
+  Data Type Mapping: mapping.html
+  Artifacts: artifacts.html
+  Support:
+    Downloads: downloads.html
+    Change Log: ig_changelog.html
