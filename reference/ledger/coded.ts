@@ -672,7 +672,7 @@ const nullFlavourToDataAbsentReason = {
     },
     {
       id: 'fhir:iso21090-nullflavor',
-      scope: 'archetype',
+      scope: 'datatype',
       openehr: {
         path: 'ELEMENT.null_flavour',
         cardinality: '0..1',

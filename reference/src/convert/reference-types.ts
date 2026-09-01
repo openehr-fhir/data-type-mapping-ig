@@ -7,7 +7,7 @@
  */
 
 import { register } from '../registry.ts';
-import { resultFor, type Issue, type MappingResult } from '../result.ts';
+import { resultFor, unmapped, type Issue, type MappingResult } from '../result.ts';
 import type { DvIdentifier, DvUri, Link } from '../types/openehr/reference-types.ts';
 import {
   OPENEHR_IDENTIFIER_PREFIX,
@@ -27,6 +27,12 @@ export const REFERENCE_PATH = {
   identifierPeriod: 'Identifier.period',
   referenceReference: 'Reference.reference',
   linkTarget: 'LINK.target',
+  identifierValueAbsent: 'Identifier.value[absent]',
+  linkMeaning: 'LINK.meaning',
+  linkType: 'LINK.type',
+  referenceDisplay: 'Reference.display',
+  codeableReferenceConcept: 'CodeableReference.concept',
+  codeableReference: 'CodeableReference',
 } as const;
 
 function compact<T extends object>(value: T): T {
@@ -82,6 +88,18 @@ export function dvIdentifierToIdentifier(source: DvIdentifier): MappingResult<Id
 }
 
 export function identifierToDvIdentifier(source: Identifier): MappingResult<DvIdentifier> {
+  // `DV_IDENTIFIER.id` is mandatory (1..1) and `Identifier.value` is `0..1`.
+  if (source.value === undefined) {
+    return unmapped([
+      {
+        path: REFERENCE_PATH.identifierValueAbsent,
+        message:
+          'DV_IDENTIFIER.id is mandatory (1..1) and the Identifier supplies no value; the ' +
+          'mandatory-attribute rule forbids inventing one, so nothing is produced',
+      },
+    ]);
+  }
+
   const issues: Issue[] = [];
 
   if (source.type !== undefined) {
@@ -127,18 +145,18 @@ export function identifierToDvIdentifier(source: Identifier): MappingResult<DvId
   return resultFor(
     compact({
       _type: 'DV_IDENTIFIER' as const,
-      id: source.value ?? '',
+      id: source.value,
       issuer: source.system,
       type:
-        coding === undefined
+        coding?.code === undefined
           ? undefined
-          : joinSystemValue(unprefix(coding.system, 'type'), coding.code ?? ''),
+          : joinSystemValue(unprefix(coding.system, 'type'), coding.code),
       assigner:
-        assignerIdentifier === undefined
+        assignerIdentifier?.value === undefined
           ? undefined
           : joinSystemValue(
               unprefix(assignerIdentifier.system, 'assigner'),
-              assignerIdentifier.value ?? '',
+              assignerIdentifier.value,
             ),
     }),
     issues,
@@ -196,24 +214,61 @@ export function linkToReference(source: Link): MappingResult<Reference> {
           'is a resource-level pointer; sub-element granularity is lost unless the ' +
           'targetElement or targetPath extension is used, which this guide does not produce',
       },
+      {
+        path: REFERENCE_PATH.linkMeaning,
+        message:
+          'LINK.meaning is a DV_TEXT and Reference.display is a plain string, so only ' +
+          'DV_TEXT.value participates: formatting, encoding, the deprecated hyperlink, and ' +
+          'term mappings have no home on a Reference',
+      },
+      {
+        path: REFERENCE_PATH.linkType,
+        message:
+          'LINK.type is a DV_TEXT and its only FHIR home is CodeableReference.concept, ' +
+          'which carries a CodeableConcept: only DV_TEXT.value participates, and a plain ' +
+          'Reference — what a data-type conversion produces without the archetype-level ' +
+          'decision to use a CodeableReference — carries no concept at all, so the link ' +
+          'type is not emitted here',
+      },
     ],
   );
 }
 
 export function referenceToLink(source: Reference): MappingResult<Link> {
-  const target = source.reference ?? '';
-  return resultFor(
+  // `LINK` requires `meaning`, `type`, and `target`, all `1..1`. A FHIR
+  // `Reference` supplies at most two of them and has **no field at all** that
+  // can source `LINK.type`, so no `LINK` is produced: fabricating the literal
+  // `'reference'` is exactly the invention the mandatory-attribute rule
+  // forbids, and it made `link.target` and `link.meaning` claim a round trip
+  // they never made.
+  return unmapped([
     {
-      _type: 'LINK' as const,
-      meaning: { _type: 'DV_TEXT' as const, value: source.display ?? '' },
-      type: { _type: 'DV_TEXT' as const, value: 'reference' },
-      target: {
-        _type: target.startsWith(EHR_SCHEME) ? ('DV_EHR_URI' as const) : ('DV_URI' as const),
-        value: target,
-      },
+      path: REFERENCE_PATH.codeableReferenceConcept,
+      message:
+        'LINK.type is mandatory (1..1) and a FHIR Reference has no field that can source ' +
+        'it; only a CodeableReference carries a concept, and choosing to use one is an ' +
+        'archetype-level decision a data-type conversion does not make',
     },
-    [],
-  );
+    {
+      path: REFERENCE_PATH.referenceReference,
+      message:
+        'no LINK is produced, so LINK.target receives nothing; the reference itself would ' +
+        'carry across, but not on its own',
+    },
+    {
+      path: REFERENCE_PATH.referenceDisplay,
+      message:
+        'no LINK is produced, so LINK.meaning receives nothing; the display text would ' +
+        'carry across, but not on its own',
+    },
+    {
+      path: REFERENCE_PATH.codeableReference,
+      message:
+        'openEHR has no single value combining a coded concept and a reference; splitting ' +
+        'a CodeableReference into a coded element alongside a LINK, or into an enclosing ' +
+        'CLUSTER, is an archetype decision and nothing here produces one',
+    },
+  ]);
 }
 
 register<Link, Reference>('link-to-reference', {

@@ -116,13 +116,15 @@ function removeSegments(node: unknown, segments: readonly string[]): void {
  * genuinely holds in one direction only is better said out loud, in a pairing
  * marker with a reason, than hidden behind a broader exclusion.
  *
- * `archetype`-scope rows are included, unlike in the round-trip matrix: they
- * name real facts a data-type conversion does not carry, and a fixture that
- * carries one is not evidence of a defect in the converter.
+ * `archetype`-scope rows are **excluded**, as in the round-trip matrix: their
+ * FHIR home is a resource element, and a data-type conversion neither produces
+ * nor consumes one, so their endpoint paths say nothing about whether these two
+ * files are a pair.
  */
 function droppedPaths(mapping: Mapping, direction: Direction): readonly string[] {
   const paths = new Set<string>();
   for (const row of mapping.rows) {
+    if (row.scope !== 'datatype') continue;
     const verdict = row[direction];
     if (verdict.fidelity === 'lossy') {
       for (const drop of verdict.drops) paths.add(drop.path);

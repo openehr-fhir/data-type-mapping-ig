@@ -169,6 +169,21 @@ function checkRow(row: Row, where: string, out: string[]): void {
     out.push(`${where}: row id must not contain whitespace: '${row.id}'`);
   }
 
+  // The `archetype`-scope exemption's own stated justification is that the
+  // row's "FHIR home is a resource element". A row that claims the exemption
+  // while targeting an ordinary data-type element is exempting itself from
+  // every gate for no reason the guide gives, so the justification is checked.
+  if (row.scope === 'archetype' && !isNoCounterpart(row.fhir)) {
+    const resourceLevel = endpointsOf(row.fhir).some((e) => e.kind === 'resource-element');
+    if (!resourceLevel) {
+      out.push(
+        `${where}: an 'archetype'-scope row must have a FHIR endpoint of kind ` +
+          `'resource-element', or no FHIR counterpart at all — its exemption from the ` +
+          `converter, fixture and round-trip gates rests on exactly that`,
+      );
+    }
+  }
+
   if (isNoCounterpart(row.openehr) && isNoCounterpart(row.fhir)) {
     out.push(`${where}: a row with no counterpart on either side is not a mapping fact`);
   }

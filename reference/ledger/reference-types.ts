@@ -415,7 +415,15 @@ const linkToReference = {
           },
         ],
       },
-      toOpenehr: { fidelity: 'lossless' },
+      toOpenehr: {
+        fidelity: 'unmapped',
+        reason:
+          'No `LINK` is produced at all, so nothing lands in `target`. `LINK.type` is ' +
+          'mandatory and a plain `Reference` has no field that can source it — see the ' +
+          '`LINK.type` row — so the reference travels only as part of a `LINK` that cannot ' +
+          'be built.',
+        owner: 'openehr-modelling',
+      },
       maturity: 'open',
       note:
         'Two standard extensions cover sub-element addressing when it is genuinely ' +
@@ -445,13 +453,37 @@ const linkToReference = {
           cite: REFERENCE,
         },
       ],
-      toFhir: { fidelity: 'lossless' },
-      toOpenehr: { fidelity: 'lossless' },
+      toFhir: {
+        fidelity: 'lossy',
+        drops: [
+          {
+            path: 'LINK.meaning',
+            reason:
+              '`LINK.meaning` is a `DV_TEXT [1..1]` and `Reference.display` is a plain ' +
+              '`string`, so **only `DV_TEXT.value` participates**. `formatting`, ' +
+              '`encoding`, the deprecated `hyperlink`, and `mappings` are `lossy` or ' +
+              '`unmapped` into a FHIR `string` — see the `DV_TEXT` table on ' +
+              '[Textual Data](mapping-textual.html) — and a `Reference.display` has no ' +
+              'extension slot in this mapping to carry them',
+          },
+        ],
+      },
+      toOpenehr: {
+        fidelity: 'unmapped',
+        reason:
+          'No `LINK` is produced at all, so nothing lands in `meaning`. See the ' +
+          '`LINK.type` row.',
+        owner: 'openehr-modelling',
+      },
       maturity: 'open',
+      note:
+        'The `lossless` claim this row used to carry was false in both directions: it ' +
+        'ignored every `DV_TEXT` attribute except `value`, and it depended on ' +
+        '`referenceToLink` fabricating a `LINK.type`.',
     },
     {
       id: 'link.type',
-      scope: 'archetype',
+      scope: 'datatype',
       openehr: {
         path: 'LINK.type',
         cardinality: '1..1',
@@ -468,17 +500,39 @@ const linkToReference = {
           cite: CODEABLE_REFERENCE,
         },
       ],
-      toFhir: { fidelity: 'lossless' },
-      toOpenehr: { fidelity: 'lossless' },
+      toFhir: {
+        fidelity: 'lossy',
+        drops: [
+          {
+            path: 'LINK.type',
+            reason:
+              'only `DV_TEXT.value` participates, as for `LINK.meaning`; and a plain ' +
+              '`Reference` — what a data-type conversion produces without the ' +
+              'archetype-level decision to use a `CodeableReference` — carries no concept ' +
+              'at all, so this guide\u2019s reference converter emits no link type',
+          },
+        ],
+      },
+      toOpenehr: {
+        fidelity: 'unmapped',
+        reason:
+          '`LINK.type` is **mandatory (1..1)** and a FHIR `Reference` has no field that ' +
+          'can source it. Only a `CodeableReference` carries a concept, and using one is ' +
+          'an archetype-level decision. **No `LINK` is produced from a bare `Reference`**, ' +
+          'because inventing a link type — the literal `reference`, as an earlier draft of ' +
+          'this guide did — states a relationship nobody sent.',
+        owner: 'openehr-modelling',
+      },
       maturity: 'open',
       note:
         'The link type — `issue`, `problem`, `citation`, and the like — has no home on a ' +
         'plain `Reference`. A `CodeableReference` carries a concept **and** a reference in ' +
-        'one value, which is the closest FHIR shape.',
+        'one value, which is the closest FHIR shape. This is the row that makes ' +
+        '`LINK ↔ Reference` a **one-way** mapping at data-type level.',
     },
     {
       id: 'fhir:codeable-reference.split',
-      scope: 'archetype',
+      scope: 'datatype',
       openehr: {
         kind: 'none',
         reason:

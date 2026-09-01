@@ -209,3 +209,21 @@ code.
   value from its other rows, nothing at the unmapped row's own path may survive
   into it. A conversion that produces nothing must also say why, naming a path
   the ledger declares `unmapped`.
+- **The `archetype` scope now has to earn itself.** A row at `archetype` scope
+  is exempt from the converter, fixture and round-trip gates because — in the
+  guide's own words — its FHIR home is a resource element. That justification is
+  now a check: a row claiming the exemption while targeting an ordinary
+  data-type element is rejected. Four rows failed it and were re-scoped to
+  `datatype`, which put their published verdicts under test for the first time
+  and corrected three of them.
+- **`LINK ↔ Reference` is published as the one-way mapping it is.** `LINK`
+  requires `meaning`, `type`, and `target`; a FHIR `Reference` has no field that
+  can source `type`, so no `LINK` is produced from one. `LINK.meaning` and
+  `LINK.type` are also `DV_TEXT`, of which only `value` reaches a `string` or a
+  `CodeableConcept.text`, so both directions are restated: `lossy` out, and
+  `unmapped` back, with the gap owned rather than papered over by fabricating
+  the literal link type `reference`.
+- **`DV_DURATION` → `Timing.repeat` no longer claims `lossless` while deferring
+  the work.** A row whose own note calls timing and dosage "the hardest mapping
+  problem" and defers it to a dedicated session is `unmapped` in both
+  directions, exactly as `DV_GENERAL_TIME_SPECIFICATION` is.

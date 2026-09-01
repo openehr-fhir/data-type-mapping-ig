@@ -356,7 +356,7 @@ const dvMultimediaToAttachment = {
     },
     {
       id: 'fhir:attachment.media-details',
-      scope: 'archetype',
+      scope: 'datatype',
       openehr: {
         kind: 'none',
         reason:
@@ -390,10 +390,12 @@ const dvMultimediaToAttachment = {
       },
       maturity: 'open',
       note:
-        '`archetype` scope, and it applies equally to `Attachment.height`, `.width`, ' +
+        'It applies equally to `Attachment.height`, `.width`, ' +
         '`.frames`, `.duration`, `.pages`, and `.language`. The *Media File* CLUSTER ' +
         'archetype, rather than a bare `DV_MULTIMEDIA`, is the closer target for a FHIR ' +
-        '`Attachment`.',
+        '`Attachment`. The row is `datatype` scope because its FHIR side is an ordinary ' +
+        'data-type element, not a resource element: the conversion is what has nowhere to ' +
+        'put it, and the round-trip matrix now says so.',
     },
     {
       id: 'dv-multimedia.charset',

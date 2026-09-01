@@ -23,6 +23,10 @@ import {
   stringToDvParsable,
 } from '../src/convert/other.ts';
 import { stringToDvText } from '../src/convert/textual.ts';
+import {
+  identifierToDvIdentifier,
+  referenceToLink,
+} from '../src/convert/reference-types.ts';
 
 /**
  * The two contracts every converter in this workspace is held to.
@@ -155,6 +159,25 @@ const MANDATORY: readonly {
     run: () => codeableConceptToDvState({ text: 'completed' }),
     paths: ['CodeableConcept.coding', 'CodeableConcept.coding[absent]'],
   },
+  {
+    converter: 'identifierToDvIdentifier',
+    mapping: 'dv-identifier-to-identifier',
+    why: 'DV_IDENTIFIER.id is 1..1 while Identifier.value is 0..1',
+    run: () => identifierToDvIdentifier({ system: 'http://example.org/mrn' }),
+    paths: ['Identifier.value[absent]'],
+  },
+  {
+    converter: 'referenceToLink',
+    mapping: 'link-to-reference',
+    why: 'LINK.type is 1..1 and a FHIR Reference has no field that can source it',
+    run: () => referenceToLink({ reference: 'Condition/anaemia-1', display: 'Related problem' }),
+    paths: [
+      'CodeableReference.concept',
+      'Reference.reference',
+      'Reference.display',
+      'CodeableReference',
+    ],
+  },
 ];
 
 for (const example of MANDATORY) {
@@ -181,7 +204,7 @@ for (const example of MANDATORY) {
 test('the mandatory-attribute rule covers every converter that can meet it', () => {
   // A guard against the list above silently falling behind the converters: the
   // count is stated here so that adding a case is a deliberate edit.
-  assert.equal(MANDATORY.length, 13);
+  assert.equal(MANDATORY.length, 15);
 });
 
 // ── the two recorded exceptions ──────────────────────────────────────────────

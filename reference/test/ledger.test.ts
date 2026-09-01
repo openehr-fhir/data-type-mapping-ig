@@ -110,6 +110,22 @@ test('a mapping id that is not lower-kebab-case is rejected', () => {
   rejects([mapping({ id: 'DV_Quantity_To_Quantity' })], 'lower-kebab-case');
 });
 
+test('an archetype-scope row whose FHIR side is an ordinary element is rejected', () => {
+  rejects(
+    [mapping({ rows: [{ ...GOOD_ROW, scope: 'archetype' }] })],
+    "must have a FHIR endpoint of kind 'resource-element'",
+  );
+});
+
+test('an archetype-scope row with a resource-element target is accepted', () => {
+  const row: Row = {
+    ...GOOD_ROW,
+    scope: 'archetype',
+    fhir: [{ ...FHIR_ENDPOINT, path: 'Observation.value', kind: 'resource-element' }],
+  };
+  assert.deepEqual(validateLedger([mapping({ rows: [row] })]), []);
+});
+
 test('a build.fhir.org citation is rejected — continuous-build snapshots rot', () => {
   rejects(
     [

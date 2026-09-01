@@ -112,6 +112,27 @@ test('an archetype-scope mapping has no converter, because there is no resource 
   assert.deepEqual(offenders, [], `archetype-scope mappings with a converter: ${offenders.join(', ')}`);
 });
 
+test('every archetype-scope row earns its exemption with a resource-level FHIR home', () => {
+  // The same rule `validateLedger` enforces, asserted again where the exemption
+  // is *applied* — `matrixRows` and `testableMappings` both key on scope, so
+  // the reason a row is outside the harness should be visible here too.
+  const offenders: string[] = [];
+  for (const mapping of ledger()) {
+    for (const row of mapping.rows) {
+      if (row.scope !== 'archetype') continue;
+      if (isNoCounterpart(row.fhir)) continue;
+      if (row.fhir.some((endpoint) => endpoint.kind === 'resource-element')) continue;
+      offenders.push(`${mapping.id}/${row.id}`);
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    'these rows are exempt from every gate while targeting an ordinary data-type ' +
+      `element: ${offenders.join(', ')}`,
+  );
+});
+
 test('every fixture directory belongs to a mapping', () => {
   if (!existsSync(FIXTURES)) return;
   const ids = new Set(ledger().map((m) => m.id));

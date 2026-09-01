@@ -146,6 +146,16 @@ export function attachmentToDvMultimedia(source: Attachment): MappingResult<DvMu
     ]);
   }
 
+  if (source.creation !== undefined) {
+    issues.push({
+      path: OTHER_PATH.attachmentCreation,
+      message:
+        'Attachment.creation, .height, .width, .frames, .duration and .pages have no ' +
+        'DV_MULTIMEDIA attribute at all; they belong to the openEHR extended media-details ' +
+        'archetype, which a data-type conversion does not author',
+    });
+  }
+
   return resultFor(
     compact({
       _type: 'DV_MULTIMEDIA' as const,

@@ -504,8 +504,12 @@ const dvDurationToDuration = {
           cite: FHIR_TIMING,
         },
       ],
-      toFhir: { fidelity: 'lossless' },
-      toOpenehr: { fidelity: 'lossless' },
+      toFhir: { fidelity: 'unmapped', reason: 'Deferred; see below.', owner: 'working-group' },
+      toOpenehr: {
+        fidelity: 'unmapped',
+        reason: 'Deferred; see below.',
+        owner: 'working-group',
+      },
       maturity: 'open',
       note:
         '`archetype` scope. Complex scheduling — dosage and treatment plans — is handled ' +
@@ -514,7 +518,10 @@ const dvDurationToDuration = {
         'differing only in whether the use is medication-related. The full timing and ' +
         'dosage mapping is acknowledged as **the hardest mapping problem** and is deferred ' +
         'to a dedicated archetype-level session, not least because both standards are ' +
-        'changing: the R6 approach to `Timing` appears closer to the openEHR one.',
+        'changing: the R6 approach to `Timing` appears closer to the openEHR one. A row ' +
+        'whose own note defers the work may not also claim `lossless`, so nothing is ' +
+        'asserted in either direction — the same treatment ' +
+        '`DV_GENERAL_TIME_SPECIFICATION` gets two rows below.',
     },
   ],
 } satisfies Mapping;

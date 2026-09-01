@@ -45,6 +45,8 @@ export const CODED_PATH = {
   codingCodeAbsent: 'Coding.code[absent]',
   codeableConceptCodingAbsent: 'CodeableConcept.coding[absent]',
   codeableConceptCoding: 'CodeableConcept.coding',
+  elementNullFlavour: 'ELEMENT.null_flavour',
+  iso21090NullFlavor: 'Element.extension[iso21090-nullFlavor]',
 } as const;
 
 function compact<T extends object>(value: T): T {
@@ -387,7 +389,18 @@ const DAR_EXACT = new Set(['unknown', 'masked', 'not-applicable']);
 export function nullFlavourToDataAbsentReason(
   source: NullFlavour,
 ): MappingResult<CodeableConcept> {
-  const issues: Issue[] = [];
+  const issues: Issue[] = [
+    {
+      // The v3 NullFlavor extension is a second FHIR representation of the same
+      // information, and this guide does not emit it — data-absent-reason is
+      // the current guidance.
+      path: CODED_PATH.elementNullFlavour,
+      message:
+        'the v3 NullFlavor extension is an alternative FHIR representation of the same ' +
+        'information; this guide emits data-absent-reason, which is the current guidance, ' +
+        'so nothing is produced for the extension',
+    },
+  ];
   const code = source.defining_code.code_string;
 
   if (code === NULL_FLAVOUR.noInformation) {
@@ -413,7 +426,15 @@ export function nullFlavourToDataAbsentReason(
 export function dataAbsentReasonToNullFlavour(
   source: CodeableConcept,
 ): MappingResult<NullFlavour> {
-  const issues: Issue[] = [];
+  const issues: Issue[] = [
+    {
+      path: CODED_PATH.iso21090NullFlavor,
+      message:
+        'an incoming v3 NullFlavor extension is not consumed here: this converter reads ' +
+        'data-absent-reason, and the v3 hierarchy is deeper than openEHR\u2019s, so NI, ' +
+        'INV and their children collapse onto 271 and UNK and its children onto 253',
+    },
+  ];
   const code = source.coding?.[0]?.code ?? 'unknown';
 
   if (!DAR_EXACT.has(code)) {

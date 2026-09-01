@@ -1,4 +1,4 @@
 {
-  "directions": [],
-  "reason": "Neither direction is a pair yet. LINK.target addresses an item inside an openEHR EHR and Reference.reference addresses a FHIR resource, so the two sides are the same clinical link expressed in two address spaces; and LINK.type is fabricated as the literal 'reference' coming back, which is the defect H12 restates. The LINK rows and this fixture are corrected together."
+  "directions": ["toFhir"],
+  "reason": "LINK.type is mandatory and a plain FHIR Reference has no field that can source it, so no LINK is produced coming back. The link.type row states that gap, and it is what makes LINK to Reference a one-way mapping at data-type level."
 }
