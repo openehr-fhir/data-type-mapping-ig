@@ -15,6 +15,13 @@ Categories, in the order they appear under a version:
 
 **Compatible, Substantive**
 
+- **Other data.** Added `DV_MULTIMEDIA` ↔ `Attachment`, `DV_PARSABLE` ↔ `string`, and
+  `DV_STATE` ↔ `CodeableConcept`. `compression_algorithm` (FHIR-56003),
+  non-SHA-1 `integrity_check_algorithm` (FHIR-55422), and `thumbnail` (FHIR-56002)
+  are `unmapped` with their owning tickets named; **no extension, code system, or**
+  **value set is invented for any of them**. `DV_STATE.is_terminal` is `unmapped`
+  because FHIR has no state-machine value type at all. `DV_ENCAPSULATED` is cited to
+  the openEHR Reference Model rather than to any downstream representation of it.
 - **Temporal data.** Added `DV_DATE`, `DV_TIME`, `DV_DATE_TIME`, and `DV_DURATION`,
   with the ISO 8601 subset differences stated as mapping rules: compact openEHR forms
   SHALL be expanded, partial precision SHALL be truncated rather than padded,

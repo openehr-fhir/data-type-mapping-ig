@@ -28,9 +28,10 @@ import numeric from '../../ledger/numeric.ts';
 import referenceTypes from '../../ledger/reference-types.ts';
 import temporal from '../../ledger/temporal.ts';
 import textual from '../../ledger/textual.ts';
+import other from '../../ledger/other.ts';
 import quantity from '../../ledger/quantity.ts';
 
-const MODULES: readonly (readonly Mapping[])[] = [quantity, coded, boolean_, numeric, textual, referenceTypes, temporal];
+const MODULES: readonly (readonly Mapping[])[] = [quantity, coded, boolean_, numeric, textual, referenceTypes, temporal, other];
 
 let cached: readonly Mapping[] | undefined;
 

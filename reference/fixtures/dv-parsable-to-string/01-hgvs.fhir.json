@@ -1,0 +1,9 @@
+{
+  "value": "NM_000059.3:c.274G>A",
+  "extension": [
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/mimeType",
+      "valueString": "text/x-hgvs"
+    }
+  ]
+}

@@ -41,6 +41,7 @@ export const CATEGORY_PAGE: Readonly<Record<Category, string>> = {
   textual: 'mapping-textual.html',
   reference: 'mapping-reference.html',
   temporal: 'mapping-temporal.html',
+  other: 'mapping-other.html',
   gaps: 'gaps.html',
 };
 
@@ -53,6 +54,7 @@ export const CATEGORY_LABEL: Readonly<Record<Category, string>> = {
   textual: 'Textual Data',
   reference: 'Resource-Locator Data and References',
   temporal: 'Temporal Data',
+  other: 'Other Data',
   gaps: 'Gaps',
 };
 

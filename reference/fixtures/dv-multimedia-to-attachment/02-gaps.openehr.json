@@ -1,0 +1,45 @@
+{
+  "_type": "DV_MULTIMEDIA",
+  "media_type": {
+    "_type": "CODE_PHRASE",
+    "terminology_id": {
+      "value": "IANA_media-types"
+    },
+    "code_string": "image/png"
+  },
+  "size": 20416,
+  "data": "iVBORw0KGgo=",
+  "integrity_check": "2jmj7l5rSw0yVb/vlWAYkK/YBwk=",
+  "integrity_check_algorithm": {
+    "_type": "CODE_PHRASE",
+    "terminology_id": {
+      "value": "openehr"
+    },
+    "code_string": "SHA-256"
+  },
+  "compression_algorithm": {
+    "_type": "CODE_PHRASE",
+    "terminology_id": {
+      "value": "openehr"
+    },
+    "code_string": "gzip"
+  },
+  "charset": {
+    "_type": "CODE_PHRASE",
+    "terminology_id": {
+      "value": "IANA_character-sets"
+    },
+    "code_string": "UTF-8"
+  },
+  "thumbnail": {
+    "_type": "DV_MULTIMEDIA",
+    "media_type": {
+      "_type": "CODE_PHRASE",
+      "terminology_id": {
+        "value": "IANA_media-types"
+      },
+      "code_string": "image/png"
+    },
+    "size": 512
+  }
+}

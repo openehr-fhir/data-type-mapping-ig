@@ -1,0 +1,16 @@
+{
+  "_type": "DV_MULTIMEDIA",
+  "media_type": {
+    "_type": "CODE_PHRASE",
+    "terminology_id": {
+      "value": "IANA_media-types"
+    },
+    "code_string": "image/png"
+  },
+  "size": 20416,
+  "uri": {
+    "_type": "DV_URI",
+    "value": "https://example.org/images/chest-xray.png"
+  },
+  "alternate_text": "Chest X-ray, PA view"
+}

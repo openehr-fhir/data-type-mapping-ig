@@ -33,6 +33,7 @@ export type Category =
   | 'textual'
   | 'reference'
   | 'temporal'
+  | 'other'
   | 'gaps';
 
 /**

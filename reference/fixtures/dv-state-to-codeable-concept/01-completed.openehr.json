@@ -1,0 +1,15 @@
+{
+  "_type": "DV_STATE",
+  "value": {
+    "_type": "DV_CODED_TEXT",
+    "value": "completed",
+    "defining_code": {
+      "_type": "CODE_PHRASE",
+      "terminology_id": {
+        "value": "openehr"
+      },
+      "code_string": "532"
+    }
+  },
+  "is_terminal": true
+}
