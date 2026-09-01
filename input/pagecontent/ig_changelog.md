@@ -13,4 +13,27 @@ Categories, in the order they appear under a version:
 
 #### Version 0.1.0
 
+**Compatible, Substantive**
+
+- Page inventory and navigation: added `type-systems.html`,
+  `conventions.html`, the eight category pages (`mapping-boolean.html`,
+  `mapping-numeric.html`, `mapping-reference.html`, `mapping-textual.html`,
+  `mapping-coded.html`, `mapping-quantity.html`, `mapping-temporal.html`,
+  `mapping-other.html`), `gaps.html`, `cross-cutting.html`,
+  `open-items.html`, and `reference-implementation.html`, each registered in
+  both `pages:` and `menu:`.
+- `mapping.html` became the index to the category pages. Its
+  `### Conventions used in the mapping tables` section moved to
+  `conventions.html`. **The two normative sentences in that section moved
+  verbatim** — *"A mapping marked **lossless** SHALL round-trip: converting
+  openEHR to FHIR and back SHALL yield an equivalent instance. A mapping
+  marked **lossy** SHALL document exactly which information is dropped."* —
+  this is a relocation, not a rewording, and neither sentence's conformance
+  language changed.
+- `conventions.html` extends the relocated legend with per-direction fidelity
+  columns and a `Maturity` column, and adds a decision-maturity legend
+  (`settled` / `open` / `not-discussed`).
+- `index.html` gained a real *How to read this guide* navigation covering
+  every page.
+
 - Initial repository scaffold. No published content yet.

@@ -17,9 +17,37 @@ describes what is lost.
 
 ### How to read this guide
 
-- **[Data Type Mapping](mapping.html)** — the mapping tables themselves.
-- **Artifacts** — the conformance resources (profiles, extensions, concept
-  maps) defined by this guide.
+**Background**
+
+- **[Type Systems](type-systems.html)** — how openEHR and FHIR each model data
+  types, and the three conceptual differences that account for most of the
+  fidelity loss recorded here.
+- **[Conventions](conventions.html)** — the columns, the three fidelity values,
+  the three maturity values, and what `datatype` and `archetype` scope mean.
+  Read this before the tables.
+
+**The mappings**
+
+- **[Data Type Mapping](mapping.html)** — the index to the mapping tables.
+- **[Boolean](mapping-boolean.html)**, **[Numeric](mapping-numeric.html)**,
+  **[References](mapping-reference.html)**, **[Textual](mapping-textual.html)**,
+  **[Coded](mapping-coded.html)**, **[Quantities](mapping-quantity.html)**,
+  **[Temporal](mapping-temporal.html)**, **[Other](mapping-other.html)** — the
+  field-level tables, by category.
+- **[Cross-Cutting Concerns](cross-cutting.html)** — the questions that are not
+  about any one type.
+
+**What is not settled**
+
+- **[Gaps](gaps.html)** — what does not map, in both directions, and why.
+- **[Open Items](open-items.html)** — reviewer coverage, and the register of
+  unresolved actions with an owner for each.
+
+**Support**
+
+- **Artifacts** — the conformance resources defined by this guide.
+- **[Reference Implementation](reference-implementation.html)** — the runnable
+  code that substantiates the fidelity claims.
 - **[Downloads](downloads.html)** — machine-readable packages and definitions.
 - **[Change Log](ig_changelog.html)** — what changed in each release.
 
@@ -32,5 +60,7 @@ This guide is authored against **FHIR R5 (5.0.0)**.
 This guide is a **draft**. Content, artifact identifiers, and canonical URLs
 may change between releases until it reaches a balloted status.
 
-<!-- TODO: replace this page with the real introduction, including the
-     relationship to the openEHR Reference Model release this guide targets. -->
+Mapping decisions carry their own maturity, separately from the guide's. A row
+marked `open` is under discussion and a row marked `not-discussed` has not been
+examined; neither should be implemented as though it were settled. See
+[Conventions](conventions.html).

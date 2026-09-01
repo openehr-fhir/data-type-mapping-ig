@@ -60,6 +60,34 @@ pages:
     title: Home
   mapping.md:
     title: Data Type Mapping
+  type-systems.md:
+    title: Type Systems
+  conventions.md:
+    title: Conventions
+  mapping-boolean.md:
+    title: Boolean Data
+  mapping-numeric.md:
+    title: Numeric Primitives
+  mapping-reference.md:
+    title: Resource-Locator Data and References
+  mapping-textual.md:
+    title: Textual Data
+  mapping-coded.md:
+    title: Coded Data
+  mapping-quantity.md:
+    title: Quantities
+  mapping-temporal.md:
+    title: Temporal Data
+  mapping-other.md:
+    title: Other Data
+  gaps.md:
+    title: Gaps
+  cross-cutting.md:
+    title: Cross-Cutting Concerns
+  open-items.md:
+    title: Open Items
+  reference-implementation.md:
+    title: Reference Implementation
   downloads.md:
     title: Downloads
   ig_changelog.md:
@@ -67,12 +95,31 @@ pages:
 
 # ╭────────────────────────────────────────────menu.xml────────────────────────────────────────────╮
 # │  To use a provided input/includes/menu.xml file, delete the "menu" property below.             │
+# │  Every leaf here must have a matching entry in "pages" above — see AGENTS.md, "a new page      │
+# │  means two edits". reference/test/pages.test.ts enforces that in both directions.              │
 # ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
 menu:
   Contents: toc.html
   Home: index.html
   Data Type Mapping: mapping.html
+  Mappings:
+    Boolean: mapping-boolean.html
+    Numeric: mapping-numeric.html
+    References: mapping-reference.html
+    Textual: mapping-textual.html
+    Coded: mapping-coded.html
+    Quantities: mapping-quantity.html
+    Temporal: mapping-temporal.html
+    Other: mapping-other.html
+  Background:
+    Type Systems: type-systems.html
+    Conventions: conventions.html
+    Cross-Cutting Concerns: cross-cutting.html
+  Status:
+    Gaps: gaps.html
+    Open Items: open-items.html
   Artifacts: artifacts.html
   Support:
     Downloads: downloads.html
+    Reference Implementation: reference-implementation.html
     Change Log: ig_changelog.html
