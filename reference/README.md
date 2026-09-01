@@ -78,3 +78,35 @@ npm --prefix reference test
 
 Citations are always written as **published URLs**. A machine-local path never
 appears in a citation.
+
+## What the tests prove
+
+- A `lossless` row **round-trips**: the value at that row's path survives
+  conversion out and back unchanged, and the converter reports no issue there.
+- A `lossy` row neither **over-claims** nor **under-claims**: every issue the
+  converter reports is one the ledger declared for that direction, and the union
+  of reported issues across all of a mapping's fixtures equals the declared set
+  exactly. The union form is what lets one fixture legitimately leave an
+  optional field unpopulated.
+- An `unmapped` row reports its source path and produces no value at its target.
+- A mapping that claims something can be carried has a converter **and** a
+  fixture; a mapping that claims nothing can be has neither.
+
+Two scoping rules are deliberate and are asserted rather than assumed. Rows at
+`archetype` scope are outside the matrix, because their FHIR home is a resource
+element and a data-type converter never sees a resource. And a row whose
+**source** side has no counterpart in the direction under test is skipped,
+because there is nothing to convert from — that is what lets `Count.system` and
+`Count.code` be filled with the values FHIR invariant `cnt-3` fixes.
+
+## Undecided questions stay undecided
+
+Where the working group has not chosen between candidates, the reference
+implementation is written so that no candidate can be adopted by accident.
+
+The clearest case is the format for combining a FHIR `system` and `version` into
+one openEHR `terminology_id`. `joinTerminologyId` and `splitTerminologyId` in
+`src/convert/coded.ts` implement all three candidates and take the format as a
+**required parameter with no default value** — and **no registered converter
+calls them**. The registered converters treat `terminology_id` as opaque. No
+test, render, or build therefore exercises a candidate.

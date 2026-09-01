@@ -15,117 +15,114 @@ Categories, in the order they appear under a version:
 
 **Compatible, Substantive**
 
-- **Reviewer coverage and the open-items register.** `open-items.html` now publishes
-  which mappings have been reviewed from which side — including the ones reviewed from
-  neither — and the full register of unresolved FHIR-side, openEHR-side, and
-  documentation actions with an owner and a status for each. Every `Owner` a mapping
-  row blames is asserted to appear in the register, so a gap cannot cite a ticket the
-  page then fails to list.
-- **Cross-cutting concerns.** `cross-cutting.html` now carries the material the
-  working documents scattered: the three candidate `terminology_id` formats with
-  their trade-offs and **no decision**, the character-encoding rule, the `DV_AMOUNT`
-  pattern stated once for all four subtypes, the validation position (validation is
-  out of scope; data is mapped as found), and both halves of the bindings and process
-  guidance the source documents left empty.
-- **ISO 8601 subsets.** The comparison of which temporal forms each standard accepts
-  is published as a **generated** table, rendered directly from the capability table
-  the converters themselves consult, so the guide and the code cannot disagree. This
-  closes the open action item asking for a detailed subset comparison.
-- **Gaps.** `gaps.html` now publishes four inventories, three of them **derived from**
-  **the whole ledger** rather than transcribed: openEHR → FHIR, FHIR → openEHR, and
-  not-yet-discussed. A gap therefore cannot fall out of step with the mapping it
-  belongs to. The fourth inventory lists FHIR types with no openEHR counterpart at
-  all — `Address`, `HumanName`, `ContactPoint`, `Annotation`, `Signature`,
-  `SampledData`, `RatioRange`, `Money`, `Meta`, `Narrative` — each citing the
-  openEHR Data Types inventory page, so "no counterpart exists" stays a sourced claim.
-- **Other data.** Added `DV_MULTIMEDIA` ↔ `Attachment`, `DV_PARSABLE` ↔ `string`, and
-  `DV_STATE` ↔ `CodeableConcept`. `compression_algorithm` (FHIR-56003),
-  non-SHA-1 `integrity_check_algorithm` (FHIR-55422), and `thumbnail` (FHIR-56002)
-  are `unmapped` with their owning tickets named; **no extension, code system, or**
-  **value set is invented for any of them**. `DV_STATE.is_terminal` is `unmapped`
-  because FHIR has no state-machine value type at all. `DV_ENCAPSULATED` is cited to
-  the openEHR Reference Model rather than to any downstream representation of it.
-- **Temporal data.** Added `DV_DATE`, `DV_TIME`, `DV_DATE_TIME`, and `DV_DURATION`,
-  with the ISO 8601 subset differences stated as mapping rules: compact openEHR forms
-  SHALL be expanded, partial precision SHALL be truncated rather than padded,
-  fractional seconds truncate from nine digits to three, and a `time` carries its
-  offset in the `timezone` extension because FHIR `time` cannot. `DV_TEMPORAL.accuracy`
-  is `unmapped`. The archetype-scope `Timing` mapping names the four openEHR timing
-  archetypes and is deferred. `DV_GENERAL_TIME_SPECIFICATION` and
-  `DV_PERIODIC_TIME_SPECIFICATION` are recorded `not-discussed`.
-- **Resource-locator data and references.** Added `DV_IDENTIFIER` ↔ `Identifier`,
-  `DV_URI` / `DV_EHR_URI` ↔ `uri` / `url`, and `LINK` ↔ `Reference` /
-  `CodeableReference`, including the `system::value` convention and its
-  last-`::` parsing rule, the `Identifier.use` and `Identifier.period` gaps, and
-  the sub-element addressing that `Reference.reference` cannot express. The pending
-  `LINK` / `PARTY_IDENTIFIED` / `OBJECT_REF` unification is named as a reason and
-  **not anticipated**: the Reference Model is mapped as published today.
-- **Textual data.** Added `DV_TEXT` ↔ `string` / `markdown`, covering `formatting`,
-  `language`, `encoding` (`unmapped`: FHIR mandates UTF-8 and the sender converts),
-  the deprecated `hyperlink`, and `mappings`, which belongs to a `CodeableConcept`.
-  `DV_PARAGRAPH` is recorded `not-discussed` rather than given an invented mapping.
-- **Boolean data.** Added `DV_BOOLEAN` ↔ `boolean`, recording that `DV_BOOLEAN.value`
-  is mandatory in the Reference Model while a FHIR `boolean` element may be absent.
-- **Numeric primitives.** Added `Integer` ↔ `integer`, `Integer64` ↔ `integer64`,
-  and `Real` / `Double` ↔ `decimal`, including the FHIR rule that trailing zeros
-  in a `decimal` are significant and openEHR's that they are not, and the 32-bit
-  overflow case, which is recorded `open` because the right extension is
-  element-specific.
-- **Coded data.** Added `CODE_PHRASE` ↔ `Coding`, `DV_CODED_TEXT` ↔
-  `CodeableConcept` / `Coding`, `TERM_MAPPING` ↔ `CodeableConcept.coding`, and
-  the `null_flavour` ↔ `data-absent-reason` correspondences, including the full
-  L1/L2 inheritance detail in both directions and the HL7 v3 `NullFlavor`
-  correspondence.
-- Recorded as **open** and explicitly undecided: how a FHIR `system` plus
-  `version` becomes one openEHR `terminology_id` (three candidates, none
-  adopted); the default strategy when an incoming `Coding` omits the mandatory
-  `system` or `code`; how `TERM_MAPPING.purpose` is represented in FHIR; and the
-  openEHR `271` *no information* code, which has no data-absent-reason
-  equivalent.
-- **No ConceptMap, CodeSystem, or ValueSet is defined by this guide.** Both
-  sides of every terminology correspondence are cited to their own publisher.
-- **Quantities.** Added the field-level mappings for `DV_QUANTITY` ↔ `Quantity`,
-  `DV_COUNT` ↔ `Count`, `DV_PROPORTION` ↔ `Ratio`, `DV_INTERVAL` ↔
-  `Range` / `Period` / `Quantity`, `DV_QUANTITY` ↔ `Money` / `MoneyQuantity`,
-  `DV_QUANTITY` ↔ `SimpleQuantity`, and the archetype-scope `DV_ORDINAL` and
-  `DV_SCALE` ↔ `Observation.component` mappings, each with a per-direction
-  fidelity verdict, both mandatory citations, and its decision maturity.
-- Recorded as **open** rather than asserted: the `~` approximate comparator
-  (R6, FHIR-56000), `Quantity.comparator = ad`, the `DV_PROPORTION.type`
-  discriminator (FHIR-56001), units on a `Ratio`, and the `normal_status`
-  binding breadth.
-- The fidelity claims in this category are now **checked**: every `lossless`
-  row round-trips a paired fixture unchanged, and every `lossy` row drops
-  exactly what it declares.
-- The mapping tables are now **generated** from a single machine-checked
-  mapping ledger and written into sentinel-delimited managed regions in the
-  page sources. `mapping.html` carries the first such region, the all-mappings
-  summary table. Hand-editing a generated region is detected and rejected;
-  hand-written prose outside the sentinels is never touched.
-- `conventions.html` gained a citation-tier note: extension-pack citations are
-  marked with a dagger and are taken on the working group's authority, because
-  they cannot be resolved against a local mirror of the FHIR R5 core
-  specification. `build.fhir.org` citations are not permitted anywhere in this
-  guide.
-- Page inventory and navigation: added `type-systems.html`,
-  `conventions.html`, the eight category pages (`mapping-boolean.html`,
+First content release. The guide moves from an empty scaffold to a complete
+data-type mapping between the openEHR Reference Model and FHIR R5, stated at
+**field level** and in **both directions**, with every claim backed by runnable
+code.
+
+*Structure*
+
+- **Eighteen pages**, up from four. Added `type-systems.html`,
+  `conventions.html`, eight category pages (`mapping-boolean.html`,
   `mapping-numeric.html`, `mapping-reference.html`, `mapping-textual.html`,
   `mapping-coded.html`, `mapping-quantity.html`, `mapping-temporal.html`,
-  `mapping-other.html`), `gaps.html`, `cross-cutting.html`,
-  `open-items.html`, and `reference-implementation.html`, each registered in
-  both `pages:` and `menu:`.
-- `mapping.html` became the index to the category pages. Its
-  `### Conventions used in the mapping tables` section moved to
-  `conventions.html`. **The two normative sentences in that section moved
-  verbatim** — *"A mapping marked **lossless** SHALL round-trip: converting
-  openEHR to FHIR and back SHALL yield an equivalent instance. A mapping
-  marked **lossy** SHALL document exactly which information is dropped."* —
-  this is a relocation, not a rewording, and neither sentence's conformance
-  language changed.
-- `conventions.html` extends the relocated legend with per-direction fidelity
-  columns and a `Maturity` column, and adds a decision-maturity legend
-  (`settled` / `open` / `not-discussed`).
-- `index.html` gained a real *How to read this guide* navigation covering
-  every page.
+  `mapping-other.html`), `gaps.html`, `cross-cutting.html`, `open-items.html`,
+  and `reference-implementation.html`, each registered in both `pages:` and
+  `menu:`.
+- `mapping.html` became the index to the category pages. Its conventions
+  section moved to `conventions.html`, and **the two normative SHALL sentences
+  moved verbatim** — *"A mapping marked **lossless** SHALL round-trip:
+  converting openEHR to FHIR and back SHALL yield an equivalent instance. A
+  mapping marked **lossy** SHALL document exactly which information is
+  dropped."* That is a relocation, not a rewording; no conformance language
+  changed.
+- `conventions.html` extends the relocated legend with **per-direction**
+  fidelity columns, a decision-maturity legend (`settled` / `open` /
+  `not-discussed`), and a scope legend (`datatype` / `archetype`).
 
-- Initial repository scaffold. No published content yet.
+*How the guide is produced*
+
+- Every mapping table and every worked example is **generated** from a single
+  machine-checked mapping ledger and written into sentinel-delimited managed
+  regions in the page sources. A published example *is* the fixture the
+  converters are tested against, so the two cannot drift.
+- Fidelity claims are **checked, not asserted**: a `lossless` row must
+  round-trip a paired instance unchanged, and a `lossy` row must drop exactly
+  what it declares — no more and no less.
+- Extension-pack citations are marked with a dagger and are taken on the
+  working group's authority, because they cannot be resolved against a local
+  mirror of the FHIR R5 core specification. `build.fhir.org` citations are not
+  permitted anywhere in this guide.
+
+*The mappings*
+
+- **Quantities** — `DV_QUANTITY` ↔ `Quantity`, `DV_COUNT` ↔ `Count`,
+  `DV_PROPORTION` ↔ `Ratio`, `DV_INTERVAL` ↔ `Range` / `Period` / `Quantity`,
+  `DV_QUANTITY` ↔ `Money` / `MoneyQuantity` and ↔ `SimpleQuantity`, and the
+  archetype-scope `DV_ORDINAL` and `DV_SCALE` ↔ `Observation.component`.
+- **Coded data** — `CODE_PHRASE` ↔ `Coding`, `DV_CODED_TEXT` ↔
+  `CodeableConcept` / `Coding`, `TERM_MAPPING` ↔ `CodeableConcept.coding`, and
+  the `null_flavour` ↔ `data-absent-reason` correspondences with their full
+  L1/L2 inheritance in both directions, plus the HL7 v3 `NullFlavor`
+  correspondence.
+- **Boolean** — `DV_BOOLEAN` ↔ `boolean`.
+- **Numeric primitives** — `Integer` ↔ `integer`, `Integer64` ↔ `integer64`,
+  and `Real` / `Double` ↔ `decimal`, including the FHIR rule that trailing zeros
+  in a `decimal` are significant and openEHR's that they are not.
+- **Textual data** — `DV_TEXT` ↔ `string` / `markdown`, covering `formatting`,
+  `language`, `encoding`, the deprecated `hyperlink`, and `mappings`.
+- **Resource-locator data and references** — `DV_IDENTIFIER` ↔ `Identifier`,
+  `DV_URI` / `DV_EHR_URI` ↔ `uri` / `url`, and `LINK` ↔ `Reference` /
+  `CodeableReference`, including the `system::value` convention and its
+  last-`::` parsing rule.
+- **Temporal data** — `DV_DATE`, `DV_TIME`, `DV_DATE_TIME`, and `DV_DURATION`,
+  with the ISO 8601 subset differences stated as mapping rules: compact openEHR
+  forms SHALL be expanded, partial precision SHALL be truncated rather than
+  padded, fractional seconds truncate from nine digits to three, and a `time`
+  carries its offset in the `timezone` extension because FHIR `time` cannot.
+- **Other data** — `DV_MULTIMEDIA` ↔ `Attachment`, `DV_PARSABLE` ↔ `string`,
+  and `DV_STATE` ↔ `CodeableConcept`.
+
+*What is not settled, and is said to be not settled*
+
+- **Gaps.** `gaps.html` publishes four inventories, three of them **derived
+  from the whole ledger** rather than transcribed, so a gap cannot fall out of
+  step with the mapping it belongs to: openEHR → FHIR, FHIR → openEHR, and
+  not-yet-discussed. The fourth lists FHIR types with no openEHR counterpart at
+  all — `Address`, `HumanName`, `ContactPoint`, `Annotation`, `Signature`,
+  `SampledData`, `RatioRange`, `Money`, `Meta`, `Narrative` — each citing the
+  openEHR Data Types inventory page, so "no counterpart exists" stays a sourced
+  claim.
+- **Open decisions are recorded as open, with their candidates and no default.**
+  The `system` + `version` → `terminology_id` format (three candidates); the
+  strategy for a missing mandatory `terminology_id` or `code_string`; the
+  representation of `TERM_MAPPING.purpose`; openEHR `271` *no information*,
+  which has no `data-absent-reason` equivalent; the `~` approximate comparator
+  (R6, FHIR-56000); `Quantity.comparator = ad`; the `DV_PROPORTION` kind
+  discriminator (FHIR-56001); units on a `Ratio`; `Attachment` compression
+  (FHIR-56003), non-SHA-1 hashing (FHIR-55422), and thumbnails (FHIR-56002);
+  and the `normal_status` binding breadth.
+- **`not-discussed` rows carry no fidelity claim at all.** `DV_PARAGRAPH`,
+  `DV_GENERAL_TIME_SPECIFICATION`, `DV_PERIODIC_TIME_SPECIFICATION`,
+  `DV_ENCAPSULATED`, `EVENT`, `COMPOSITION`, `PARTY_RELATED`, and the *Media
+  File* CLUSTER archetype are listed with a reason and nothing more.
+- **Reviewer coverage is published in full**, including the mappings reviewed
+  from neither side. Every `Owner` a mapping row blames is asserted to appear in
+  the open-items register.
+
+*Cross-cutting*
+
+- `cross-cutting.html` collects the terminology-identifier question with its
+  three candidates and no decision, the character-encoding rule, the `DV_AMOUNT`
+  pattern stated once for all four subtypes, the ISO 8601 subset comparison as a
+  **generated** table, the working group's position that validation is out of
+  scope, and both halves of the bindings and process guidance the source
+  documents left as empty headings.
+
+*Not in this release*
+
+- No FHIR profile, extension, code system, value set, concept map, or
+  StructureMap is defined. `input/fsh/` is intentionally empty. Terminology
+  stays anchored in `terminology.hl7.org` or in openEHR's own published
+  terminology. No archetype is authored; the guide links the ones a gap depends
+  on and names who owns them.

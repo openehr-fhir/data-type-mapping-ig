@@ -79,3 +79,6 @@ mapping ledger, and the worked examples are the fixtures the
 [reference implementation](reference-implementation.html) is tested against. A
 `lossless` claim is one that round-trips in a test; a `lossy` claim is one whose
 dropped fields are exactly the fields the converter reports.
+
+Reviewing a change to a table therefore means reviewing the ledger, not the
+markdown. The markdown churn is a consequence, not the change itself.

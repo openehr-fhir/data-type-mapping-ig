@@ -59,9 +59,58 @@ definitions. Those citations are taken on the working group's authority, and are
 marked as such. Citations to openEHR RM pages and to FHIR R5 core pages **are**
 resolved and verified.
 
-#### Running it
+#### The commands
 
-The commands, and their expected results, are documented in the repository's
-`AGENTS.md` under *Build → Track 3* and in `reference/README.md`. They cover
-installing the workspace, type-checking it, running the test suite, rendering
-the guide's managed regions, and checking those regions for drift.
+Run from the repository root. These are the same commands the repository's
+`AGENTS.md` documents under *Build → Track 3*, and `reference/README.md`
+repeats them:
+
+```
+npm --prefix reference install
+npm --prefix reference run typecheck
+npm --prefix reference test
+npm --prefix reference run render
+npm --prefix reference run render:check
+```
+
+- `typecheck` is the primary gate on **ledger content**, because the ledger's
+  invariants are compile errors: a `lossy` verdict that names nothing it drops,
+  a row with a verdict in only one direction, and an endpoint with no citation
+  all fail to compile.
+- `test` runs the whole suite: the validator's negative cases, the five hard
+  mapping shapes, the page inventory, the region machinery, the coverage gate,
+  the round-trip matrix, the two ISO 8601 tables, and the open-items register.
+- `render` writes the managed regions into `input/pagecontent/`.
+- `render:check` re-renders in memory and fails on any difference. That is the
+  drift gate.
+
+Citation resolution is opt-in, because it needs local mirrors of the two
+specifications:
+
+```
+$env:OPENEHR_SPEC_DIR = '…'
+$env:FHIR_R5_DIR = '…'
+npm --prefix reference test
+```
+
+With both set, every `spec-local` citation in the ledger is resolved to a real
+page in the specification it claims to cite. Without them, that one test skips
+and the rest of the suite runs unchanged.
+
+#### What the tests actually prove
+
+- A `lossless` row **round-trips**: the value at that row's path survives
+  conversion out and back unchanged, and the converter reports no issue at that
+  path.
+- A `lossy` row neither **over-claims** nor **under-claims**: every issue the
+  converter reports is one the ledger declared for that direction, and the union
+  of reported issues across all of a mapping's fixtures equals the declared set
+  exactly.
+- An `unmapped` row reports its source path and produces no value at its target.
+- A mapping that claims something can be carried has a converter and a fixture;
+  a mapping that claims nothing can be has neither.
+
+Two scoping rules are deliberate. Rows at `archetype` scope are outside the
+matrix, because their FHIR home is a resource element and a data-type converter
+never sees a resource. And a row whose **source** side has no counterpart in the
+direction under test is skipped, because there is nothing to convert from.
