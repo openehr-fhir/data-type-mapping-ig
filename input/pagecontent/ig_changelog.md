@@ -126,3 +126,19 @@ code.
   stays anchored in `terminology.hl7.org` or in openEHR's own published
   terminology. No archetype is authored; the guide links the ones a gap depends
   on and names who owns them.
+
+*Review remediation*
+
+- **The mandatory-attribute rule is stated and enforced.** A conversion never
+  invents a value for an attribute the target standard declares mandatory:
+  where the source carries nothing for one, it produces no value at all and
+  reports the absent source path, rather than substituting a zero, an empty
+  string, or a default code and reporting `lossless`. The rule is published on
+  `conventions.html`, its two recorded exceptions —
+  `CODE_PHRASE.terminology_id` from an absent `Coding.system`, and
+  `DV_STATE.is_terminal` — are named on the rows that describe them, and the
+  reference implementation's contract tests hold every converter to it.
+- **Composed conversions carry their inner drops.** `DV_CODED_TEXT ↔
+  CodeableConcept`, `TERM_MAPPING ↔ Coding`, and `DV_STATE ↔ CodeableConcept`
+  now report the `CODE_PHRASE ↔ Coding` drops they delegate to, so a published
+  loss cannot disappear behind a composition boundary.

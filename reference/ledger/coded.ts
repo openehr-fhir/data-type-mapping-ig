@@ -65,6 +65,16 @@ const OBS_DAR: Cite = {
 const REVIEWED_BOTH: Review = { openehr: ['Severin'], fhir: ['Gino'] };
 const REVIEWED_OPENEHR_ONLY: Review = { openehr: ['Severin'], fhir: [] };
 
+/**
+ * The mandatory-attribute rule, cross-referenced from every row it governs.
+ * Appended to a row note rather than restated, so the wording cannot drift.
+ */
+const MANDATORY_RULE =
+  ' The openEHR attribute is **mandatory** and the FHIR element is optional, so an ' +
+  'incoming instance that omits it cannot be converted: the reference implementation ' +
+  'produces **nothing** rather than inventing a value. See ' +
+  '[the mandatory-attribute rule](conventions.html#mandatory-attributes).';
+
 // ── CODE_PHRASE ↔ Coding ─────────────────────────────────────────────────────
 
 const codePhraseToCoding = {
@@ -132,7 +142,7 @@ const codePhraseToCoding = {
         'The FHIR `code` type forbids leading, trailing, and repeated internal whitespace. ' +
         'openEHR places **no** character restriction on `code_string`, so a code carrying ' +
         'whitespace has no valid FHIR form. A change request proposing the matching ' +
-        'restriction on the openEHR side is open.',
+        'restriction on the openEHR side is open.' + MANDATORY_RULE,
     },
     {
       id: 'code-phrase.preferred_term',
@@ -234,6 +244,16 @@ const codePhraseToCoding = {
         owner: 'working-group',
       },
       maturity: 'open',
+      note:
+        'This row is one of the two **recorded exceptions** to ' +
+        '[the mandatory-attribute rule](conventions.html#mandatory-attributes). Because ' +
+        'the working group has explicitly refused to decide what an absent `system` should ' +
+        'become, the reference implementation substitutes the placeholder ' +
+        '`terminology_id` `unknown` **and reports the substitution at ' +
+        '`Coding.system[absent]`**, so the conversion is `lossy` rather than silently ' +
+        '`lossless`. An absent `Coding.code` gets no such treatment: `code_string` has no ' +
+        'defensible placeholder, so nothing is produced at all. `contract.test.ts` pins ' +
+        'both behaviours.',
     },
   ],
 } satisfies Mapping;
@@ -327,7 +347,7 @@ const dvCodedTextToCodeableConcept = {
         'converged on treating `userSelected` as effectively equivalent to `defining_code` ' +
         'for round-tripping, while recognising the semantics are not strictly identical. ' +
         'Whether `defining_code` should instead be conveyed by the `coding-purpose` ' +
-        'extension is tracked as HTA-170.',
+        'extension is tracked as HTA-170.' + MANDATORY_RULE,
     },
     {
       id: 'dv-coded-text.mappings',
@@ -370,7 +390,11 @@ const dvCodedTextToCodeableConcept = {
       note:
         'Each additional coding becomes one `TERM_MAPPING`. Because `TERM_MAPPING.match` ' +
         'is mandatory, an incoming coding is given `=`, which is an inference rather than ' +
-        'a carried value. See [TERM_MAPPING](#term-mapping) below.',
+        'a carried value. See [TERM_MAPPING](#term-mapping) below. A conversion that ' +
+        'delegates to `CODE_PHRASE ↔ Coding` **carries that mapping\u2019s drops forward** ' +
+        'rather than swallowing them, so a `Coding.version` or an absent `Coding.system` ' +
+        'is reported on the composed result too; the rows that declare those drops are on ' +
+        '[CODE_PHRASE ↔ Coding](#code-phrase).',
     },
   ],
 } satisfies Mapping;
@@ -409,7 +433,9 @@ const termMappingToCoding = {
       toFhir: { fidelity: 'lossless' },
       toOpenehr: { fidelity: 'lossless' },
       maturity: 'settled',
-      note: 'The mapped term itself, carried exactly as `CODE_PHRASE ↔ Coding` describes.',
+      note:
+        'The mapped term itself, carried exactly as `CODE_PHRASE ↔ Coding` describes.' +
+        MANDATORY_RULE,
     },
     {
       id: 'term-mapping.match',

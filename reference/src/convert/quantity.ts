@@ -10,10 +10,16 @@
  *
  * Converters never throw for a mapping-level problem; an unmappable field is
  * data, not an exception.
+ *
+ * **The mandatory-attribute rule.** A converter never invents a value for an
+ * attribute the target standard declares mandatory. Where the source carries
+ * nothing for such an attribute the converter returns `unmapped`, naming the
+ * absent source path, rather than substituting a constant and calling the
+ * result `lossless`.
  */
 
 import { register } from '../registry.ts';
-import { resultFor, type Issue, type MappingResult } from '../result.ts';
+import { issuesOf, resultFor, unmapped, type Issue, type MappingResult } from '../result.ts';
 import {
   PROPORTION_KIND,
   type DvCount,
@@ -51,7 +57,48 @@ export const PATH = {
   upperIncluded: 'DV_INTERVAL.upper_included',
   simpleMagnitudeStatus: 'DV_QUANTITY.magnitude_status',
   moneyUnitsSystem: 'DV_QUANTITY.units_system',
+  quantityValueAbsent: 'Quantity.value[absent]',
+  quantityCodeAbsent: 'Quantity.code[absent]',
+  countValueAbsent: 'Count.value[absent]',
+  simpleQuantityValueAbsent: 'SimpleQuantity.value[absent]',
+  simpleQuantityCodeAbsent: 'SimpleQuantity.code[absent]',
+  moneyValueAbsent: 'Money.value[absent]',
+  moneyCurrencyAbsent: 'Money.currency[absent]',
+  rangeLow: 'Range.low',
+  rangeHigh: 'Range.high',
 } as const;
+
+/**
+ * The mandatory-attribute rule's issue list for a quantity flavour: one entry
+ * per mandatory `DV_QUANTITY` attribute the FHIR source cannot supply.
+ *
+ * `magnitude` and `units` are both `1..1` in the openEHR RM while every FHIR
+ * quantity flavour makes `value` and `code` optional, so an incoming instance
+ * that omits either cannot become a `DV_QUANTITY` at all. Called only when at
+ * least one is absent, so the tuple is non-empty by construction.
+ */
+function absentQuantityIssues(
+  value: number | undefined,
+  code: string | undefined,
+  valuePath: string,
+  codePath: string,
+  fhirType: string,
+): readonly [Issue, ...Issue[]] {
+  const magnitude: Issue = {
+    path: valuePath,
+    message:
+      `DV_QUANTITY.magnitude is mandatory (1..1) and ${fhirType} supplies no value; the ` +
+      'mandatory-attribute rule forbids inventing one, so nothing is produced',
+  };
+  const units: Issue = {
+    path: codePath,
+    message:
+      `DV_QUANTITY.units is mandatory (1..1) and ${fhirType} supplies no unit code; the ` +
+      'mandatory-attribute rule forbids inventing one, so nothing is produced',
+  };
+  if (value === undefined && code === undefined) return [magnitude, units];
+  return value === undefined ? [magnitude] : [units];
+}
 
 function extension(url: string, key: 'valueInteger' | 'valueDecimal', value: number): Extension {
   return key === 'valueInteger' ? { url, valueInteger: value } : { url, valueDecimal: value };
@@ -114,6 +161,18 @@ export function dvQuantityToQuantity(source: DvQuantity): MappingResult<Quantity
 }
 
 export function quantityToDvQuantity(source: Quantity): MappingResult<DvQuantity> {
+  if (source.value === undefined || source.code === undefined) {
+    return unmapped(
+      absentQuantityIssues(
+        source.value,
+        source.code,
+        PATH.quantityValueAbsent,
+        PATH.quantityCodeAbsent,
+        'Quantity',
+      ),
+    );
+  }
+
   const issues: Issue[] = [];
 
   if (source.comparator === 'ad') {
@@ -130,8 +189,8 @@ export function quantityToDvQuantity(source: Quantity): MappingResult<DvQuantity
 
   const value: DvQuantity = compact({
     _type: 'DV_QUANTITY' as const,
-    magnitude: source.value ?? 0,
-    units: source.code ?? '',
+    magnitude: source.value,
+    units: source.code,
     units_system: source.system,
     units_display_name: source.unit,
     precision,
@@ -167,6 +226,17 @@ export function dvCountToCount(source: DvCount): MappingResult<Count> {
 }
 
 export function countToDvCount(source: Count): MappingResult<DvCount> {
+  if (source.value === undefined) {
+    return unmapped([
+      {
+        path: PATH.countValueAbsent,
+        message:
+          'DV_COUNT.magnitude is mandatory (1..1) and Count carries no value; no magnitude ' +
+          'is invented, so nothing is produced',
+      },
+    ]);
+  }
+
   const issues: Issue[] = [];
 
   if (source.system !== undefined) {
@@ -188,7 +258,7 @@ export function countToDvCount(source: Count): MappingResult<DvCount> {
 
   const value: DvCount = compact({
     _type: 'DV_COUNT' as const,
-    magnitude: source.value ?? 0,
+    magnitude: source.value,
     magnitude_status:
       source.comparator !== undefined && COMPARATORS.includes(source.comparator)
         ? source.comparator
@@ -277,14 +347,29 @@ function boundToSimpleQuantity(bound: DvQuantity): SimpleQuantity {
   });
 }
 
-function simpleQuantityToBound(bound: SimpleQuantity): DvQuantity {
-  return compact({
-    _type: 'DV_QUANTITY' as const,
-    magnitude: bound.value ?? 0,
-    units: bound.code ?? '',
-    units_system: bound.system,
-    units_display_name: bound.unit,
-  });
+function simpleQuantityToBound(bound: SimpleQuantity): MappingResult<DvQuantity> {
+  if (bound.value === undefined || bound.code === undefined) {
+    return unmapped(
+      absentQuantityIssues(
+        bound.value,
+        bound.code,
+        PATH.simpleQuantityValueAbsent,
+        PATH.simpleQuantityCodeAbsent,
+        'SimpleQuantity',
+      ),
+    );
+  }
+
+  return resultFor(
+    compact({
+      _type: 'DV_QUANTITY' as const,
+      magnitude: bound.value,
+      units: bound.code,
+      units_system: bound.system,
+      units_display_name: bound.unit,
+    }),
+    [],
+  );
 }
 
 export function dvIntervalToRange(source: DvIntervalQuantity): MappingResult<Range> {
@@ -323,10 +408,36 @@ export function dvIntervalToRange(source: DvIntervalQuantity): MappingResult<Ran
 }
 
 export function rangeToDvInterval(source: Range): MappingResult<DvIntervalQuantity> {
+  const low = source.low === undefined ? undefined : simpleQuantityToBound(source.low);
+  const high = source.high === undefined ? undefined : simpleQuantityToBound(source.high);
+
+  if (low !== undefined && low.value === undefined) {
+    return unmapped([
+      {
+        path: PATH.rangeLow,
+        message:
+          'the lower bound is not convertible to a DV_QUANTITY, so the interval as a whole ' +
+          'is not produced',
+      },
+      ...issuesOf(low),
+    ]);
+  }
+  if (high !== undefined && high.value === undefined) {
+    return unmapped([
+      {
+        path: PATH.rangeHigh,
+        message:
+          'the upper bound is not convertible to a DV_QUANTITY, so the interval as a whole ' +
+          'is not produced',
+      },
+      ...issuesOf(high),
+    ]);
+  }
+
   const value: DvIntervalQuantity = compact({
     _type: 'DV_INTERVAL' as const,
-    lower: source.low === undefined ? undefined : simpleQuantityToBound(source.low),
-    upper: source.high === undefined ? undefined : simpleQuantityToBound(source.high),
+    lower: low?.value,
+    upper: high?.value,
     lower_unbounded: source.low === undefined,
     upper_unbounded: source.high === undefined,
   });
@@ -357,11 +468,23 @@ export function dvQuantityToMoney(source: DvQuantity): MappingResult<Money> {
 }
 
 export function moneyToDvQuantity(source: Money): MappingResult<DvQuantity> {
+  if (source.value === undefined || source.currency === undefined) {
+    return unmapped(
+      absentQuantityIssues(
+        source.value,
+        source.currency,
+        PATH.moneyValueAbsent,
+        PATH.moneyCurrencyAbsent,
+        'Money',
+      ),
+    );
+  }
+
   return resultFor(
     compact({
       _type: 'DV_QUANTITY' as const,
-      magnitude: source.value ?? 0,
-      units: source.currency ?? '',
+      magnitude: source.value,
+      units: source.currency,
       units_system: ISO_4217,
     }),
     [],
@@ -398,16 +521,7 @@ export function dvQuantityToSimpleQuantity(source: DvQuantity): MappingResult<Si
 }
 
 export function simpleQuantityToDvQuantity(source: SimpleQuantity): MappingResult<DvQuantity> {
-  return resultFor(
-    compact({
-      _type: 'DV_QUANTITY' as const,
-      magnitude: source.value ?? 0,
-      units: source.code ?? '',
-      units_system: source.system,
-      units_display_name: source.unit,
-    }),
-    [],
-  );
+  return simpleQuantityToBound(source);
 }
 
 register<DvQuantity, SimpleQuantity>('dv-quantity-to-simple-quantity', {

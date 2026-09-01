@@ -64,6 +64,51 @@ These are not editorial claims. Each is a machine-checked property of the
 round-trip a paired fixture unchanged, and a `lossy` row must drop **exactly**
 what it says it drops — no more, and no less.
 
+<a name="mandatory-attributes"></a>
+
+#### The mandatory-attribute rule
+
+The two standards disagree about what is optional. Many attributes the openEHR
+Reference Model declares `1..1` map to FHIR elements that are `0..1`:
+`DV_QUANTITY.magnitude` and `.units`, `DV_COUNT.magnitude`,
+`CODE_PHRASE.code_string`, `DV_MULTIMEDIA.media_type` and `.size`,
+`DV_PARSABLE.value` and `.formalism`, and `DV_TEXT.value` are all of that shape.
+A conforming FHIR instance may therefore arrive with nothing to fill a
+mandatory openEHR attribute.
+
+**A converter SHALL NOT invent a value for an attribute the target standard
+declares mandatory.** Where the source carries nothing for such an attribute,
+the conversion produces **no value at all** and reports the absent source path.
+It does not substitute a zero, an empty string, or a default code and then call
+the result `lossless`: a fabricated magnitude is a safety hazard, and declaring
+a fabrication lossless is the single worst statement a fidelity ledger can make.
+
+This is a rule about **instances**, not a fidelity fact about the two
+standards. The mapping tables state what the standards can carry; a row whose
+openEHR attribute is mandatory and whose FHIR element is optional stays
+`lossless`, because the field maps exactly when it is present. What the rule
+governs is what an implementation does when it is not.
+
+Exactly **two** substitutions are permitted, and both are recorded on the row
+that describes them:
+
+| Site | Why it is an exception |
+|-|-|
+| `CODE_PHRASE.terminology_id` from an absent `Coding.system` | The working group has explicitly refused to choose a strategy. The placeholder is substituted **and reported**, so the conversion is `lossy`, never `lossless` |
+| `DV_STATE.is_terminal` from a `CodeableConcept` | Nothing in a `CodeableConcept` can source it; it is inferred from the state machine the archetype defines, and the openEHR-only gap is published |
+
+The list is closed. A third exception would have to be argued for in the
+reference implementation's own contract tests, where the two above are pinned.
+
+#### Composed conversions
+
+A conversion that delegates to another — `DV_CODED_TEXT ↔ CodeableConcept`
+calls `CODE_PHRASE ↔ Coding` for each coding, and `DV_STATE ↔ CodeableConcept`
+calls `DV_CODED_TEXT ↔ CodeableConcept` in turn — **carries the inner
+conversion's drops forward**. A drop declared on the inner mapping is reported
+on the outer result as well, so composition cannot make a published loss
+disappear.
+
 #### Decision maturity
 
 Fidelity says what a conversion does. Maturity says how much confidence the

@@ -1,7 +1,15 @@
-/** Reference converters for the remaining data types. */
+/**
+ * Reference converters for the remaining data types.
+ *
+ * **The mandatory-attribute rule** applies here as everywhere: a converter with
+ * no source for an attribute the target standard declares mandatory returns
+ * `unmapped` naming the absent source path, rather than substituting a
+ * constant. `DV_STATE.is_terminal` is the one recorded exception — see
+ * `codeableConceptToDvState`.
+ */
 
 import { register } from '../registry.ts';
-import { resultFor, type Issue, type MappingResult } from '../result.ts';
+import { issuesOf, resultFor, unmapped, type Issue, type MappingResult } from '../result.ts';
 import type { DvMultimedia, DvParsable, DvState } from '../types/openehr/other.ts';
 import type { Attachment } from '../types/fhir/other.ts';
 import { TEXT_EXT, type Extension, type FhirStringElement } from '../types/fhir/textual.ts';
@@ -20,6 +28,11 @@ export const OTHER_PATH = {
   charset: 'DV_MULTIMEDIA.charset',
   attachmentCreation: 'Attachment.creation',
   isTerminal: 'DV_STATE.is_terminal',
+  attachmentContentTypeAbsent: 'Attachment.contentType[absent]',
+  attachmentSizeAbsent: 'Attachment.size[absent]',
+  stringValueAbsent: 'string.value[absent]',
+  stringMimeTypeAbsent: 'string.extension[mimeType][absent]',
+  codeableConceptUnconvertible: 'CodeableConcept.coding',
 } as const;
 
 function compact<T extends object>(value: T): T {
@@ -90,15 +103,39 @@ export function attachmentToDvMultimedia(source: Attachment): MappingResult<DvMu
   // converter is not the thing that reports them.
   const issues: Issue[] = [];
 
+  // `DV_MULTIMEDIA.media_type` and `.size` are both mandatory (1..1) while
+  // `Attachment.contentType` and `.size` are `0..1`, so an Attachment that
+  // omits either cannot become a DV_MULTIMEDIA.
+  if (source.contentType === undefined || source.size === undefined) {
+    const mediaType: Issue = {
+      path: OTHER_PATH.attachmentContentTypeAbsent,
+      message:
+        'DV_MULTIMEDIA.media_type is mandatory (1..1) and the Attachment supplies no ' +
+        'contentType; the mandatory-attribute rule forbids inventing one, so nothing is ' +
+        'produced',
+    };
+    const size: Issue = {
+      path: OTHER_PATH.attachmentSizeAbsent,
+      message:
+        'DV_MULTIMEDIA.size is mandatory (1..1) and the Attachment supplies no size; the ' +
+        'mandatory-attribute rule forbids inventing one — 0 is a real size, not a missing ' +
+        'one — so nothing is produced',
+    };
+    if (source.contentType === undefined && source.size === undefined) {
+      return unmapped([mediaType, size]);
+    }
+    return unmapped(source.contentType === undefined ? [mediaType] : [size]);
+  }
+
   return resultFor(
     compact({
       _type: 'DV_MULTIMEDIA' as const,
       media_type: {
         _type: 'CODE_PHRASE' as const,
         terminology_id: { value: 'IANA_media-types' },
-        code_string: source.contentType ?? 'application/octet-stream',
+        code_string: source.contentType,
       },
-      size: source.size ?? 0,
+      size: source.size,
       data: source.data,
       uri:
         source.url === undefined
@@ -125,11 +162,31 @@ export function dvParsableToString(source: DvParsable): MappingResult<FhirString
 
 export function stringToDvParsable(source: FhirStringElement): MappingResult<DvParsable> {
   const formalism = source.extension?.find((e) => e.url === TEXT_EXT.mimeType)?.valueString;
+
+  // `DV_PARSABLE.value` and `.formalism` are both mandatory (1..1).
+  if (source.value === undefined || formalism === undefined) {
+    const value: Issue = {
+      path: OTHER_PATH.stringValueAbsent,
+      message:
+        'DV_PARSABLE.value is mandatory (1..1) and the string element supplies no value; ' +
+        'the mandatory-attribute rule forbids inventing one, so nothing is produced',
+    };
+    const syntax: Issue = {
+      path: OTHER_PATH.stringMimeTypeAbsent,
+      message:
+        'DV_PARSABLE.formalism is mandatory (1..1) and nothing in the string element ' +
+        'states the syntax the value is written in; the mandatory-attribute rule forbids ' +
+        'inventing one, so nothing is produced',
+    };
+    if (source.value === undefined && formalism === undefined) return unmapped([value, syntax]);
+    return unmapped(source.value === undefined ? [value] : [syntax]);
+  }
+
   return resultFor(
     {
       _type: 'DV_PARSABLE' as const,
-      value: source.value ?? '',
-      formalism: formalism ?? 'text/plain',
+      value: source.value,
+      formalism,
     },
     [],
   );
@@ -151,21 +208,36 @@ export function dvStateToCodeableConcept(source: DvState): MappingResult<Codeabl
         'FHIR has no data type for a state-machine value and no element carries a terminal ' +
         'flag; carrying it would require an extension, and none is invented here',
     },
+    ...issuesOf(concept),
   ]);
 }
 
 export function codeableConceptToDvState(source: CodeableConcept): MappingResult<DvState> {
   const coded = codeableConceptToDvCodedText(source);
+  if (coded.value === undefined) {
+    return unmapped([
+      {
+        path: OTHER_PATH.codeableConceptUnconvertible,
+        message:
+          'DV_STATE.value is mandatory (1..1) and the CodeableConcept is not convertible ' +
+          'to a DV_CODED_TEXT, so no DV_STATE is produced',
+      },
+      ...issuesOf(coded),
+    ]);
+  }
+
   return resultFor(
     {
       _type: 'DV_STATE' as const,
-      value: coded.value as DvCodedText,
+      value: coded.value,
+      // `is_terminal: false` is the **one recorded exception** to the
+      // mandatory-attribute rule in this module: nothing in a CodeableConcept
+      // can source it, and the openEHR-only gap is already published, so the
+      // flag is inferred from the state machine the archetype defines rather
+      // than carried. `contract.test.ts` pins the exception.
       is_terminal: false,
     },
-    // Nothing arrives to drop: `is_terminal` is mandatory in openEHR and is
-    // inferred from the state machine the archetype defines. An inference is
-    // not a dropped source field, so it is not reported as one.
-    [],
+    issuesOf(coded),
   );
 }
 

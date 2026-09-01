@@ -45,6 +45,22 @@ The issue paths are the join between the code and the ledger. A converter that
 drops a field the ledger does not list, or fails to drop one it does, fails the
 test suite.
 
+A converter **never invents a value for an attribute the target standard
+declares mandatory**. Where the source has nothing to fill one — a FHIR
+`Quantity` carrying only a `comparator`, a `Coding` with no `code`, an
+`Attachment` with no `contentType` — the converter returns `unmapped`, produces
+no value at all, and names the absent source path. Substituting a zero, an
+empty string, or a default code and reporting `lossless` would publish an
+instance that claims to be a valid `DV_QUANTITY`, `CODE_PHRASE`, or
+`DV_MULTIMEDIA` while carrying a value nobody sent. The rule and its two
+recorded exceptions are stated in full under
+[the mandatory-attribute rule](conventions.html#mandatory-attributes), and
+`reference/test/contract.test.ts` holds every converter to it.
+
+A converter that **composes** another carries the inner result's issues
+forward, so a declared drop cannot vanish behind a composition boundary. The
+same test file pins that in both directions.
+
 #### Wire format
 
 The openEHR side uses the canonical openEHR JSON form, with the `_type`
@@ -79,7 +95,8 @@ npm --prefix reference run render:check
   all fail to compile.
 - `test` runs the whole suite: the validator's negative cases, the five hard
   mapping shapes, the page inventory, the region machinery, the coverage gate,
-  the round-trip matrix, the two ISO 8601 tables, and the open-items register.
+  the round-trip matrix, the converter contract, the two ISO 8601 tables, and
+  the open-items register.
 - `render` writes the managed regions into `input/pagecontent/`.
 - `render:check` re-renders in memory and fails on any difference. That is the
   drift gate.
@@ -107,6 +124,8 @@ and the rest of the suite runs unchanged.
   of reported issues across all of a mapping's fixtures equals the declared set
   exactly.
 - An `unmapped` row reports its source path and produces no value at its target.
+- A converter **never invents a mandatory attribute** it has no source for, and
+  a composing converter carries its inner converter's issues forward.
 - A mapping that claims something can be carried has a converter and a fixture;
   a mapping that claims nothing can be has neither.
 

@@ -31,6 +31,16 @@ const CODE_PHRASE = rm('_code_phrase_class', 'openEHR RM — CODE_PHRASE');
 const CODEABLE_CONCEPT = r5('CodeableConcept', 'FHIR R5 — CodeableConcept');
 
 const REVIEWED_BOTH: Review = { openehr: ['Ciprian'], fhir: ['Gino'] };
+
+/**
+ * The mandatory-attribute rule, cross-referenced from every row it governs.
+ * Appended to a row note rather than restated, so the wording cannot drift.
+ */
+const MANDATORY_RULE =
+  ' The openEHR attribute is **mandatory** and the FHIR element is optional, so an ' +
+  'incoming instance that omits it cannot be converted: the reference implementation ' +
+  'produces **nothing** rather than inventing a value. See ' +
+  '[the mandatory-attribute rule](conventions.html#mandatory-attributes).';
 const NOT_REVIEWED: Review = { openehr: [], fhir: [] };
 
 const dvTextToString = {
@@ -82,7 +92,7 @@ const dvTextToString = {
         'sets no cap, and an oversize value is an exception rather than something to ' +
         'truncate silently. The FHIR side is modelled here as the primitive together with ' +
         'its `_`-sibling — the `value` plus `extension` pair — because that is what carries ' +
-        'the extensions the rows below use.',
+        'the extensions the rows below use.' + MANDATORY_RULE,
     },
     {
       id: 'dv-text.formatting',

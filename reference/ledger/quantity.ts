@@ -60,6 +60,16 @@ const REVIEWED_OPENEHR_ONLY: Review = {
 
 const REVIEWED_NEITHER: Review = { openehr: [], fhir: [] };
 
+/**
+ * The mandatory-attribute rule, cross-referenced from every row it governs.
+ * Appended to a row note rather than restated, so the wording cannot drift.
+ */
+const MANDATORY_RULE =
+  ' The openEHR attribute is **mandatory** and the FHIR element is optional, so an ' +
+  'incoming instance that omits it cannot be converted: the reference implementation ' +
+  'produces **nothing** rather than inventing a value. See ' +
+  '[the mandatory-attribute rule](conventions.html#mandatory-attributes).';
+
 // ── DV_QUANTITY ↔ Quantity ───────────────────────────────────────────────────
 
 const dvQuantityToQuantity = {
@@ -96,7 +106,7 @@ const dvQuantityToQuantity = {
       maturity: 'settled',
       note:
         'Direct equivalence. `magnitude` is mandatory in openEHR and optional in FHIR, so ' +
-        'a `Quantity` with no `value` has no `DV_QUANTITY` to become.',
+        'a `Quantity` with no `value` has no `DV_QUANTITY` to become.' + MANDATORY_RULE,
     },
     {
       id: 'dv-quantity.units',
@@ -120,7 +130,7 @@ const dvQuantityToQuantity = {
       toFhir: { fidelity: 'lossless' },
       toOpenehr: { fidelity: 'lossless' },
       maturity: 'settled',
-      note: 'The computable unit, normally a UCUM code.',
+      note: 'The computable unit, normally a UCUM code.' + MANDATORY_RULE,
     },
     {
       id: 'dv-quantity.units_system',
@@ -465,7 +475,7 @@ const dvCountToCount = {
       maturity: 'settled',
       note:
         'FHIR `Count` invariant `cnt-3` requires a whole number. Both sides are 32-bit ' +
-        'integers in practice, so the range is the same.',
+        'integers in practice, so the range is the same.' + MANDATORY_RULE,
     },
     {
       id: 'dv-count.magnitude_status',
@@ -811,7 +821,10 @@ const dvIntervalToRange = {
       maturity: 'settled',
       note:
         'The FHIR target is chosen by the type parameter, not by the interval itself. ' +
-        '`Period` and `Quantity` have search semantics in FHIR; `Range` does not.',
+        '`Period` and `Quantity` have search semantics in FHIR; `Range` does not. A bound ' +
+        'the reference implementation cannot convert — a `SimpleQuantity` with no `value` ' +
+        'or no `code` — stops the whole interval rather than being rewritten as zero; see ' +
+        '[the mandatory-attribute rule](conventions.html#mandatory-attributes).',
     },
     {
       id: 'dv-interval.upper',
@@ -1008,6 +1021,7 @@ const dvQuantityToMoney = {
       toFhir: { fidelity: 'lossless' },
       toOpenehr: { fidelity: 'lossless' },
       maturity: 'open',
+      note: 'The monetary amount itself.' + MANDATORY_RULE,
     },
     {
       id: 'dv-quantity.money.units',
@@ -1034,7 +1048,7 @@ const dvQuantityToMoney = {
       note:
         'The ISO 4217 currency code is carried in `units`, with `units_system` set to ' +
         '`urn:iso:std:iso:4217`. `MoneyQuantity` is an ordinary `Quantity` profile and ' +
-        'maps as `DV_QUANTITY ↔ Quantity` does.',
+        'maps as `DV_QUANTITY ↔ Quantity` does.' + MANDATORY_RULE,
     },
     {
       id: 'dv-quantity.money.units_system',
@@ -1114,7 +1128,8 @@ const dvQuantityToSimpleQuantity = {
       maturity: 'settled',
       note:
         'Every field except `magnitude_status` maps exactly as `DV_QUANTITY ↔ Quantity` ' +
-        'does; `SimpleQuantity` is that mapping with `comparator` forbidden.',
+        'does; `SimpleQuantity` is that mapping with `comparator` forbidden.' +
+        MANDATORY_RULE,
     },
     {
       id: 'dv-quantity.simple.magnitude_status',

@@ -36,6 +36,16 @@ const CODEABLE_CONCEPT = r5('CodeableConcept', 'FHIR R5 — CodeableConcept');
 const NOT_REVIEWED: Review = { openehr: [], fhir: [] };
 const REVIEWED_OPENEHR_ONLY: Review = { openehr: ['Severin'], fhir: [] };
 
+/**
+ * The mandatory-attribute rule, cross-referenced from every row it governs.
+ * Appended to a row note rather than restated, so the wording cannot drift.
+ */
+const MANDATORY_RULE =
+  ' The openEHR attribute is **mandatory** and the FHIR element is optional, so an ' +
+  'incoming instance that omits it cannot be converted: the reference implementation ' +
+  'produces **nothing** rather than inventing a value. See ' +
+  '[the mandatory-attribute rule](conventions.html#mandatory-attributes).';
+
 const dvMultimediaToAttachment = {
   id: 'dv-multimedia-to-attachment',
   category: 'other',
@@ -117,7 +127,8 @@ const dvMultimediaToAttachment = {
       note:
         'An IANA MIME type on both sides. Where an openEHR `charset` applies to the ' +
         'attachment data itself it SHOULD be folded into the MIME type as a `charset` ' +
-        'parameter; where it applies to local content the content is converted to UTF-8.',
+        'parameter; where it applies to local content the content is converted to UTF-8.' +
+        MANDATORY_RULE,
     },
     {
       id: 'dv-multimedia.size',
@@ -141,7 +152,9 @@ const dvMultimediaToAttachment = {
       toFhir: { fidelity: 'lossless' },
       toOpenehr: { fidelity: 'lossless' },
       maturity: 'open',
-      note: 'The **original** size in bytes, before any compression or encoding.',
+      note:
+        'The **original** size in bytes, before any compression or encoding. `0` is a real ' +
+        'size, not a missing one.' + MANDATORY_RULE,
     },
     {
       id: 'dv-multimedia.alternate_text',
@@ -407,7 +420,7 @@ const dvParsableToString = {
       note:
         'Where the formalism is markdown, a `markdown` element is the better target. For ' +
         'genomic content such as HGVS, the Genomics Reporting IG uses a ' +
-        '`CodeableConcept.text` pattern instead.',
+        '`CodeableConcept.text` pattern instead.' + MANDATORY_RULE,
     },
     {
       id: 'dv-parsable.formalism',
@@ -434,7 +447,7 @@ const dvParsableToString = {
         '`formalism` is **mandatory** in openEHR and the extension is optional in FHIR, so ' +
         'a plain FHIR `string` arriving as a `DV_PARSABLE` requires the formalism to be ' +
         'known from the element definition. Mapping a `string` into a `DV_PARSABLE` at all ' +
-        'is unusual.',
+        'is unusual.' + MANDATORY_RULE,
     },
   ],
 } satisfies Mapping;
@@ -473,7 +486,7 @@ const dvStateToCodeableConcept = {
       note:
         'The state **name** maps as an ordinary `DV_CODED_TEXT`; see ' +
         '[Coded Data](mapping-coded.html). What does **not** map is the state machine it ' +
-        'belongs to.',
+        'belongs to.' + MANDATORY_RULE,
     },
     {
       id: 'dv-state.is_terminal',
@@ -511,7 +524,13 @@ const dvStateToCodeableConcept = {
       maturity: 'open',
       note:
         '`DV_STATE` sees very little use. One participant has never seen it used at all ' +
-        'and suggests it is legacy, superseded by `ISM_TRANSITION`.',
+        'and suggests it is legacy, superseded by `ISM_TRANSITION`. This row is one of the ' +
+        'two **recorded exceptions** to ' +
+        '[the mandatory-attribute rule](conventions.html#mandatory-attributes): nothing in ' +
+        'a `CodeableConcept` can source `is_terminal`, the openEHR-only gap is published ' +
+        'here, and the reference implementation infers `false` rather than refusing the ' +
+        'whole conversion. `contract.test.ts` pins the exception, so the list cannot grow ' +
+        'unnoticed.',
     },
   ],
 } satisfies Mapping;

@@ -6,7 +6,7 @@
  */
 
 import { register } from '../registry.ts';
-import { resultFor, type Issue, type MappingResult } from '../result.ts';
+import { resultFor, unmapped, type Issue, type MappingResult } from '../result.ts';
 import { TEXT_FORMATTING, type DvText } from '../types/openehr/textual.ts';
 import { TEXT_EXT, type Extension, type FhirStringElement } from '../types/fhir/textual.ts';
 import type { CodePhrase } from '../types/openehr/coded.ts';
@@ -17,6 +17,7 @@ export const TEXTUAL_PATH = {
   encoding: 'DV_TEXT.encoding',
   hyperlink: 'DV_TEXT.hyperlink',
   mappings: 'DV_TEXT.mappings',
+  stringValueAbsent: 'string.value[absent]',
 } as const;
 
 function compact<T extends object>(value: T): T {
@@ -98,6 +99,21 @@ export function dvTextToString(source: DvText): MappingResult<FhirStringElement>
 }
 
 export function stringToDvText(source: FhirStringElement): MappingResult<DvText> {
+  // `DV_TEXT.value` is mandatory (1..1) and a FHIR primitive element may carry
+  // extensions with no value at all.
+  if (source.value === undefined) {
+    return unmapped([
+      {
+        path: TEXTUAL_PATH.stringValueAbsent,
+        message:
+          'DV_TEXT.value is mandatory (1..1) and the string element supplies no value; the ' +
+          'mandatory-attribute rule forbids inventing one, so nothing is produced. A ' +
+          'value-less primitive carrying only a data-absent-reason maps to a null flavour ' +
+          'instead',
+      },
+    ]);
+  }
+
   const languageExtension = findExtension(source, TEXT_EXT.language);
   const language: CodePhrase | undefined =
     languageExtension?.valueString === undefined
@@ -118,7 +134,7 @@ export function stringToDvText(source: FhirStringElement): MappingResult<DvText>
   return resultFor(
     compact({
       _type: 'DV_TEXT' as const,
-      value: source.value ?? '',
+      value: source.value,
       formatting,
       language,
     }),

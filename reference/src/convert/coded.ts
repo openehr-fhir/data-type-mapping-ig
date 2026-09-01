@@ -11,10 +11,16 @@
  *    candidate.
  * 2. **Nothing is emitted for `TERM_MAPPING.purpose`.** The representation is
  *    undecided; emitting a candidate would adopt it.
+ *
+ * **The mandatory-attribute rule** applies here as everywhere: a converter with
+ * no source for an attribute the target standard declares mandatory returns
+ * `unmapped` naming the absent source path, rather than substituting a
+ * constant. `CODE_PHRASE.terminology_id` is the one recorded exception — see
+ * `codingToCodePhrase`.
  */
 
 import { register } from '../registry.ts';
-import { resultFor, type Issue, type MappingResult } from '../result.ts';
+import { issuesOf, resultFor, unmapped, type Issue, type MappingResult } from '../result.ts';
 import {
   NULL_FLAVOUR,
   OPENEHR_TERMINOLOGY,
@@ -36,6 +42,9 @@ export const CODED_PATH = {
   termMappingPurpose: 'TERM_MAPPING.purpose',
   nullFlavourCode: 'NULL_FLAVOUR.defining_code.code_string',
   darCode: 'CodeableConcept.coding.code',
+  codingCodeAbsent: 'Coding.code[absent]',
+  codeableConceptCodingAbsent: 'CodeableConcept.coding[absent]',
+  codeableConceptCoding: 'CodeableConcept.coding',
 } as const;
 
 function compact<T extends object>(value: T): T {
@@ -95,7 +104,15 @@ export function splitTerminologyId(
 
 // ── CODE_PHRASE ↔ Coding ─────────────────────────────────────────────────────
 
-/** Placeholder used when an incoming `Coding` omits the mandatory system. */
+/**
+ * Placeholder used when an incoming `Coding` omits the mandatory system.
+ *
+ * This is the **one recorded exception** to the mandatory-attribute rule: the
+ * substitution is reported at `Coding.system[absent]`, so the result is `lossy`
+ * rather than silently `lossless`, and the working group has explicitly refused
+ * to decide what a missing `terminology_id` should become. `contract.test.ts`
+ * pins it, so the exception list cannot grow unnoticed.
+ */
 const UNKNOWN_TERMINOLOGY = 'unknown';
 
 export function codePhraseToCoding(source: CodePhrase): MappingResult<Coding> {
@@ -131,11 +148,23 @@ export function codingToCodePhrase(source: Coding): MappingResult<CodePhrase> {
     });
   }
 
+  if (source.code === undefined) {
+    return unmapped([
+      {
+        path: CODED_PATH.codingCodeAbsent,
+        message:
+          'CODE_PHRASE.code_string is mandatory (1..1) and the Coding supplies no code; ' +
+          'the mandatory-attribute rule forbids inventing one, so nothing is produced',
+      },
+      ...issues,
+    ]);
+  }
+
   return resultFor(
     compact({
       _type: 'CODE_PHRASE' as const,
       terminology_id: { value: source.system ?? UNKNOWN_TERMINOLOGY },
-      code_string: source.code ?? '',
+      code_string: source.code,
       preferred_term: source.display,
     }),
     issues,
@@ -172,12 +201,20 @@ export function dvCodedTextToCodeableConcept(
     }
   }
 
-  const coding: Coding[] = [
-    codePhraseToCoding(source.defining_code).value as Coding,
-    ...mappings.map((m) => codePhraseToCoding(m.target).value as Coding),
+  const converted = [
+    codePhraseToCoding(source.defining_code),
+    ...mappings.map((m) => codePhraseToCoding(m.target)),
   ];
 
-  return resultFor(compact({ coding, text: source.value }), issues);
+  const coding: Coding[] = [];
+  for (const result of converted) {
+    if (result.value !== undefined) coding.push(result.value);
+  }
+
+  return resultFor(compact({ coding, text: source.value }), [
+    ...issues,
+    ...issuesOf(...converted),
+  ]);
 }
 
 export function codeableConceptToDvCodedText(
@@ -205,23 +242,52 @@ export function codeableConceptToDvCodedText(
   const defining = codings[definingIndex];
   const rest = codings.filter((_, index) => index !== definingIndex);
 
-  const mappings: TermMapping[] = rest.map((c) => ({
-    _type: 'TERM_MAPPING' as const,
-    match: '=',
-    target: codingToCodePhrase(c).value as CodePhrase,
-  }));
+  // `DV_CODED_TEXT.defining_code` is mandatory (1..1) and `CodeableConcept` may
+  // carry text alone, so there is nothing to build a defining code from.
+  if (defining === undefined) {
+    return unmapped([
+      {
+        path: CODED_PATH.codeableConceptCodingAbsent,
+        message:
+          'DV_CODED_TEXT.defining_code is mandatory (1..1) and the CodeableConcept carries ' +
+          'no coding; the mandatory-attribute rule forbids inventing one, so nothing is ' +
+          'produced. A text-only CodeableConcept maps to DV_TEXT instead',
+      },
+    ]);
+  }
+
+  const definingResult = codingToCodePhrase(defining);
+  const restResults = rest.map((c) => codingToCodePhrase(c));
+  const definingPhrase = definingResult.value;
+
+  const unconvertible: Issue = {
+    path: CODED_PATH.codeableConceptCoding,
+    message:
+      'a coding could not be converted to a CODE_PHRASE, so no DV_CODED_TEXT is produced',
+  };
+
+  if (definingPhrase === undefined) {
+    return unmapped([unconvertible, ...issuesOf(definingResult, ...restResults)]);
+  }
+
+  const mappings: TermMapping[] = [];
+  for (const result of restResults) {
+    // `TERM_MAPPING.target` is mandatory, so an unconvertible mapped coding
+    // stops the whole conversion rather than being silently discarded.
+    if (result.value === undefined) {
+      return unmapped([unconvertible, ...issuesOf(definingResult, ...restResults)]);
+    }
+    mappings.push({ _type: 'TERM_MAPPING' as const, match: '=', target: result.value });
+  }
 
   return resultFor(
     compact({
       _type: 'DV_CODED_TEXT' as const,
-      value: source.text ?? defining?.display ?? defining?.code ?? '',
-      defining_code:
-        defining === undefined
-          ? { _type: 'CODE_PHRASE' as const, terminology_id: { value: UNKNOWN_TERMINOLOGY }, code_string: '' }
-          : (codingToCodePhrase(defining).value as CodePhrase),
+      value: source.text ?? defining.display ?? definingPhrase.code_string,
+      defining_code: definingPhrase,
       mappings,
     }),
-    issues,
+    [...issues, ...issuesOf(definingResult, ...restResults)],
   );
 }
 
@@ -252,17 +318,31 @@ export function termMappingToCoding(source: TermMapping): MappingResult<Coding> 
     });
   }
 
-  return resultFor(codePhraseToCoding(source.target).value as Coding, issues);
+  const target = codePhraseToCoding(source.target);
+  return resultFor(target.value as Coding, [...issues, ...issuesOf(target)]);
 }
 
 export function codingToTermMapping(source: Coding): MappingResult<TermMapping> {
+  const target = codingToCodePhrase(source);
+  if (target.value === undefined) {
+    return unmapped([
+      {
+        path: CODED_PATH.codeableConceptCoding,
+        message:
+          'TERM_MAPPING.target is mandatory (1..1) and the Coding is not convertible to a ' +
+          'CODE_PHRASE, so no TERM_MAPPING is produced',
+      },
+      ...issuesOf(target),
+    ]);
+  }
+
   return resultFor(
     {
       _type: 'TERM_MAPPING' as const,
       match: '=',
-      target: codingToCodePhrase(source).value as CodePhrase,
+      target: target.value,
     },
-    [],
+    issuesOf(target),
   );
 }
 
