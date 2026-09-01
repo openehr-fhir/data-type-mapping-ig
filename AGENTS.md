@@ -65,6 +65,8 @@ rather than an *observed* practice, it says so.
 | `fsh-generated/` | SUSHI output. **Ignored, and never hand-edited.** |
 | `output/`, `temp/`, `template/`, `translations/` | IG Publisher output and scratch. **Ignored, and never hand-edited.** |
 | `scratch/` | `dev-*` skill slots. **Ignored.** |
+| `reference/` | The **mapping ledger** and the TypeScript reference implementation. Outside `input/`, so neither SUSHI nor the IG Publisher walks it. `ledger/` holds the mapping facts, `src/model/` their single shape declaration, `src/convert/` the converters, `fixtures/` the paired instances, `render/` the projection into `input/pagecontent/`, `test/` the suite. See [Track 3](#track-3--reference-implementation) and `reference/README.md`. |
+| `reference/node_modules/` | npm install tree. **Ignored** by the existing unrooted `node_modules/` rule. |
 
 Ignored paths are listed in `.gitignore`. Anything under `fsh-generated/`,
 `output/`, `temp/`, `template/`, or `input-cache/` is a build artifact:
@@ -78,7 +80,19 @@ editing it is always wrong, and the edit is destroyed on the next build.
   checked in; the repository tracks the current SUSHI release. Verified
   working with **SUSHI v3.20.1** (FSH spec v3.0.0). Requires Node.js.
 - **Node.js** — no `.nvmrc` and no pin. Verified working with **Node
-  v26.7.0**. Only needed to run SUSHI.
+  v26.7.0**. Needed to run SUSHI, and to run the `reference/` workspace,
+  which relies on Node's **native TypeScript type stripping** to execute
+  `.ts` sources and `.ts` tests with no build step and no loader flag.
+- **npm** — no pin. Verified working with **npm 11.19.0**. Only needed for
+  the `reference/` workspace.
+- **`reference/` dependencies** — three **devDependencies** only, declared as
+  caret ranges in `reference/package.json` and pinned exactly by the
+  committed `reference/package-lock.json`: `typescript` and `@types/node`
+  serve `typecheck`, and `yaml` serves `reference/test/pages.test.ts`, which
+  reads `sushi-config.yaml`. The ledger, the converters, the renderer, and
+  every other test have **no** dependency at all — Node runs them directly —
+  so a failed `npm install` degrades the workspace to "type-check and
+  `pages.test.ts` unavailable", never to "nothing runs".
 - **Java** — required to run the IG Publisher. `INSTALLATION.md` states JRE 8
   is a floor and JDK 11+ is recommended (heap headroom). Verified working
   with **OpenJDK 25.0.4.1**. The build scripts set
@@ -109,8 +123,8 @@ explaining why**.
 
 ## Build
 
-There are two build tracks. They catch different things, and the fast one
-does not subsume the slow one.
+There are three build tracks. They catch different things, and the fast ones
+do not subsume the slow one.
 
 ### Track 1 — SUSHI only (fast inner loop)
 
@@ -170,18 +184,67 @@ absolute warning count as the bar — compare against a clean checkout before
 calling anything a regression, because template and terminology drift can
 move it without any change in this repo.
 
+### Track 3 — reference implementation
+
+The `reference/` workspace is built and verified independently of the IG.
+Nothing in the SUSHI or IG Publisher path reads it, and it emits no files
+into `input/` except the **managed regions** the renderer owns. All commands
+run from the repository root:
+
+```powershell
+npm --prefix reference install
+npm --prefix reference run typecheck
+npm --prefix reference test
+npm --prefix reference run render
+npm --prefix reference run render:check
+```
+
+- `install` — restores the three devDependencies. Required before
+  `typecheck` and before `test` can run `pages.test.ts`.
+- `typecheck` — `tsc --noEmit`. The ledger's invariants are **compile**
+  errors, so this is the primary gate on ledger content. Expected: exit 0,
+  no diagnostics.
+- `test` — `node --test`, which discovers `reference/**/*.test.ts`
+  recursively, skips `node_modules`, and executes them under native type
+  stripping. Expected: `fail 0`.
+- `render` — projects the ledger into the managed regions in
+  `input/pagecontent/*.md`. **It writes to those files.**
+- `render:check` — re-renders in memory and exits non-zero if any managed
+  region on disk differs. This is the drift gate; run it after any
+  `reference/ledger/` change.
+
+`reference/test/cite-local.test.ts` resolves every `spec-local` citation
+against local mirrors of the two specifications, and **skips** unless both
+`OPENEHR_SPEC_DIR` and `FHIR_R5_DIR` are set:
+
+```powershell
+$env:OPENEHR_SPEC_DIR = 'C:\ai\support\openEHR'
+$env:FHIR_R5_DIR = 'C:\ai\support\fhir-r5'
+npm --prefix reference test
+```
+
+Citations in the ledger are always **published URLs**; a machine-local path
+must never be written into one.
+
 ---
 
 ## Test
 
-**There is no unit-test suite, and no test runner. Do not look for one, and
-do not add one.** Verification for this repository is:
+**The IG itself has no unit-test suite, and no test runner. Do not look for
+one, and do not add one.** Verification for the guide is:
 
 1. `sushi .` exits `0`.
 2. The IG Publisher completes.
 3. `output/qa.html` shows no **new** errors or warnings versus `HEAD`.
 4. The rendered pages under `output/` say what the change intended, read in
    a browser.
+
+The `reference/` workspace **does** have a test suite, and it is the only
+place in this repository that has one. It is scoped to `reference/` and adds
+no tooling to the IG: `npm --prefix reference test` runs the Node built-in
+test runner with no test-runner dependency. Its job is to substantiate the
+guide's fidelity claims — a `lossless` mapping must round-trip, and a `lossy`
+mapping must drop exactly what the ledger says it drops.
 
 ### Full
 
@@ -191,6 +254,11 @@ Track 2 above, then open `output/qa.html`.
 
 Track 1 above (`sushi .`). This is the smallest meaningful verification and
 covers every FSH-only change up to the point of validation.
+
+For a change confined to `reference/`, the scoped verification is
+`npm --prefix reference run typecheck` plus `npm --prefix reference test`;
+add `npm --prefix reference run render:check` whenever `reference/ledger/`
+or `reference/render/` changed.
 
 ### Focused
 

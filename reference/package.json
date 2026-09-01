@@ -1,0 +1,18 @@
+{
+  "name": "openehr-fhir-data-type-mapping-reference",
+  "private": true,
+  "type": "module",
+  "description": "Reference implementation and mapping ledger for the openEHR to FHIR Data Type Mapping IG. Not a published package.",
+  "license": "CC0-1.0",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "test": "node --test",
+    "render": "node render/render-pages.ts",
+    "render:check": "node render/render-pages.ts --check"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0",
+    "yaml": "^2.8.0"
+  }
+}
