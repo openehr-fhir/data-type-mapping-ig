@@ -61,6 +61,12 @@ function readFixture(mappingId: string, stem: string, side: 'openehr' | 'fhir'):
  * use one, and those are checked by their issue paths instead.
  */
 export function valueAtPath(instance: unknown, path: string): unknown {
+  // A `[qualifier]` that is not an extension selector is a *value* selector —
+  // `magnitude_status[~]`, `Integer64[overflow]` — and names a sub-case of a
+  // field rather than a place in the instance. Such a path is never resolved;
+  // the rows that use one are `unmapped`, and are checked by their issue paths.
+  if (/(^|\.)(?!extension\[)[^.[\]]+\[[^\]]*\]/.test(path)) return undefined;
+
   const segments = path.split('.').slice(1);
   let node: unknown = instance;
   for (const segment of segments) {

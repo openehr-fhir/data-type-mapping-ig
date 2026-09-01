@@ -28,6 +28,8 @@
 export type Category =
   | 'quantity'
   | 'coded'
+  | 'boolean'
+  | 'numeric'
   | 'gaps';
 
 /**

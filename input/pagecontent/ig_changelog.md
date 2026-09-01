@@ -15,6 +15,13 @@ Categories, in the order they appear under a version:
 
 **Compatible, Substantive**
 
+- **Boolean data.** Added `DV_BOOLEAN` ↔ `boolean`, recording that `DV_BOOLEAN.value`
+  is mandatory in the Reference Model while a FHIR `boolean` element may be absent.
+- **Numeric primitives.** Added `Integer` ↔ `integer`, `Integer64` ↔ `integer64`,
+  and `Real` / `Double` ↔ `decimal`, including the FHIR rule that trailing zeros
+  in a `decimal` are significant and openEHR's that they are not, and the 32-bit
+  overflow case, which is recorded `open` because the right extension is
+  element-specific.
 - **Coded data.** Added `CODE_PHRASE` ↔ `Coding`, `DV_CODED_TEXT` ↔
   `CodeableConcept` / `Coding`, `TERM_MAPPING` ↔ `CodeableConcept.coding`, and
   the `null_flavour` ↔ `data-absent-reason` correspondences, including the full

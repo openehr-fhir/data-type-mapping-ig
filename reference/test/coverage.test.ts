@@ -119,7 +119,7 @@ test('every openEHR fixture has a FHIR partner and every fixture is well-formed 
   assert.deepEqual(problems, [], problems.join('\n'));
 });
 
-test('every openEHR fixture declares its _type', async () => {
+test('every openEHR fixture that is an object declares its _type', async () => {
   const problems: string[] = [];
   for (const mapping of ledger()) {
     for (const stem of fixturePairs(mapping.id)) {
@@ -127,7 +127,9 @@ test('every openEHR fixture declares its _type', async () => {
       const instance = (await import(`file://${path.replace(/\\/g, '/')}`, {
         with: { type: 'json' },
       })) as { default: Record<string, unknown> };
-      if (typeof instance.default['_type'] !== 'string') {
+      const body = instance.default as unknown;
+      if (body === null || typeof body !== 'object' || Array.isArray(body)) continue;
+      if (typeof (body as Record<string, unknown>)['_type'] !== 'string') {
         problems.push(`${mapping.id}/${stem}: openEHR fixture has no _type discriminator`);
       }
     }

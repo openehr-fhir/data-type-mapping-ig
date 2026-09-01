@@ -22,10 +22,12 @@ import { validateLedger } from './validate.ts';
 
 // ── Ledger content modules ───────────────────────────────────────────────────
 // One line per `reference/ledger/*.ts`, appended by the phase that lands it.
+import boolean_ from '../../ledger/boolean.ts';
 import coded from '../../ledger/coded.ts';
+import numeric from '../../ledger/numeric.ts';
 import quantity from '../../ledger/quantity.ts';
 
-const MODULES: readonly (readonly Mapping[])[] = [quantity, coded];
+const MODULES: readonly (readonly Mapping[])[] = [quantity, coded, boolean_, numeric];
 
 let cached: readonly Mapping[] | undefined;
 

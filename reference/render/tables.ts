@@ -36,6 +36,8 @@ export const FIXTURES_ROOT = new URL('../fixtures/', import.meta.url);
 export const CATEGORY_PAGE: Readonly<Record<Category, string>> = {
   quantity: 'mapping-quantity.html',
   coded: 'mapping-coded.html',
+  boolean: 'mapping-boolean.html',
+  numeric: 'mapping-numeric.html',
   gaps: 'gaps.html',
 };
 
@@ -43,6 +45,8 @@ export const CATEGORY_PAGE: Readonly<Record<Category, string>> = {
 export const CATEGORY_LABEL: Readonly<Record<Category, string>> = {
   quantity: 'Quantities',
   coded: 'Coded Data',
+  boolean: 'Boolean Data',
+  numeric: 'Numeric Primitives',
   gaps: 'Gaps',
 };
 

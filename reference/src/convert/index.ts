@@ -12,6 +12,8 @@
 // ── Converter modules ────────────────────────────────────────────────────────
 import './quantity.ts';
 import './coded.ts';
+import './boolean.ts';
+import './numeric.ts';
 
 export { registered, converterFor, register } from '../registry.ts';
 export type { ConverterPair } from '../registry.ts';
