@@ -145,7 +145,51 @@ const dvTimeToTime = {
       maturity: 'settled',
       note:
         'FHIR `time` also requires seconds, so an openEHR `14:30` is completed to ' +
-        '`14:30:00` — which states a precision the source did not.',
+        '`14:30:00`. That sub-case is a **named drop** in its own right and is stated on ' +
+        'the row below, not folded into this one.',
+    },
+    {
+      id: 'dv-time.value.minute-precision',
+      scope: 'datatype',
+      openehr: {
+        path: 'DV_TIME.value[minute-precision]',
+        cardinality: '1..1',
+        type: 'Iso8601_time',
+        kind: 'element',
+        cite: DV_TIME,
+      },
+      fhir: {
+        kind: 'none',
+        reason:
+          'The FHIR R5 `time` regex makes seconds **mandatory**, so no FHIR lexical form ' +
+          'records a time stated only to the minute. The value is completed to `:00`, and ' +
+          'the fact that the source stopped at minutes has nowhere to live.',
+        cite: FHIR_TIME,
+      },
+      toFhir: {
+        fidelity: 'lossy',
+        drops: [
+          {
+            path: 'DV_TIME.value[minute-precision]',
+            reason:
+              'an openEHR `14:30` is completed to `14:30:00`, so the FHIR value states a ' +
+              'precision the source did not. This is the one case the guide\u2019s ' +
+              '"truncate, never pad" rule cannot cover, because FHIR offers no shorter ' +
+              '`time` form to truncate to',
+          },
+        ],
+      },
+      toOpenehr: {
+        fidelity: 'unmapped',
+        reason:
+          'Nothing arrives to map back: a completed `14:30:00` is indistinguishable from ' +
+          'one the source stated in full.',
+      },
+      maturity: 'settled',
+      note:
+        'The sub-case is split out so the round-trip matrix can police it: the completion ' +
+        'is reported at this path, and the parent `DV_TIME.value` row keeps its `lossless` ' +
+        'claim for every value that already states seconds.',
     },
     {
       id: 'dv-time.timezone',
@@ -219,9 +263,54 @@ const dvDateTimeToDateTime = {
       toOpenehr: { fidelity: 'lossless' },
       maturity: 'settled',
       note:
-        'Unlike `time`, `dateTime` carries a UTC offset directly. FHIR requires seconds ' +
-        'once a time is present, so `2026-03-01T14:30` is completed to ' +
-        '`2026-03-01T14:30:00` with a time zone.',
+        'Unlike `time`, `dateTime` carries a UTC offset directly, and its R5 regex admits ' +
+        'partial precision down to the year, so `2026-03` is **truncated**, never padded. ' +
+        'What the regex does *not* admit is a time without seconds; that sub-case is a ' +
+        'named drop on the row below.',
+    },
+    {
+      id: 'dv-date-time.value.minute-precision',
+      scope: 'datatype',
+      openehr: {
+        path: 'DV_DATE_TIME.value[minute-precision]',
+        cardinality: '1..1',
+        type: 'Iso8601_date_time',
+        kind: 'element',
+        cite: DV_DATE_TIME,
+      },
+      fhir: {
+        kind: 'none',
+        reason:
+          'The FHIR R5 `dateTime` regex makes seconds **mandatory** once a time is ' +
+          'present, so no FHIR lexical form records a date-time stated only to the ' +
+          'minute. The value is completed to `:00`, and the fact that the source stopped ' +
+          'at minutes has nowhere to live.',
+        cite: FHIR_DATETIME,
+      },
+      toFhir: {
+        fidelity: 'lossy',
+        drops: [
+          {
+            path: 'DV_DATE_TIME.value[minute-precision]',
+            reason:
+              'an openEHR `2026-03-01T14:30` is completed to `2026-03-01T14:30:00`, so ' +
+              'the FHIR value states a precision the source did not. FHIR additionally ' +
+              'requires a UTC offset alongside a time: that offset SHALL come from the ' +
+              'source or its context and is **never invented** by a data-type conversion',
+          },
+        ],
+      },
+      toOpenehr: {
+        fidelity: 'unmapped',
+        reason:
+          'Nothing arrives to map back: a completed `…T14:30:00` is indistinguishable ' +
+          'from one the source stated in full.',
+      },
+      maturity: 'settled',
+      note:
+        'Partial precision *above* the time — `2026`, `2026-03`, `2026-03-01` — is a ' +
+        'different case entirely and is carried by truncation, losslessly, on the row ' +
+        'above. Only the minute-without-seconds form has no FHIR representation.',
     },
     {
       id: 'dv-temporal.accuracy',
@@ -303,7 +392,11 @@ const dvDurationToDuration = {
       note:
         'A UCUM quantity carries one unit, so a single-component duration converts ' +
         'cleanly: `a` ↔ `P{n}Y`, `mo` ↔ `P{n}M`, `wk` ↔ `P{n}W`, `d` ↔ `P{n}D`, ' +
-        '`h` ↔ `PT{n}H`, `min` ↔ `PT{n}M`, `s` ↔ `PT{n}S`, and `ms` ↔ `PT0.001S`. Note ' +
+        '`h` ↔ `PT{n}H`, `min` ↔ `PT{n}M`, and `s` ↔ `PT{n}S`. `ms` is the exception: it ' +
+        'has no ISO 8601 designator of its own, so `{n}` ms is written as ' +
+        '`PT{n/1000}S` — the **value** is preserved exactly and the **unit is not**, ' +
+        'because reading that duration back names seconds, not milliseconds. That ' +
+        'asymmetry is reported as a drop rather than claimed lossless. Note ' +
         'that `M` means *months* before the `T` separator and *minutes* after it. Even ' +
         'within UCUM, date and time conversions are not straightforward, and sub-millisecond ' +
         'precision may be lost. A standalone conversion library is planned by the working ' +

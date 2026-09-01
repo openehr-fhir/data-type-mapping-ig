@@ -96,7 +96,7 @@ export const ISO8601_FORMS: readonly Iso8601Form[] = [
     fhir: false,
     action:
       'FHIR `time` requires seconds. The value SHALL be completed to `14:30:00`, which ' +
-      'adds a precision the source did not state.',
+      'adds a precision the source did not state and is a **named drop**.',
   },
   {
     kind: 'time',
@@ -125,6 +125,16 @@ export const ISO8601_FORMS: readonly Iso8601Form[] = [
     action:
       'FHIR `time` **cannot** carry a time zone. The offset SHALL be carried in the ' +
       '`timezone` extension on the element.',
+  },
+  {
+    kind: 'time',
+    example: 'T143000+0100',
+    description: 'Compact time with a compact UTC offset',
+    openehr: true,
+    fhir: false,
+    action:
+      'SHALL be expanded to `14:30:00+01:00` before the offset is separated from the ' +
+      'time; FHIR accepts neither the compact time nor the compact offset.',
   },
   {
     kind: 'dateTime',
@@ -158,8 +168,10 @@ export const ISO8601_FORMS: readonly Iso8601Form[] = [
     fhir: false,
     action:
       'FHIR `dateTime` requires seconds once a time is present. The value SHALL be ' +
-      'completed to `2026-03-01T14:30:00`, with a time zone, which adds precision the ' +
-      'source did not state.',
+      'completed to `2026-03-01T14:30:00`, which adds a precision the source did not ' +
+      'state and is a **named drop**. FHIR additionally requires a UTC offset alongside ' +
+      'the time: that offset SHALL come from the source or its context and is never ' +
+      'invented by a data-type conversion.',
   },
 ];
 
@@ -173,8 +185,14 @@ export function divergentForms(): readonly Iso8601Form[] {
   return ISO8601_FORMS.filter((f) => f.openehr !== f.fhir);
 }
 
+/** `+0100` → `+01:00`. An already-extended or absent offset is returned unchanged. */
+function expandCompactOffset(value: string): string {
+  return value.replace(/([+-])(\d{2})(\d{2})$/, '$1$2:$3');
+}
+
 /** Expand an openEHR compact date, time, or date-time into the FHIR extended form. */
-export function expandCompact(value: string): string {
+export function expandCompact(input: string): string {
+  const value = expandCompactOffset(input);
   const dateTime = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(.*)$/.exec(value);
   if (dateTime !== null) {
     const [, y, mo, d, h, mi, s, rest] = dateTime as unknown as string[];
@@ -198,8 +216,27 @@ export function expandCompact(value: string): string {
   return value;
 }
 
-/** Truncate fractional seconds to the three digits openEHR permits. */
-export function truncateFractionalSeconds(value: string): {
+/**
+ * Complete a minute-precision time or date-time to the seconds FHIR requires.
+ *
+ * The FHIR R5 `time` regex makes seconds mandatory, and `dateTime` makes them
+ * mandatory once a time is present. openEHR permits both without. Completion is
+ * therefore **not** a truncation of partial precision — it is the one place the
+ * guide's "truncate, never pad" rule cannot apply, because there is no shorter
+ * FHIR form to truncate to. The caller reports the added precision as a named
+ * drop; nothing else is invented, and in particular no UTC offset is supplied.
+ */
+export function completeSeconds(value: string): {
+  readonly value: string;
+  readonly completed: boolean;
+} {
+  const match = /^(\d{4}-\d{2}-\d{2}T)?(\d{2}:\d{2})(Z|[+-]\d{2}:\d{2})?$/.exec(value);
+  if (match === null) return { value, completed: false };
+  const [, date, hourMinute, zone] = match as unknown as (string | undefined)[];
+  return { value: `${date ?? ''}${hourMinute ?? ''}:00${zone ?? ''}`, completed: true };
+}
+
+/** Truncate fractional seconds to the three digits openEHR permits. */export function truncateFractionalSeconds(value: string): {
   readonly value: string;
   readonly truncated: boolean;
 } {

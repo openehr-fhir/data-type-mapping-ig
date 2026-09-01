@@ -7,9 +7,13 @@
  */
 
 import { register } from '../registry.ts';
-import { resultFor, type Issue, type MappingResult } from '../result.ts';
+import { issuesOf, resultFor, unmapped, type Issue, type MappingResult } from '../result.ts';
 import { iso8601ToUcum, ucumToIso8601 } from '../shared/iso8601-ucum.ts';
-import { expandCompact, truncateFractionalSeconds } from '../shared/iso8601-subset.ts';
+import {
+  completeSeconds,
+  expandCompact,
+  truncateFractionalSeconds,
+} from '../shared/iso8601-subset.ts';
 import type {
   DvDate,
   DvDateTime,
@@ -31,7 +35,18 @@ export const TEMPORAL_PATH = {
   temporalAccuracy: 'DV_DATE_TIME.accuracy',
   durationValue: 'DV_DURATION.value',
   durationCode: 'Duration.code',
+  timeMinutePrecision: 'DV_TIME.value[minute-precision]',
+  dateTimeMinutePrecision: 'DV_DATE_TIME.value[minute-precision]',
+  durationValueAbsent: 'Duration.value[absent]',
+  durationCodeAbsent: 'Duration.code[absent]',
 } as const;
+
+/** Why a completed value is a drop, in the words the ledger row uses. */
+const COMPLETED_SECONDS =
+  'the source stated minute precision and the FHIR lexical form requires seconds, so ' +
+  '`:00` is added and the FHIR value claims a precision the source did not state. This ' +
+  'is the one case the guide\u2019s "truncate, never pad" rule cannot cover, because ' +
+  'FHIR has no shorter form to truncate to';
 
 function compact<T extends object>(value: T): T {
   const out: Record<string, unknown> = {};
@@ -68,10 +83,16 @@ function splitOffset(value: string): { readonly time: string; readonly offset?: 
 }
 
 export function dvTimeToTime(source: DvTime): MappingResult<FhirTimeElement> {
-  const { time, offset } = splitOffset(expandCompact(source.value));
+  const issues: Issue[] = [];
+  const completed = completeSeconds(expandCompact(source.value));
+  if (completed.completed) {
+    issues.push({ path: TEMPORAL_PATH.timeMinutePrecision, message: COMPLETED_SECONDS });
+  }
+
+  const { time, offset } = splitOffset(completed.value);
   const extension: Extension[] =
     offset === undefined ? [] : [{ url: TIMEZONE_EXTENSION, valueString: offset }];
-  return resultFor(compact({ value: time, extension }), []);
+  return resultFor(compact({ value: time, extension }), issues);
 }
 
 export function timeToDvTime(source: FhirTimeElement): MappingResult<DvTime> {
@@ -103,18 +124,23 @@ register<DvTime, FhirTimeElement>('dv-time-to-time', {
 // ── DV_DATE_TIME ↔ dateTime ──────────────────────────────────────────────────
 
 export function dvDateTimeToDateTime(source: DvDateTime): MappingResult<FhirDateTime> {
-  const issues: Issue[] =
-    source.accuracy === undefined
-      ? []
-      : [
-          {
-            path: TEMPORAL_PATH.temporalAccuracy,
-            message:
-              'no FHIR temporal primitive carries an accuracy; precision is expressed by ' +
-              'the lexical form itself, not by a separate field',
-          },
-        ];
-  return resultFor(expandCompact(source.value), issues);
+  const issues: Issue[] = [];
+
+  if (source.accuracy !== undefined) {
+    issues.push({
+      path: TEMPORAL_PATH.temporalAccuracy,
+      message:
+        'no FHIR temporal primitive carries an accuracy; precision is expressed by ' +
+        'the lexical form itself, not by a separate field',
+    });
+  }
+
+  const completed = completeSeconds(expandCompact(source.value));
+  if (completed.completed) {
+    issues.push({ path: TEMPORAL_PATH.dateTimeMinutePrecision, message: COMPLETED_SECONDS });
+  }
+
+  return resultFor(completed.value, issues);
 }
 
 export function dateTimeToDvDateTime(source: FhirDateTime): MappingResult<DvDateTime> {
@@ -131,14 +157,17 @@ register<DvDateTime, FhirDateTime>('dv-date-time-to-date-time', {
 export function dvDurationToDuration(source: DvDuration): MappingResult<FhirDuration> {
   const converted = iso8601ToUcum(source.value);
   if (converted.value === undefined) {
-    return {
-      value: {},
-      fidelity: 'lossy',
-      issues: converted.issues.map((issue) => ({
+    // An empty `Duration` labelled `lossy` is an invalid FHIR instance claiming
+    // to be a partial success. Nothing is produced instead, and the helper's own
+    // diagnostic — which names *why* the duration has no single UCUM unit — is
+    // carried rather than replaced by a generic message.
+    return unmapped([
+      {
         path: TEMPORAL_PATH.durationValue,
-        message: issue.message,
-      })),
-    };
+        message: 'the duration has no single UCUM unit, so no FHIR Duration is produced',
+      },
+      ...issuesOf(converted),
+    ]);
   }
   return resultFor(
     {
@@ -152,35 +181,59 @@ export function dvDurationToDuration(source: DvDuration): MappingResult<FhirDura
 
 export function durationToDvDuration(source: FhirDuration): MappingResult<DvDuration> {
   // The unit is always folded back into the ISO 8601 lexical form rather than
-  // carried as a field of its own, which is what the ledger row records.
-  const issues: Issue[] = [
-    {
-      path: TEMPORAL_PATH.durationCode,
-      message:
-        'the UCUM unit is folded back into the ISO 8601 lexical form rather than carried ' +
-        'as a field of its own',
-    },
-  ];
+  // carried as a field of its own, which is what the ledger row records. This
+  // issue is `dv-duration.units`' declared drop and survives on every success
+  // path.
+  const unitFolded: Issue = {
+    path: TEMPORAL_PATH.durationCode,
+    message:
+      'the UCUM unit is folded back into the ISO 8601 lexical form rather than carried ' +
+      'as a field of its own',
+  };
 
   if (source.code === undefined) {
-    return { value: { _type: 'DV_DURATION' as const, value: 'PT0S' }, fidelity: 'lossy', issues };
+    return unmapped([
+      {
+        path: TEMPORAL_PATH.durationCodeAbsent,
+        message:
+          'DV_DURATION.value is mandatory (1..1) and carries its unit inside the lexical ' +
+          'form, so a Duration with no code names no unit to write; PT0S is a real ' +
+          'duration, not a missing one, and is not invented here',
+      },
+    ]);
+  }
+
+  if (source.value === undefined) {
+    return unmapped([
+      {
+        path: TEMPORAL_PATH.durationValueAbsent,
+        message:
+          'DV_DURATION.value is mandatory (1..1) and a Duration with no value names no ' +
+          'magnitude to write; 0 is a real duration, not a missing one',
+      },
+    ]);
   }
 
   const iso = ucumToIso8601({
-    value: source.value ?? 0,
+    value: source.value,
     code: source.code,
     system: 'http://unitsofmeasure.org',
   });
 
   if (iso.value === undefined) {
-    return {
-      value: { _type: 'DV_DURATION' as const, value: 'PT0S' },
-      fidelity: 'lossy',
-      issues,
-    };
+    return unmapped([
+      {
+        path: TEMPORAL_PATH.durationCode,
+        message: 'the unit has no ISO 8601 form, so no DV_DURATION is produced',
+      },
+      ...issuesOf(iso),
+    ]);
   }
 
-  return { value: { _type: 'DV_DURATION' as const, value: iso.value }, fidelity: 'lossy', issues };
+  return resultFor({ _type: 'DV_DURATION' as const, value: iso.value }, [
+    unitFolded,
+    ...issuesOf(iso),
+  ]);
 }
 
 register<DvDuration, FhirDuration>('dv-duration-to-duration', {

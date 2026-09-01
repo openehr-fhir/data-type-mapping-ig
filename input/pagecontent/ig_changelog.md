@@ -128,7 +128,6 @@ code.
   on and names who owns them.
 
 *Review remediation*
-
 - **The mandatory-attribute rule is stated and enforced.** A conversion never
   invents a value for an attribute the target standard declares mandatory:
   where the source carries nothing for one, it produces no value at all and
@@ -142,3 +141,22 @@ code.
   CodeableConcept`, `TERM_MAPPING ↔ Coding`, and `DV_STATE ↔ CodeableConcept`
   now report the `CODE_PHRASE ↔ Coding` drops they delegate to, so a published
   loss cannot disappear behind a composition boundary.
+- **The ISO 8601 completion rules are implemented, and the "never pad" rule is
+  reconciled with FHIR's lexical requirements.** An openEHR `14:30` or
+  `2026-03-01T14:30` is completed to seconds — FHIR admits no shorter form —
+  and each completion is now a named loss in its own right,
+  `DV_TIME.value[minute-precision]` and
+  `DV_DATE_TIME.value[minute-precision]`, rather than a `lossless` claim the
+  guide's own normative rule contradicted. Compact UTC offsets (`+0100`) are
+  expanded alongside compact dates and times. The published statement that
+  partial precision is truncated and never padded now says exactly where it
+  applies and where FHIR makes it impossible.
+- **`DV_DURATION` conversions no longer fabricate `PT0S` or an empty
+  `Duration`.** A multi-component duration, a `Duration` with no unit, a
+  `Duration` whose unit is not a time unit, and a `Duration` with no value all
+  produce nothing and report why, with the underlying diagnostic preserved.
+- **The `ms` duration unit is stated honestly.** `{n}` ms is written as
+  `PT{n/1000}S`, which reads back as seconds, so the unit provably does not
+  survive the return trip. The published unit list and the conversion helper
+  both say so, and the test that used to skip the unit now asserts the
+  asymmetry.

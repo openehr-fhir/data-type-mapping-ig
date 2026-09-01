@@ -53,7 +53,7 @@ pages are the normative statement.
 | [DV_URI / DV_EHR_URI](mapping-reference.html) | `uri \| url` | `lossless` | `lossy` | `open` | `datatype` |
 | [LINK](mapping-reference.html) | `Reference \| CodeableReference` | `lossy` | `lossy` | `open` | `datatype` |
 | [DV_DATE](mapping-temporal.html) | `date \| dateTime` | `lossless` | `lossless` | `settled` | `datatype` |
-| [DV_TIME](mapping-temporal.html) | `time` | `lossless` | `lossy` | `open` | `datatype` |
+| [DV_TIME](mapping-temporal.html) | `time` | `lossy` | `lossy` | `open` | `datatype` |
 | [DV_DATE_TIME](mapping-temporal.html) | `dateTime \| instant` | `lossy` | `lossy` | `settled` | `datatype` |
 | [DV_DURATION](mapping-temporal.html) | `Duration` | `lossy` | `lossy` | `open` | `datatype` |
 | [DV_GENERAL_TIME_SPECIFICATION / DV_PERIODIC_TIME_SPECIFICATION](mapping-temporal.html) | `Timing` | `unmapped` | `unmapped` | `not-discussed` | `datatype` |

@@ -39,7 +39,7 @@ export const DURATION_UNITS: readonly DurationUnit[] = [
   { ucum: 'h', designator: 'H', time: true, description: 'Hours' },
   { ucum: 'min', designator: 'M', time: true, description: 'Minutes' },
   { ucum: 's', designator: 'S', time: true, description: 'Seconds' },
-  { ucum: 'ms', designator: 'S', time: true, description: 'Milliseconds (PT0.001S)' },
+  { ucum: 'ms', designator: 'S', time: true, description: 'Milliseconds (PT{n/1000}S)' },
 ];
 
 /** A duration expressed as a UCUM quantity. */
@@ -132,10 +132,22 @@ export function ucumToIso8601(duration: UcumDuration): MappingResult<string> {
   }
 
   if (unit.ucum === 'ms') {
+    // `GROUP_UNITS` has no `ms` capture, so `PT0.001S` parses back as seconds:
+    // the unit provably does not survive the return trip, and claiming
+    // `lossless` here would be the same defect the mandatory-attribute rule
+    // exists to stop. The value is right; the unit is not carried.
     return {
       value: `PT${duration.value / 1000}S`,
-      fidelity: 'lossless',
-      issues: [],
+      fidelity: 'lossy',
+      issues: [
+        {
+          path: 'Duration.code',
+          message:
+            `'ms' has no ISO 8601 designator of its own, so ${duration.value} ms is ` +
+            `written as PT${duration.value / 1000}S; the value is preserved exactly and ` +
+            'the unit is not — the same duration read back names seconds, not milliseconds',
+        },
+      ],
     };
   }
 
