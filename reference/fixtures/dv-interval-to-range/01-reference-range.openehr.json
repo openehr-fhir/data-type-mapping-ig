@@ -1,0 +1,21 @@
+{
+  "_type": "DV_INTERVAL",
+  "lower": {
+    "_type": "DV_QUANTITY",
+    "magnitude": 3.5,
+    "units": "mmol/L",
+    "units_system": "http://unitsofmeasure.org",
+    "units_display_name": "mmol/L"
+  },
+  "upper": {
+    "_type": "DV_QUANTITY",
+    "magnitude": 5.0,
+    "units": "mmol/L",
+    "units_system": "http://unitsofmeasure.org",
+    "units_display_name": "mmol/L"
+  },
+  "lower_unbounded": false,
+  "upper_unbounded": false,
+  "lower_included": true,
+  "upper_included": true
+}

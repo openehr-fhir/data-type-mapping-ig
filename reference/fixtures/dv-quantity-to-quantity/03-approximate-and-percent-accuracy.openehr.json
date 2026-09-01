@@ -1,0 +1,10 @@
+{
+  "_type": "DV_QUANTITY",
+  "magnitude": 120,
+  "units": "mm[Hg]",
+  "units_system": "http://unitsofmeasure.org",
+  "units_display_name": "mmHg",
+  "magnitude_status": "~",
+  "accuracy": 10,
+  "accuracy_is_percent": true
+}

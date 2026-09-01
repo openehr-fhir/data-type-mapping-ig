@@ -1,0 +1,13 @@
+{
+  "value": 0.5,
+  "comparator": "<",
+  "unit": "mg",
+  "system": "http://unitsofmeasure.org",
+  "code": "mg",
+  "extension": [
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/quantity-accuracy",
+      "valueDecimal": 0.05
+    }
+  ]
+}

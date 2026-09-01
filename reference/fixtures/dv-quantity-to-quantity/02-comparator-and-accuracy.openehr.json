@@ -1,0 +1,10 @@
+{
+  "_type": "DV_QUANTITY",
+  "magnitude": 0.5,
+  "units": "mg",
+  "units_system": "http://unitsofmeasure.org",
+  "units_display_name": "mg",
+  "magnitude_status": "<",
+  "accuracy": 0.05,
+  "accuracy_is_percent": false
+}

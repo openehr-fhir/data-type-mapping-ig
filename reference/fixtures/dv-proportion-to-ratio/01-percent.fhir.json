@@ -1,0 +1,14 @@
+{
+  "numerator": {
+    "value": 45,
+    "extension": [
+      {
+        "url": "http://hl7.org/fhir/StructureDefinition/quantity-precision",
+        "valueInteger": 0
+      }
+    ]
+  },
+  "denominator": {
+    "value": 100
+  }
+}

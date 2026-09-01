@@ -1,0 +1,12 @@
+{
+  "value": 72.5,
+  "unit": "kg",
+  "system": "http://unitsofmeasure.org",
+  "code": "kg",
+  "extension": [
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/quantity-precision",
+      "valueInteger": 1
+    }
+  ]
+}

@@ -1,0 +1,416 @@
+/**
+ * Reference converters for the quantity category.
+ *
+ * Every converter returns a `MappingResult<T>` carrying the fidelity it
+ * actually achieved and one `Issue` per piece of information it could not
+ * carry. **An `Issue.path` is exactly the ledger path it corresponds to** —
+ * either a `drops[].path` of a `lossy` row, or the source-side path of an
+ * `unmapped` row. `roundtrip.test.ts` holds the two to that contract in both
+ * directions.
+ *
+ * Converters never throw for a mapping-level problem; an unmappable field is
+ * data, not an exception.
+ */
+
+import { register } from '../registry.ts';
+import { resultFor, type Issue, type MappingResult } from '../result.ts';
+import {
+  PROPORTION_KIND,
+  type DvCount,
+  type DvIntervalQuantity,
+  type DvProportion,
+  type DvQuantity,
+} from '../types/openehr/quantity.ts';
+import {
+  EXT,
+  ISO_4217,
+  UCUM,
+  extensionValue,
+  type Count,
+  type Extension,
+  type Money,
+  type Quantity,
+  type Range,
+  type Ratio,
+  type SimpleQuantity,
+} from '../types/fhir/quantity.ts';
+
+/** The `magnitude_status` values FHIR R5 `Quantity.comparator` can carry. */
+const COMPARATORS = ['<', '<=', '>', '>='];
+
+/** Drop and unmapped paths, named once so the ledger and the code cannot drift. */
+export const PATH = {
+  accuracyIsPercent: 'DV_QUANTITY.accuracy_is_percent',
+  approximateStatus: 'DV_QUANTITY.magnitude_status[~]',
+  comparatorAd: 'Quantity.comparator[ad]',
+  countSystem: 'Count.system',
+  countCode: 'Count.code',
+  proportionType: 'DV_PROPORTION.type',
+  ratioUnits: 'Ratio.numerator.code',
+  lowerIncluded: 'DV_INTERVAL.lower_included',
+  upperIncluded: 'DV_INTERVAL.upper_included',
+  simpleMagnitudeStatus: 'DV_QUANTITY.magnitude_status',
+  moneyUnitsSystem: 'DV_QUANTITY.units_system',
+} as const;
+
+function extension(url: string, key: 'valueInteger' | 'valueDecimal', value: number): Extension {
+  return key === 'valueInteger' ? { url, valueInteger: value } : { url, valueDecimal: value };
+}
+
+/** Drop the `undefined`-valued keys so fixtures and results compare cleanly. */
+function compact<T extends object>(value: T): T {
+  const out: Record<string, unknown> = {};
+  for (const [key, v] of Object.entries(value)) {
+    if (v !== undefined) out[key] = v;
+  }
+  return out as T;
+}
+
+// ── DV_QUANTITY ↔ Quantity ───────────────────────────────────────────────────
+
+export function dvQuantityToQuantity(source: DvQuantity): MappingResult<Quantity> {
+  const issues: Issue[] = [];
+  const extensions: Extension[] = [];
+
+  if (source.precision !== undefined && source.precision >= 0) {
+    extensions.push(extension(EXT.quantityPrecision, 'valueInteger', source.precision));
+  }
+
+  if (source.accuracy !== undefined) {
+    if (source.accuracy_is_percent === true) {
+      issues.push({
+        path: PATH.accuracyIsPercent,
+        message:
+          'the quantity-accuracy extension carries an absolute maximum deviation, so an ' +
+          'accuracy expressed as a percentage is not carried at all',
+      });
+    } else {
+      extensions.push(extension(EXT.quantityAccuracy, 'valueDecimal', source.accuracy));
+    }
+  }
+
+  let comparator: string | undefined;
+  if (source.magnitude_status === '~') {
+    issues.push({
+      path: PATH.approximateStatus,
+      message:
+        'FHIR R5 Quantity.comparator has no code for "approximate"; ~ is added in R6 ' +
+        '(FHIR-56000) and is not available in an R5 instance',
+    });
+  } else if (source.magnitude_status !== undefined && COMPARATORS.includes(source.magnitude_status)) {
+    comparator = source.magnitude_status;
+  }
+
+  const value: Quantity = compact({
+    value: source.magnitude,
+    comparator,
+    unit: source.units_display_name,
+    system: source.units_system ?? UCUM,
+    code: source.units,
+    extension: extensions.length > 0 ? extensions : undefined,
+  });
+
+  return resultFor(value, issues);
+}
+
+export function quantityToDvQuantity(source: Quantity): MappingResult<DvQuantity> {
+  const issues: Issue[] = [];
+
+  if (source.comparator === 'ad') {
+    issues.push({
+      path: PATH.comparatorAd,
+      message:
+        'openEHR magnitude_status has no value meaning "sufficient as part of a sum"; the ' +
+        'comparator is not carried and the magnitude alone would misstate the value',
+    });
+  }
+
+  const precision = extensionValue(source, EXT.quantityPrecision)?.valueInteger;
+  const accuracy = extensionValue(source, EXT.quantityAccuracy)?.valueDecimal;
+
+  const value: DvQuantity = compact({
+    _type: 'DV_QUANTITY' as const,
+    magnitude: source.value ?? 0,
+    units: source.code ?? '',
+    units_system: source.system,
+    units_display_name: source.unit,
+    precision,
+    magnitude_status:
+      source.comparator !== undefined && COMPARATORS.includes(source.comparator)
+        ? source.comparator
+        : undefined,
+    accuracy,
+    accuracy_is_percent: accuracy === undefined ? undefined : false,
+  });
+
+  return resultFor(value, issues);
+}
+
+register<DvQuantity, Quantity>('dv-quantity-to-quantity', {
+  toFhir: dvQuantityToQuantity,
+  toOpenehr: quantityToDvQuantity,
+});
+
+// ── DV_COUNT ↔ Count ─────────────────────────────────────────────────────────
+
+export function dvCountToCount(source: DvCount): MappingResult<Count> {
+  const value: Count = compact({
+    value: source.magnitude,
+    comparator:
+      source.magnitude_status !== undefined && COMPARATORS.includes(source.magnitude_status)
+        ? source.magnitude_status
+        : undefined,
+    system: UCUM,
+    code: '1',
+  });
+  return resultFor(value, []);
+}
+
+export function countToDvCount(source: Count): MappingResult<DvCount> {
+  const issues: Issue[] = [];
+
+  if (source.system !== undefined) {
+    issues.push({
+      path: PATH.countSystem,
+      message:
+        'Count.system is fixed to UCUM by invariant cnt-3 and carries no information into ' +
+        'openEHR; DV_COUNT is unitless',
+    });
+  }
+  if (source.code !== undefined) {
+    issues.push({
+      path: PATH.countCode,
+      message:
+        'Count.code is fixed to 1 by invariant cnt-3 and carries no information into ' +
+        'openEHR; DV_COUNT is unitless',
+    });
+  }
+
+  const value: DvCount = compact({
+    _type: 'DV_COUNT' as const,
+    magnitude: source.value ?? 0,
+    magnitude_status:
+      source.comparator !== undefined && COMPARATORS.includes(source.comparator)
+        ? source.comparator
+        : undefined,
+  });
+
+  return resultFor(value, issues);
+}
+
+register<DvCount, Count>('dv-count-to-count', {
+  toFhir: dvCountToCount,
+  toOpenehr: countToDvCount,
+});
+
+// ── DV_PROPORTION ↔ Ratio ────────────────────────────────────────────────────
+
+export function dvProportionToRatio(source: DvProportion): MappingResult<Ratio> {
+  const issues: Issue[] = [
+    {
+      path: PATH.proportionType,
+      message:
+        'FHIR Ratio has no discriminator saying how the ratio should be read or rendered; ' +
+        'pk_fraction and pk_integer_fraction are display directives with no FHIR home ' +
+        '(FHIR-56001)',
+    },
+  ];
+
+  const numeratorExtensions =
+    source.precision !== undefined && source.precision >= 0
+      ? [extension(EXT.quantityPrecision, 'valueInteger', source.precision)]
+      : undefined;
+
+  const value: Ratio = {
+    numerator: compact({ value: source.numerator, extension: numeratorExtensions }),
+    denominator: compact({ value: source.denominator }),
+  };
+
+  return resultFor(value, issues);
+}
+
+export function ratioToDvProportion(source: Ratio): MappingResult<DvProportion> {
+  const issues: Issue[] = [];
+
+  if (source.numerator?.code !== undefined || source.denominator?.code !== undefined) {
+    issues.push({
+      path: PATH.ratioUnits,
+      message:
+        'DV_PROPORTION carries bare decimals and no units; a Ratio expressed in units — ' +
+        '5 mg per 100 mL — is modelled in openEHR as two DV_QUANTITY values at the ' +
+        'archetype level instead',
+    });
+  }
+
+  const denominator = source.denominator?.value ?? 1;
+  const kind =
+    denominator === 1
+      ? PROPORTION_KIND.pk_unitary
+      : denominator === 100
+        ? PROPORTION_KIND.pk_percent
+        : PROPORTION_KIND.pk_ratio;
+
+  const value: DvProportion = compact({
+    _type: 'DV_PROPORTION' as const,
+    numerator: source.numerator?.value ?? 0,
+    denominator,
+    type: kind,
+    precision: extensionValue(source.numerator, EXT.quantityPrecision)?.valueInteger,
+  });
+
+  return resultFor(value, issues);
+}
+
+register<DvProportion, Ratio>('dv-proportion-to-ratio', {
+  toFhir: dvProportionToRatio,
+  toOpenehr: ratioToDvProportion,
+});
+
+// ── DV_INTERVAL<DV_QUANTITY> ↔ Range ─────────────────────────────────────────
+
+function boundToSimpleQuantity(bound: DvQuantity): SimpleQuantity {
+  return compact({
+    value: bound.magnitude,
+    unit: bound.units_display_name,
+    system: bound.units_system ?? UCUM,
+    code: bound.units,
+  });
+}
+
+function simpleQuantityToBound(bound: SimpleQuantity): DvQuantity {
+  return compact({
+    _type: 'DV_QUANTITY' as const,
+    magnitude: bound.value ?? 0,
+    units: bound.code ?? '',
+    units_system: bound.system,
+    units_display_name: bound.unit,
+  });
+}
+
+export function dvIntervalToRange(source: DvIntervalQuantity): MappingResult<Range> {
+  const issues: Issue[] = [];
+
+  if (source.lower_included !== undefined) {
+    issues.push({
+      path: PATH.lowerIncluded,
+      message:
+        'FHIR Range and Period are inclusive only; an exclusive lower boundary can be ' +
+        'expressed only as a design-time FHIRPath constraint, or by using ' +
+        'Quantity.comparator instead of a Range',
+    });
+  }
+  if (source.upper_included !== undefined) {
+    issues.push({
+      path: PATH.upperIncluded,
+      message:
+        'FHIR Range and Period are inclusive only; an exclusive upper boundary can be ' +
+        'expressed only as a design-time FHIRPath constraint',
+    });
+  }
+
+  const value: Range = compact({
+    low:
+      source.lower_unbounded === true || source.lower === undefined
+        ? undefined
+        : boundToSimpleQuantity(source.lower),
+    high:
+      source.upper_unbounded === true || source.upper === undefined
+        ? undefined
+        : boundToSimpleQuantity(source.upper),
+  });
+
+  return resultFor(value, issues);
+}
+
+export function rangeToDvInterval(source: Range): MappingResult<DvIntervalQuantity> {
+  const value: DvIntervalQuantity = compact({
+    _type: 'DV_INTERVAL' as const,
+    lower: source.low === undefined ? undefined : simpleQuantityToBound(source.low),
+    upper: source.high === undefined ? undefined : simpleQuantityToBound(source.high),
+    lower_unbounded: source.low === undefined,
+    upper_unbounded: source.high === undefined,
+  });
+
+  return resultFor(value, []);
+}
+
+register<DvIntervalQuantity, Range>('dv-interval-to-range', {
+  toFhir: dvIntervalToRange,
+  toOpenehr: rangeToDvInterval,
+});
+
+// ── DV_QUANTITY ↔ Money ──────────────────────────────────────────────────────
+
+export function dvQuantityToMoney(source: DvQuantity): MappingResult<Money> {
+  const issues: Issue[] = [];
+
+  if (source.units_system !== undefined) {
+    issues.push({
+      path: PATH.moneyUnitsSystem,
+      message:
+        'FHIR Money has no system element; the currency system is implicit in the binding ' +
+        'of Money.currency, so urn:iso:std:iso:4217 is not carried',
+    });
+  }
+
+  return resultFor(compact({ value: source.magnitude, currency: source.units }), issues);
+}
+
+export function moneyToDvQuantity(source: Money): MappingResult<DvQuantity> {
+  return resultFor(
+    compact({
+      _type: 'DV_QUANTITY' as const,
+      magnitude: source.value ?? 0,
+      units: source.currency ?? '',
+      units_system: ISO_4217,
+    }),
+    [],
+  );
+}
+
+register<DvQuantity, Money>('dv-quantity-to-money', {
+  toFhir: dvQuantityToMoney,
+  toOpenehr: moneyToDvQuantity,
+});
+
+// ── DV_QUANTITY ↔ SimpleQuantity ─────────────────────────────────────────────
+
+export function dvQuantityToSimpleQuantity(source: DvQuantity): MappingResult<SimpleQuantity> {
+  const issues: Issue[] = [];
+
+  if (source.magnitude_status !== undefined) {
+    issues.push({
+      path: PATH.simpleMagnitudeStatus,
+      message:
+        'SimpleQuantity forbids comparator by invariant sqty-1; a DV_QUANTITY carrying ' +
+        'magnitude_status in a SimpleQuantity slot is a modelling error on the openEHR side',
+    });
+  }
+
+  const value: SimpleQuantity = compact({
+    value: source.magnitude,
+    unit: source.units_display_name,
+    system: source.units_system ?? UCUM,
+    code: source.units,
+  });
+
+  return resultFor(value, issues);
+}
+
+export function simpleQuantityToDvQuantity(source: SimpleQuantity): MappingResult<DvQuantity> {
+  return resultFor(
+    compact({
+      _type: 'DV_QUANTITY' as const,
+      magnitude: source.value ?? 0,
+      units: source.code ?? '',
+      units_system: source.system,
+      units_display_name: source.unit,
+    }),
+    [],
+  );
+}
+
+register<DvQuantity, SimpleQuantity>('dv-quantity-to-simple-quantity', {
+  toFhir: dvQuantityToSimpleQuantity,
+  toOpenehr: simpleQuantityToDvQuantity,
+});

@@ -15,6 +15,19 @@ Categories, in the order they appear under a version:
 
 **Compatible, Substantive**
 
+- **Quantities.** Added the field-level mappings for `DV_QUANTITY` ↔ `Quantity`,
+  `DV_COUNT` ↔ `Count`, `DV_PROPORTION` ↔ `Ratio`, `DV_INTERVAL` ↔
+  `Range` / `Period` / `Quantity`, `DV_QUANTITY` ↔ `Money` / `MoneyQuantity`,
+  `DV_QUANTITY` ↔ `SimpleQuantity`, and the archetype-scope `DV_ORDINAL` and
+  `DV_SCALE` ↔ `Observation.component` mappings, each with a per-direction
+  fidelity verdict, both mandatory citations, and its decision maturity.
+- Recorded as **open** rather than asserted: the `~` approximate comparator
+  (R6, FHIR-56000), `Quantity.comparator = ad`, the `DV_PROPORTION.type`
+  discriminator (FHIR-56001), units on a `Ratio`, and the `normal_status`
+  binding breadth.
+- The fidelity claims in this category are now **checked**: every `lossless`
+  row round-trips a paired fixture unchanged, and every `lossy` row drops
+  exactly what it declares.
 - The mapping tables are now **generated** from a single machine-checked
   mapping ledger and written into sentinel-delimited managed regions in the
   page sources. `mapping.html` carries the first such region, the all-mappings

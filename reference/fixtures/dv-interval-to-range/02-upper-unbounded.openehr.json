@@ -1,0 +1,12 @@
+{
+  "_type": "DV_INTERVAL",
+  "lower": {
+    "_type": "DV_QUANTITY",
+    "magnitude": 140,
+    "units": "mmol/L",
+    "units_system": "http://unitsofmeasure.org",
+    "units_display_name": "mmol/L"
+  },
+  "lower_unbounded": false,
+  "upper_unbounded": true
+}
