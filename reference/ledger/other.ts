@@ -46,6 +46,55 @@ const MANDATORY_RULE =
   'produces **nothing** rather than inventing a value. See ' +
   '[the mandatory-attribute rule](conventions.html#mandatory-attributes).';
 
+/**
+ * The five `Attachment` elements beyond `creation` that no `DV_MULTIMEDIA`
+ * attribute can receive. One row each, because the page prose promises a
+ * per-element inventory; the reason and the owner are the same for all five.
+ */
+const MEDIA_DETAIL_ROWS = (
+  [
+    ['height', 'positiveInt', 'the height of a still image or video, in pixels'],
+    ['width', 'positiveInt', 'the width of a still image or video, in pixels'],
+    ['frames', 'positiveInt', 'the number of frames in a multi-frame image'],
+    ['duration', 'decimal', 'the running length of an audio or video attachment, in seconds'],
+    ['pages', 'positiveInt', 'the number of pages in a paginated document'],
+  ] as const
+).map(([element, type, what]) => ({
+  id: `fhir:attachment.${element}`,
+  scope: 'datatype' as const,
+  openehr: {
+    kind: 'none' as const,
+    reason:
+      `The published openEHR *Media File* CLUSTER archetype has no \`${element}\` ` +
+      'element, and neither does `DV_MULTIMEDIA`. A draft ' +
+      '`CLUSTER.extended_media_details` archetype provides one.',
+    cite: DV_MULTIMEDIA,
+  },
+  fhir: [
+    {
+      path: `Attachment.${element}`,
+      cardinality: '0..1',
+      type,
+      kind: 'element' as const,
+      cite: ATTACHMENT,
+    },
+  ] as const,
+  toFhir: {
+    fidelity: 'unmapped' as const,
+    reason: 'No `DV_MULTIMEDIA` attribute produces it.',
+    owner: 'openehr-modelling' as const,
+  },
+  toOpenehr: {
+    fidelity: 'unmapped' as const,
+    reason:
+      `Carried by an **extension archetype**, not by the data type: ${what} has no ` +
+      'openEHR data-type home. Authoring the archetype belongs to the openEHR modelling ' +
+      'team.',
+    owner: 'openehr-modelling' as const,
+  },
+  maturity: 'open' as const,
+}));
+
 const dvMultimediaToAttachment = {
   id: 'dv-multimedia-to-attachment',
   category: 'other',
@@ -355,14 +404,13 @@ const dvMultimediaToAttachment = {
       maturity: 'open',
     },
     {
-      id: 'fhir:attachment.media-details',
+      id: 'fhir:attachment.creation',
       scope: 'datatype',
       openehr: {
         kind: 'none',
         reason:
-          'The published openEHR *Media File* CLUSTER archetype has no `creation`, ' +
-          '`height`, `width`, `frames`, `duration`, `pages`, or `language` element. A draft ' +
-          '`CLUSTER.extended_media_details` archetype provides them.',
+          'The published openEHR *Media File* CLUSTER archetype has no `creation` ' +
+          'element. A draft `CLUSTER.extended_media_details` archetype provides one.',
         cite: DV_MULTIMEDIA,
       },
       fhir: [
@@ -376,7 +424,7 @@ const dvMultimediaToAttachment = {
       ],
       toFhir: {
         fidelity: 'unmapped',
-        reason: 'No `DV_MULTIMEDIA` field produces any of them.',
+        reason: 'No `DV_MULTIMEDIA` attribute produces it.',
         owner: 'openehr-modelling',
       },
       toOpenehr: {
@@ -390,12 +438,53 @@ const dvMultimediaToAttachment = {
       },
       maturity: 'open',
       note:
-        'It applies equally to `Attachment.height`, `.width`, ' +
-        '`.frames`, `.duration`, `.pages`, and `.language`. The *Media File* CLUSTER ' +
-        'archetype, rather than a bare `DV_MULTIMEDIA`, is the closer target for a FHIR ' +
-        '`Attachment`. The row is `datatype` scope because its FHIR side is an ordinary ' +
-        'data-type element, not a resource element: the conversion is what has nowhere to ' +
-        'put it, and the round-trip matrix now says so.',
+        'One row per element, because the page prose promises a per-element inventory and ' +
+        'a reader looks for one. `openehr-modelling` is a **team, not a ticket**: the ' +
+        'proposal to fold these elements into the published *Media File* CLUSTER is ' +
+        'tracked on [Open Items](open-items.html) and has no Jira number. The *Media File* ' +
+        'CLUSTER archetype, rather than a bare `DV_MULTIMEDIA`, is the closer target for a ' +
+        'FHIR `Attachment`.',
+    },
+    ...MEDIA_DETAIL_ROWS,
+    {
+      id: 'dv-encapsulated.language',
+      scope: 'datatype',
+      openehr: {
+        path: 'DV_ENCAPSULATED.language',
+        cardinality: '0..1',
+        type: 'CODE_PHRASE',
+        kind: 'element',
+        cite: DV_ENCAPSULATED,
+      },
+      fhir: [
+        {
+          path: 'Attachment.language',
+          cardinality: '0..1',
+          type: 'code',
+          kind: 'element',
+          cite: ATTACHMENT,
+        },
+      ],
+      toFhir: {
+        fidelity: 'lossy',
+        drops: [
+          {
+            path: 'DV_ENCAPSULATED.language.terminology_id',
+            reason:
+              '`Attachment.language` is a `code` **required**-bound to `all-languages`, so ' +
+              'it carries the tag alone; the `CODE_PHRASE.terminology_id` that stated ' +
+              'which scheme the tag belongs to has no home on a bare `code`',
+          },
+        ],
+      },
+      toOpenehr: { fidelity: 'lossless' },
+      maturity: 'open',
+      note:
+        '`DV_MULTIMEDIA` inherits `language` from `DV_ENCAPSULATED` (RM § 9.2.1), so — ' +
+        'unlike `creation`, `height`, `width`, `frames`, `duration`, and `pages` — this ' +
+        'one **does** have an openEHR counterpart, and folding it into a ' +
+        'no-counterpart claim was a fabricated gap. Coming back, `terminology_id` is ' +
+        'derived from the FHIR binding rather than invented.',
     },
     {
       id: 'dv-multimedia.charset',

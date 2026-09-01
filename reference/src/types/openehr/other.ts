@@ -8,6 +8,8 @@ export interface DvMultimedia {
   readonly _type: 'DV_MULTIMEDIA';
   readonly media_type: CodePhrase;
   readonly size: number;
+  /** Inherited from `DV_ENCAPSULATED`. */
+  readonly language?: CodePhrase;
   readonly data?: string;
   readonly uri?: DvUri;
   readonly alternate_text?: string;

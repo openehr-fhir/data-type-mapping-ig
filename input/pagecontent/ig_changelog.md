@@ -259,3 +259,17 @@ code.
   openEHR → FHIR lists rows with a real openEHR attribute; FHIR → openEHR lists
   rows with a real FHIR element, and no longer repeats the FHIR types published
   in full by the no-counterpart inventory.
+- **`Attachment.language` is no longer a fabricated gap.** `DV_MULTIMEDIA`
+  inherits `language` from `DV_ENCAPSULATED` (RM § 9.2.1), so the element maps;
+  only the `CODE_PHRASE`'s terminology identifier is dropped, because
+  `Attachment.language` is a `code` required-bound to `all-languages`.
+- **The `Attachment` inventory the prose promised now exists.**
+  `creation`, `height`, `width`, `frames`, `duration`, and `pages` are six
+  `unmapped` rows rather than one row folding the others into its notes, and
+  the prose says plainly that `openehr-modelling` is a team rather than a
+  ticket.
+- **A `CODE_PHRASE.code_string` carrying whitespace produces nothing.** The
+  FHIR `code` type forbids leading, trailing, and repeated internal whitespace
+  and openEHR permits all three, so such a code has no valid FHIR form at all;
+  the sub-case is its own `unmapped` row with an owner, and the guide emits
+  nothing rather than an instance a validator rejects.

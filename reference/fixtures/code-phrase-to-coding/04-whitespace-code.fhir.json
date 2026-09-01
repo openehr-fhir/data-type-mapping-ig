@@ -1,0 +1,5 @@
+{
+  "system": "http://example.org/facility/1111/local-procedure-codes",
+  "code": "PROC 123",
+  "display": "Local procedure 123"
+}

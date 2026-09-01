@@ -146,6 +146,45 @@ const codePhraseToCoding = {
         'restriction on the openEHR side is open.' + MANDATORY_RULE,
     },
     {
+      id: 'code-phrase.code_string.whitespace',
+      scope: 'datatype',
+      openehr: {
+        path: 'CODE_PHRASE.code_string[whitespace]',
+        cardinality: '1..1',
+        type: 'String',
+        kind: 'element',
+        cite: CODE_PHRASE,
+      },
+      fhir: {
+        kind: 'none',
+        reason:
+          'The FHIR `code` type is defined by the regex `[^\\s]+( [^\\s]+)*`: no leading ' +
+          'or trailing whitespace, and exactly one space between tokens. A `code_string` ' +
+          'that breaks those rules has **no valid FHIR `code` form at all** — not a lossy ' +
+          'one, none.',
+        cite: CODING,
+      },
+      toFhir: {
+        fidelity: 'unmapped',
+        reason:
+          'Nothing is produced: emitting the code anyway would publish an instance no ' +
+          'FHIR validator accepts. A change request proposing the matching whitespace ' +
+          'restriction on the openEHR side is open.',
+        owner: 'openehr-modelling',
+      },
+      toOpenehr: {
+        fidelity: 'unmapped',
+        reason: 'A FHIR `code` never carries such a value, so the case never arises.',
+        owner: 'openehr-modelling',
+      },
+      maturity: 'open',
+      note:
+        'A sub-case of `CODE_PHRASE.code_string`, split out the same way ' +
+        '`magnitude_status[~]` is: the parent row keeps its `lossless` claim for every ' +
+        'code that *is* a legal FHIR `code`, and this row states the exception where the ' +
+        'round-trip matrix can police it.',
+    },
+    {
       id: 'code-phrase.preferred_term',
       scope: 'datatype',
       openehr: {

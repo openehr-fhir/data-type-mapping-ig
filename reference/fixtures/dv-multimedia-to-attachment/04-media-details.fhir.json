@@ -1,0 +1,12 @@
+{
+  "contentType": "video/mp4",
+  "language": "en",
+  "url": "https://example.org/media/echocardiogram.mp4",
+  "size": 1048576,
+  "creation": "2026-03-01T09:00:00Z",
+  "height": 1080,
+  "width": 1920,
+  "frames": 300,
+  "duration": 12.5,
+  "pages": 1
+}

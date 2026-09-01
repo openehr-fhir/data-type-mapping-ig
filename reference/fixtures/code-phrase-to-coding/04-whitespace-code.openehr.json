@@ -1,0 +1,8 @@
+{
+  "_type": "CODE_PHRASE",
+  "terminology_id": {
+    "value": "http://example.org/facility/1111/local-procedure-codes"
+  },
+  "code_string": " PROC  123 ",
+  "preferred_term": "Local procedure 123"
+}

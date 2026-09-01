@@ -47,7 +47,14 @@ export const CODED_PATH = {
   codeableConceptCoding: 'CodeableConcept.coding',
   elementNullFlavour: 'ELEMENT.null_flavour',
   iso21090NullFlavor: 'Element.extension[iso21090-nullFlavor]',
+  codeStringWhitespace: 'CODE_PHRASE.code_string[whitespace]',
 } as const;
+
+/**
+ * The FHIR R5 `code` regex: `[^\s]+( [^\s]+)*`. No leading or trailing
+ * whitespace, and exactly one space between tokens.
+ */
+const FHIR_CODE = /^[^\s]+( [^\s]+)*$/;
 
 function compact<T extends object>(value: T): T {
   const out: Record<string, unknown> = {};
@@ -118,6 +125,21 @@ export function splitTerminologyId(
 const UNKNOWN_TERMINOLOGY = 'unknown';
 
 export function codePhraseToCoding(source: CodePhrase): MappingResult<Coding> {
+  // The FHIR `code` type forbids leading, trailing, and repeated internal
+  // whitespace; openEHR places no character restriction on `code_string`. A
+  // code that violates the FHIR lexical rules has **no valid FHIR form**, so
+  // nothing is produced rather than an instance no validator accepts.
+  if (!FHIR_CODE.test(source.code_string)) {
+    return unmapped([
+      {
+        path: CODED_PATH.codeStringWhitespace,
+        message:
+          'the FHIR code type forbids leading, trailing, and repeated internal whitespace ' +
+          'and openEHR permits all three, so this code_string has no valid FHIR code form',
+      },
+    ]);
+  }
+
   return resultFor(
     compact({
       system: source.terminology_id.value,

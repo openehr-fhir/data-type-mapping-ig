@@ -1,0 +1,4 @@
+{
+  "directions": [],
+  "reason": "Neither direction is a pair, and that is the point. The openEHR code_string carries leading, trailing and repeated internal whitespace, which the FHIR code type forbids, so no Coding is produced at all; the FHIR side shows the nearest legal form, which reads back as a different code_string. The code-phrase.code_string.whitespace row states the gap and the openEHR change request that would close it."
+}

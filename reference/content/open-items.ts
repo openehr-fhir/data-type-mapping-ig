@@ -173,7 +173,10 @@ export const OPEN_ITEMS: readonly OpenItem[] = [
     priority: 'low',
     status:
       'Proposed September 2025; the group agreed to propose it. No ticket confirmed. ' +
-      'Without it, a `code_string` containing whitespace has no valid FHIR `code` form.',
+      'Without it, a `code_string` containing whitespace has **no valid FHIR `code` form ' +
+      'at all**, so this guide produces nothing for one rather than an instance a ' +
+      'validator rejects \u2014 see the `code_string[whitespace]` row on ' +
+      '[Coded Data](mapping-coded.html).',
     ledgerOwner: 'openehr-modelling',
   },
   {

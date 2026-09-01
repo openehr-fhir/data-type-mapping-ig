@@ -37,7 +37,26 @@ export const OTHER_PATH = {
   stringValue: 'string.value',
   parsableFormalism: 'DV_PARSABLE.formalism',
   codeableConceptUnconvertible: 'CodeableConcept.coding',
+  encapsulatedLanguage: 'DV_ENCAPSULATED.language.terminology_id',
+  attachmentHeight: 'Attachment.height',
+  attachmentWidth: 'Attachment.width',
+  attachmentFrames: 'Attachment.frames',
+  attachmentDuration: 'Attachment.duration',
+  attachmentPages: 'Attachment.pages',
 } as const;
+
+/** The `Attachment` elements no `DV_MULTIMEDIA` attribute can receive. */
+const MEDIA_DETAILS: readonly {
+  readonly key: 'creation' | 'height' | 'width' | 'frames' | 'duration' | 'pages';
+  readonly path: string;
+}[] = [
+  { key: 'creation', path: OTHER_PATH.attachmentCreation },
+  { key: 'height', path: OTHER_PATH.attachmentHeight },
+  { key: 'width', path: OTHER_PATH.attachmentWidth },
+  { key: 'frames', path: OTHER_PATH.attachmentFrames },
+  { key: 'duration', path: OTHER_PATH.attachmentDuration },
+  { key: 'pages', path: OTHER_PATH.attachmentPages },
+];
 
 function compact<T extends object>(value: T): T {
   const out: Record<string, unknown> = {};
@@ -87,9 +106,23 @@ export function dvMultimediaToAttachment(source: DvMultimedia): MappingResult<At
     });
   }
 
+  if (source.language !== undefined) {
+    // `Attachment.language` is a `code` **required**-bound to `all-languages`,
+    // so it carries the tag alone; the CODE_PHRASE's terminology identifier has
+    // no home on a bare `code`.
+    issues.push({
+      path: OTHER_PATH.encapsulatedLanguage,
+      message:
+        'Attachment.language is a code required-bound to all-languages, so it carries the ' +
+        'tag alone; CODE_PHRASE.terminology_id is implied by the binding when it is IETF ' +
+        'BCP 47 or ISO 639-1, and is simply lost when it is anything else',
+    });
+  }
+
   return resultFor(
     compact({
       contentType: source.media_type.code_string,
+      language: source.language?.code_string,
       data: source.data,
       url: source.uri?.value,
       size: source.size,
@@ -150,9 +183,18 @@ export function attachmentToDvMultimedia(source: Attachment): MappingResult<DvMu
     issues.push({
       path: OTHER_PATH.attachmentCreation,
       message:
-        'Attachment.creation, .height, .width, .frames, .duration and .pages have no ' +
-        'DV_MULTIMEDIA attribute at all; they belong to the openEHR extended media-details ' +
-        'archetype, which a data-type conversion does not author',
+        'Attachment.creation has no DV_MULTIMEDIA attribute at all; it belongs to the ' +
+        'openEHR extended media-details archetype, which a data-type conversion does not ' +
+        'author',
+    });
+  }
+  for (const detail of MEDIA_DETAILS.slice(1)) {
+    if (source[detail.key] === undefined) continue;
+    issues.push({
+      path: detail.path,
+      message:
+        `${detail.path} has no DV_MULTIMEDIA attribute at all; it belongs to the openEHR ` +
+        'extended media-details archetype, which a data-type conversion does not author',
     });
   }
 
@@ -165,6 +207,16 @@ export function attachmentToDvMultimedia(source: Attachment): MappingResult<DvMu
         code_string: source.contentType,
       },
       size: source.size,
+      language:
+        source.language === undefined
+          ? undefined
+          : {
+              _type: 'CODE_PHRASE' as const,
+              // Derived from `Attachment.language`'s own **required** binding to
+              // `all-languages`, not invented.
+              terminology_id: { value: 'urn:ietf:bcp:47' },
+              code_string: source.language,
+            },
       data: source.data,
       uri:
         source.url === undefined
