@@ -1,0 +1,4 @@
+{
+  "directions": ["toFhir"],
+  "reason": "openEHR 271 (no information) has no data-absent-reason equivalent and falls back to unknown, which reads back as 253. The null-flavour.code_string row declares exactly that conflation."
+}

@@ -176,3 +176,15 @@ code.
   offset is not. Both rows now publish the gap with an owner, and
   `DV_PARSABLE ↔ string` is stated as the one-directional mapping it is. No
   substitute extension is invented for either.
+- **Every worked example is asserted to be a pair.** Each `openEHR` example and
+  its `FHIR` partner are now checked to be producible from one another, modulo
+  the drops the ledger declares. Where a pair holds in one direction only — an
+  approximate `magnitude_status`, a `Quantity.comparator` of `ad`, a `Ratio`
+  carrying units, a nine-digit fractional second, a `Coding` with no system, a
+  minute-precision `dateTime` — the example now says which direction it claims
+  and why, instead of implying both. Three examples were corrected outright:
+  the `no information` null flavour maps to `unknown`, not `asked-unknown`; a
+  systemless `Coding` becomes the placeholder `terminology_id` the guide
+  actually documents; and a `CodeableConcept` with two codings becomes a
+  `DV_CODED_TEXT` with a term mapping. A new `asked-unknown` example was added
+  for the L2-to-L1 collapse.

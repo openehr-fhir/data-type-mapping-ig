@@ -1,0 +1,4 @@
+{
+  "directions": ["toOpenehr"],
+  "reason": "DV_PROPORTION carries bare decimals and no units, so no DV_PROPORTION can produce a Ratio whose numerator and denominator carry a system and a code. The fixture demonstrates the inbound case; the fhir:ratio.units row says so."
+}

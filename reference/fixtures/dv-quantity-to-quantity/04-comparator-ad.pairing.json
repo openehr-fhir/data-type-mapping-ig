@@ -1,0 +1,4 @@
+{
+  "directions": ["toOpenehr"],
+  "reason": "Quantity.comparator = ad has no openEHR magnitude_status, so no DV_QUANTITY can produce it. The fixture demonstrates the inbound case; the fhir:quantity.comparator.ad row says so."
+}

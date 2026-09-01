@@ -1,0 +1,4 @@
+{
+  "directions": [],
+  "reason": "Neither direction is a pair, and that is the point: P1Y6M has no single UCUM unit, so no FHIR Duration is produced at all, and the nearest single-unit approximation reads back as P18M rather than P1Y6M. The two files record a correspondence the dv-duration.value row explicitly forbids producing."
+}

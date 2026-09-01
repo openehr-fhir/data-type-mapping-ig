@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -41,6 +41,34 @@ export function fixturePairs(mappingId: string): readonly string[] {
     .map((f) => f.slice(0, -'.openehr.json'.length))
     .filter((stem) => existsSync(join(dir, `${stem}.fhir.json`)));
 }
+
+test('every pairing marker names a direction set and a reason', () => {
+  const problems: string[] = [];
+  for (const mapping of ledger()) {
+    const dir = join(FIXTURES, mapping.id);
+    if (!existsSync(dir)) continue;
+    for (const file of readdirSync(dir)) {
+      if (!file.endsWith('.pairing.json')) continue;
+      const marker = JSON.parse(readFileSync(join(dir, file), 'utf8')) as {
+        directions?: unknown;
+        reason?: unknown;
+      };
+      if (!Array.isArray(marker.directions)) {
+        problems.push(`${mapping.id}/${file}: no 'directions' array`);
+      } else {
+        for (const direction of marker.directions) {
+          if (direction !== 'toFhir' && direction !== 'toOpenehr') {
+            problems.push(`${mapping.id}/${file}: '${String(direction)}' is not a direction`);
+          }
+        }
+      }
+      if (typeof marker.reason !== 'string' || marker.reason.trim() === '') {
+        problems.push(`${mapping.id}/${file}: a marker with no reason is not a decision`);
+      }
+    }
+  }
+  assert.deepEqual(problems, [], problems.join('\n'));
+});
 
 /** Mappings the harness is expected to exercise. */
 export function testableMappings(): readonly Mapping[] {
@@ -102,6 +130,15 @@ test('every openEHR fixture has a FHIR partner and every fixture is well-formed 
     for (const file of readdirSync(dir)) {
       if (!file.endsWith('.json')) {
         problems.push(`${mapping.id}/${file}: not a .json file`);
+        continue;
+      }
+      // A `NN-name.pairing.json` marker declares which directions of a pair
+      // `pairs.test.ts` asserts, and why. It has no partner of its own.
+      if (file.endsWith('.pairing.json')) {
+        const stem = file.slice(0, -'.pairing.json'.length);
+        if (!existsSync(join(dir, `${stem}.openehr.json`))) {
+          problems.push(`${mapping.id}/${file}: no pair ${stem}.openehr.json to mark`);
+        }
         continue;
       }
       if (!file.endsWith('.openehr.json') && !file.endsWith('.fhir.json')) {

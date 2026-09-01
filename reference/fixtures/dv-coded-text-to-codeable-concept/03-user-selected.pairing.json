@@ -1,0 +1,4 @@
+{
+  "directions": ["toOpenehr"],
+  "reason": "openEHR puts the defining code first and FHIR marks it with userSelected wherever it sits, so converting the openEHR side back reorders the coding array. The fixture demonstrates the inbound userSelected case."
+}

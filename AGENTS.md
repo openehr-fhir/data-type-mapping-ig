@@ -66,6 +66,7 @@ rather than an *observed* practice, it says so.
 | `output/`, `temp/`, `template/`, `translations/` | IG Publisher output and scratch. **Ignored, and never hand-edited.** |
 | `scratch/` | `dev-*` skill slots. **Ignored.** |
 | `reference/` | The **mapping ledger** and the TypeScript reference implementation. Outside `input/`, so neither SUSHI nor the IG Publisher walks it. `ledger/` holds the mapping facts, `src/model/` their single shape declaration, `src/convert/` the converters, `fixtures/` the paired instances, `render/` the projection into `input/pagecontent/`, `test/` the suite. See [Track 3](#track-3--reference-implementation) and `reference/README.md`. |
+| `reference/fixtures/<mapping-id>/NN-<name>.pairing.json` | The **pairing marker** for a fixture pair that is deliberately one-directional: `{ "directions": ["toFhir"], "reason": "…" }`. `reference/test/pairs.test.ts` asserts only the directions it names, and asserts that every direction it does *not* name genuinely fails to produce the partner, so a marker cannot outlive the defect it documents. A marker with no reason is a failure. |
 | `reference/node_modules/` | npm install tree. **Ignored** by the existing unrooted `node_modules/` rule. |
 
 Ignored paths are listed in `.gitignore`. Anything under `fsh-generated/`,

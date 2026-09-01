@@ -1,0 +1,4 @@
+{
+  "directions": ["toFhir"],
+  "reason": "Completing 14:30 to 14:30:00 is not reversible: the FHIR value states seconds and nothing records that the source did not. The dv-date-time.value.minute-precision row declares the loss."
+}

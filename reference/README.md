@@ -17,7 +17,21 @@ reference implementation of the conversions those facts describe.
   `MappingResult<T>` carrying the fidelity it actually achieved and one `Issue`
   per dropped field.
 - **Paired fixtures** — `fixtures/<mapping-id>/NN-<name>.{openehr,fhir}.json`.
-  The published worked examples in the guide *are* these fixtures.
+  The published worked examples in the guide *are* these fixtures, and
+  `test/pairs.test.ts` asserts that each side can actually be produced from the
+  other, modulo the drops the ledger declares.
+  A pair that is deliberately one-directional carries a sibling
+  `NN-<name>.pairing.json`:
+
+  ```json
+  { "directions": ["toFhir"], "reason": "why the other direction is not a pair" }
+  ```
+
+  Only the directions it names are asserted to produce the partner; a direction
+  it does **not** name is asserted to genuinely differ, so a marker cannot
+  outlive the defect it documents. A marker with no reason is a failure, and
+  `"directions": []` says the two files are a correspondence rather than a
+  conversion.
 - **A renderer** — `render/`. It projects the ledger into sentinel-delimited
   managed regions inside `input/pagecontent/*.md`.
 - **Tests** — `test/`. They substantiate the fidelity claims: a `lossless`

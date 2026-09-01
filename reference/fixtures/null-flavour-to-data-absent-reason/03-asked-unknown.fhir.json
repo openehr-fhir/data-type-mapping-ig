@@ -2,8 +2,8 @@
   "coding": [
     {
       "system": "http://terminology.hl7.org/CodeSystem/data-absent-reason",
-      "code": "unknown"
+      "code": "asked-unknown"
     }
   ],
-  "text": "no information"
+  "text": "asked but unknown"
 }

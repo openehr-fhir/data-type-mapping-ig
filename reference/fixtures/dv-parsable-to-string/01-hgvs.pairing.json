@@ -1,0 +1,4 @@
+{
+  "directions": ["toFhir"],
+  "reason": "DV_PARSABLE.formalism is mandatory and no FHIR element states the syntax a value is written in, so a string alone cannot become a DV_PARSABLE. The dv-parsable.formalism row publishes the gap."
+}

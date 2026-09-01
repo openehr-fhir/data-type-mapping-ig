@@ -1,0 +1,4 @@
+{
+  "directions": ["toOpenehr"],
+  "reason": "asked-unknown is an L2 code that inherits the L1 unknown mapping, so it collapses onto 253; converting 253 back yields the L1 code unknown, not asked-unknown. The fixture demonstrates the inbound collapse."
+}

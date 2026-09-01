@@ -1,0 +1,4 @@
+{
+  "directions": ["toFhir"],
+  "reason": "DV_TEXT.encoding and the deprecated DV_TEXT.hyperlink have no FHIR home, so a plain string cannot carry them back. Both drops are declared on the outbound direction."
+}

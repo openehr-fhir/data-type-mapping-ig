@@ -1,0 +1,4 @@
+{
+  "directions": ["toOpenehr"],
+  "reason": "CODE_PHRASE.terminology_id is mandatory, so no CODE_PHRASE can produce a Coding with no system. The fixture demonstrates the inbound case the fhir:coding.system.absent row is about."
+}

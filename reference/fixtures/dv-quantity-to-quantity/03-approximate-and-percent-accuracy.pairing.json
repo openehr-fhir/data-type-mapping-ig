@@ -1,0 +1,4 @@
+{
+  "directions": ["toFhir"],
+  "reason": "FHIR R5 Quantity.comparator has no code for approximate, so magnitude_status = ~ is dropped on the way out and cannot be reconstructed on the way back. The DV_QUANTITY.magnitude_status[~] row says so."
+}

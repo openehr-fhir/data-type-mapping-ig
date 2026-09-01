@@ -1,0 +1,11 @@
+{
+  "_type": "DV_CODED_TEXT",
+  "value": "asked but unknown",
+  "defining_code": {
+    "_type": "CODE_PHRASE",
+    "terminology_id": {
+      "value": "openehr"
+    },
+    "code_string": "253"
+  }
+}
