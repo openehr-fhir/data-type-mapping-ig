@@ -53,6 +53,12 @@ interface NoCounterpartEntry {
   readonly anchor: string;
   /** The R5 page the type is defined on, when it is not `datatypes.html`. */
   readonly page?: string;
+  /**
+   * An explicit citation, for a type R5 does not define at all: an R6-era
+   * forward reference has no R5 anchor to point at, so the inventory page is
+   * cited instead of an anchor that does not exist.
+   */
+  readonly cite?: Cite;
   readonly reason: string;
 }
 
@@ -107,13 +113,6 @@ const FHIR_ONLY: readonly NoCounterpartEntry[] = [
       'range.',
   },
   {
-    type: 'Money',
-    anchor: 'Money',
-    reason:
-      'openEHR has no money data type; the currency is carried in a `DV_QUANTITY` — see ' +
-      '[Quantities](mapping-quantity.html) — and an RM proposal for a `Money` type is open.',
-  },
-  {
     type: 'Meta',
     anchor: 'Meta',
     page: R5_RESOURCE,
@@ -129,6 +128,18 @@ const FHIR_ONLY: readonly NoCounterpartEntry[] = [
     reason:
       'FHIR resource narrative is XHTML with a generation status. openEHR has no ' +
       'counterpart data type; narrative is either archetype content or absent.',
+  },
+  {
+    type: 'RelativeTime',
+    anchor: 'RelativeTime',
+    cite: R5_INVENTORY,
+    reason:
+      'An **R6-era** type expressing a time relative to an event rather than on a ' +
+      'calendar; R5 does not define it, so the citation is to the R5 data-type inventory ' +
+      'rather than to an anchor that does not exist. The working group examined it and ' +
+      'recorded **no openEHR counterpart identified**; openEHR expresses the same idea ' +
+      'structurally, through the `EVENT` and `HISTORY` classes and their offsets, not as ' +
+      'a data type.',
   },
 ];
 
@@ -151,9 +162,10 @@ const fhirTypesWithNoOpenehrCounterpart = {
         cardinality: '0..1',
         kind: 'element' as const,
         cite:
-          entry.page === undefined
+          entry.cite ??
+          (entry.page === undefined
             ? r5(entry.anchor, `FHIR R5 — ${entry.type}`)
-            : onPage(entry.page, entry.anchor, `FHIR R5 — ${entry.type}`),
+            : onPage(entry.page, entry.anchor, `FHIR R5 — ${entry.type}`)),
       },
     ] as const,
     toFhir: {

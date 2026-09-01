@@ -12,6 +12,8 @@ import {
   regionRenderers,
   renderExample,
   rendererFor,
+  renderGapsFhirToOpenehr,
+  renderGapsOpenehrToFhir,
   renderSummaryAll,
   tableRow,
 } from '../render/tables.ts';
@@ -198,4 +200,33 @@ test('table cells escape pipes and collapse newlines', () => {
   assert.equal(cell('a|b'), 'a\\|b');
   assert.equal(cell('a\nb'), 'a b');
   assert.equal(tableRow(['a', 'b']), '| a | b |');
+});
+
+test('each directional gap table contains only what its own heading promises', () => {
+  /** The first column of every data row — the **feature** the gap is about. */
+  const featureCells = (table: string): readonly string[] =>
+    table
+      .split('\n')
+      .filter((line) => line.startsWith('| ') && !line.startsWith('| Feature') && !line.startsWith('|-'))
+      .map((line) => line.split(' | ')[0] ?? '');
+
+  const outbound = featureCells(renderGapsOpenehrToFhir());
+  const inbound = featureCells(renderGapsFhirToOpenehr());
+
+  assert.ok(outbound.length > 0 && inbound.length > 0, 'both inventories have rows');
+
+  // openEHR → FHIR is about **openEHR** features FHIR cannot receive, so no row
+  // may be one whose openEHR side does not exist.
+  const outboundOffenders = outbound.filter((c) => c.includes('no counterpart'));
+  assert.deepEqual(outboundOffenders, [], outboundOffenders.join('\n'));
+
+  // FHIR → openEHR is about **FHIR** features openEHR cannot receive, so no row
+  // may be one whose FHIR side does not exist — and the FHIR types with no
+  // openEHR counterpart at all are published in full by their own inventory.
+  const inboundOffenders = inbound.filter((c) => c.includes('no counterpart'));
+  assert.deepEqual(inboundOffenders, [], inboundOffenders.join('\n'));
+  assert.ok(
+    !inbound.some((c) => c.includes('RelativeTime')),
+    'a FHIR type with no openEHR counterpart is not listed twice',
+  );
 });

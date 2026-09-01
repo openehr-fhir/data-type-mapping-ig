@@ -245,3 +245,17 @@ code.
 - **`DV_ORDINAL` and `DV_SCALE` inherit the reference-range attributes too**,
   and now say so: without those rows the summary read `lossless` for both types
   while a `DV_SCALE` carrying a `normal_range` had nowhere stated to put it.
+- **`Money` is no longer published simultaneously as mapped and as having no
+  openEHR counterpart.** The two `Money` rows are removed from the
+  no-counterpart inventory — `DV_QUANTITY ↔ Money` is a real, fixture-backed
+  mapping — and the true, narrower claim (openEHR has no *dedicated* monetary
+  type) is stated in the `gaps.html` prose. A new ledger rule makes the
+  contradiction impossible to reintroduce: a FHIR type named as some mapping's
+  own type may not also be published as having no openEHR counterpart.
+- **`RelativeTime` is restored to the no-counterpart inventory**, with the
+  working group's recorded "no openEHR counterpart identified" verdict and an
+  owner, and named again in the `Quantities` prose.
+- **Each directional gap inventory now contains what its heading promises.**
+  openEHR → FHIR lists rows with a real openEHR attribute; FHIR → openEHR lists
+  rows with a real FHIR element, and no longer repeats the FHIR types published
+  in full by the no-counterpart inventory.

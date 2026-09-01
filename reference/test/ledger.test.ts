@@ -9,7 +9,7 @@ import type {
   Row,
   Verdict,
 } from '../src/model/types.ts';
-import { validateLedger } from '../src/model/validate.ts';
+import { FHIR_NO_COUNTERPART_ID, validateLedger } from '../src/model/validate.ts';
 
 /**
  * Every rule in `validate.ts` rejects a crafted violation, and every rule the
@@ -124,6 +124,26 @@ test('an archetype-scope row with a resource-element target is accepted', () => 
     fhir: [{ ...FHIR_ENDPOINT, path: 'Observation.value', kind: 'resource-element' }],
   };
   assert.deepEqual(validateLedger([mapping({ rows: [row] })]), []);
+});
+
+test('a FHIR type this guide maps may not also be published as having no counterpart', () => {
+  const inventory = mapping({
+    id: FHIR_NO_COUNTERPART_ID,
+    openehrType: '(none)',
+    fhirType: 'Address and others',
+    rows: [
+      {
+        id: 'fhir:quantity',
+        scope: 'datatype',
+        openehr: { kind: 'none', reason: 'openEHR has no such type.', cite: OPENEHR_CITE },
+        fhir: [{ ...FHIR_ENDPOINT, path: 'Quantity' }],
+        toFhir: { fidelity: 'unmapped', reason: 'Nothing produces one.', owner: 'working-group' },
+        toOpenehr: { fidelity: 'unmapped', reason: 'Nothing receives one.', owner: 'working-group' },
+        maturity: 'open',
+      },
+    ],
+  });
+  rejects([mapping(), inventory], 'is published as having no openEHR counterpart');
 });
 
 test('a build.fhir.org citation is rejected — continuous-build snapshots rot', () => {

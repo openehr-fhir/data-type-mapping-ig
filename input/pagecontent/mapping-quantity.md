@@ -20,7 +20,9 @@ FHIR spreads the same ground across more types. Single values normally use the
 `Quantity` branch — `Quantity`, `Age`, `Distance`, `Duration`, `Count`,
 `MoneyQuantity`, `SimpleQuantity` — whose members are *restrictions* on the base
 type rather than independent types. Other quantitative types include `Ratio`,
-`Range`, `Period`, `RatioRange`, `Timing`, and `Money`.
+`Range`, `Period`, `RatioRange`, `Timing`, `RelativeTime`, and `Money`.
+`RelativeTime` is an R6-era type with **no openEHR counterpart identified**; it
+is listed on [Gaps](gaps.html) rather than mapped here.
 
 Four facts govern the rows in this category.
 

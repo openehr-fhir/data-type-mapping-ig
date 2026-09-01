@@ -277,12 +277,33 @@ function gapReason(verdict: Verdict): string {
 }
 
 /** Rows that are a gap in one direction, gathered from the **whole** ledger. */
+/**
+ * The rows one directional gap inventory publishes.
+ *
+ * Three conditions, and the third is the one the headings depend on. A gap in
+ * the **openEHR → FHIR** direction is a fact an openEHR instance carries that
+ * FHIR cannot receive, so the row must have a real **openEHR** endpoint; a row
+ * whose openEHR side is `NoCounterpart` is a FHIR-only feature and belongs in
+ * the other table. Symmetrically for FHIR → openEHR. Without that the two
+ * inventories were populated by the same predicate and each contained rows its
+ * own heading disclaimed.
+ *
+ * The FHIR → openEHR table additionally excludes the rows already published by
+ * `gaps:fhir-no-counterpart` — the FHIR types with no openEHR counterpart at
+ * all — so nothing is listed twice; the page prose says where those rows live.
+ */
 function gapRows(direction: Direction): readonly { mapping: Mapping; row: Row }[] {
   const out: { mapping: Mapping; row: Row }[] = [];
   for (const mapping of ledger()) {
     for (const row of mapping.rows) {
       if (row.maturity === 'not-discussed') continue;
       if (row[direction].fidelity === 'lossless') continue;
+      const source = direction === 'toFhir' ? row.openehr : row.fhir;
+      if (isNoCounterpart(source)) continue;
+      // A row with no openEHR counterpart at all is published in full by
+      // `gaps:fhir-no-counterpart`; listing it here as well would say the same
+      // thing twice under two headings.
+      if (direction === 'toOpenehr' && isNoCounterpart(row.openehr)) continue;
       out.push({ mapping, row });
     }
   }

@@ -43,6 +43,9 @@ const EXTENSION_PATH_PREFIX = '/fhir/extensions/';
 
 const MAPPING_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
+/** The mapping that publishes the FHIR types with no openEHR counterpart. */
+export const FHIR_NO_COUNTERPART_ID = 'fhir-types-with-no-openehr-counterpart';
+
 function nonEmpty(value: string | undefined, what: string, out: string[]): void {
   if (value !== undefined && value.trim() === '') out.push(`${what}: empty string`);
 }
@@ -225,6 +228,35 @@ export function validateLedger(mappings: readonly Mapping[]): string[] {
   const out: string[] = [];
   const seenMappingIds = new Set<string>();
   const seenRowIds = new Map<string, string>();
+
+  // A FHIR type this guide **maps** may not also be published as having no
+  // openEHR counterpart at all: the guide would be answering the same question
+  // two ways on two pages. Keyed on membership of the inventory mapping rather
+  // than on bare type names, because a `NoCounterpart` row elsewhere may
+  // legitimately name a type that *is* mapped — `CodeableReference` is
+  // `link-to-reference`'s own FHIR path.
+  const mappedFhirTypes = new Set<string>();
+  for (const mapping of mappings) {
+    if (mapping.id === FHIR_NO_COUNTERPART_ID) continue;
+    for (const part of mapping.fhirType.split('|')) {
+      const name = part.trim();
+      if (name !== '' && name !== '(none)') mappedFhirTypes.add(name);
+    }
+  }
+  for (const mapping of mappings) {
+    if (mapping.id !== FHIR_NO_COUNTERPART_ID) continue;
+    for (const row of mapping.rows) {
+      if (isNoCounterpart(row.fhir)) continue;
+      for (const endpoint of row.fhir) {
+        if (!mappedFhirTypes.has(endpoint.path)) continue;
+        out.push(
+          `mapping '${mapping.id}' row '${row.id}': '${endpoint.path}' is published as ` +
+            `having no openEHR counterpart, but it is the FHIR type of a mapping this ` +
+            `guide publishes — the two statements cannot both be true`,
+        );
+      }
+    }
+  }
 
   for (const mapping of mappings) {
     const where = `mapping '${mapping.id}'`;
