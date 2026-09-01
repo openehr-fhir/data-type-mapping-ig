@@ -1,0 +1,37 @@
+{
+  "_type": "DV_CODED_TEXT",
+  "value": "Anemia, unspecified",
+  "defining_code": {
+    "_type": "CODE_PHRASE",
+    "terminology_id": {
+      "value": "http://snomed.info/sct"
+    },
+    "code_string": "271737000",
+    "preferred_term": "Anemia"
+  },
+  "mappings": [
+    {
+      "_type": "TERM_MAPPING",
+      "match": "=",
+      "purpose": {
+        "_type": "DV_CODED_TEXT",
+        "value": "reimbursement",
+        "defining_code": {
+          "_type": "CODE_PHRASE",
+          "terminology_id": {
+            "value": "openehr"
+          },
+          "code_string": "670"
+        }
+      },
+      "target": {
+        "_type": "CODE_PHRASE",
+        "terminology_id": {
+          "value": "http://hl7.org/fhir/sid/icd-10"
+        },
+        "code_string": "D64.9",
+        "preferred_term": "Anaemia, unspecified"
+      }
+    }
+  ]
+}

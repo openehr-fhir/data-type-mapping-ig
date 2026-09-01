@@ -1,0 +1,8 @@
+{
+  "_type": "CODE_PHRASE",
+  "terminology_id": {
+    "value": "http://loinc.org"
+  },
+  "code_string": "718-7",
+  "preferred_term": "Hemoglobin [Mass/volume] in Blood"
+}

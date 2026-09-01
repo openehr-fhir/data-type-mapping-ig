@@ -1,0 +1,12 @@
+{
+  "_type": "DV_CODED_TEXT",
+  "value": "Anemia",
+  "defining_code": {
+    "_type": "CODE_PHRASE",
+    "terminology_id": {
+      "value": "http://snomed.info/sct"
+    },
+    "code_string": "271737000",
+    "preferred_term": "Anemia"
+  }
+}

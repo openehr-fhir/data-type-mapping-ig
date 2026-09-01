@@ -72,8 +72,7 @@ export const SPEC_MIRRORS: readonly MirrorEntry[] = [
     prefix: 'https://hl7.org/fhir/R5/datatypes.html',
     root: 'fhir',
     file: 'datatypes.html',
-  },
-  {
+  },  {
     prefix: 'https://hl7.org/fhir/R5/extensibility.html',
     root: 'fhir',
     file: 'extensibility.html',

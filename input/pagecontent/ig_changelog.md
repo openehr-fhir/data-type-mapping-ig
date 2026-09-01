@@ -15,6 +15,19 @@ Categories, in the order they appear under a version:
 
 **Compatible, Substantive**
 
+- **Coded data.** Added `CODE_PHRASE` ↔ `Coding`, `DV_CODED_TEXT` ↔
+  `CodeableConcept` / `Coding`, `TERM_MAPPING` ↔ `CodeableConcept.coding`, and
+  the `null_flavour` ↔ `data-absent-reason` correspondences, including the full
+  L1/L2 inheritance detail in both directions and the HL7 v3 `NullFlavor`
+  correspondence.
+- Recorded as **open** and explicitly undecided: how a FHIR `system` plus
+  `version` becomes one openEHR `terminology_id` (three candidates, none
+  adopted); the default strategy when an incoming `Coding` omits the mandatory
+  `system` or `code`; how `TERM_MAPPING.purpose` is represented in FHIR; and the
+  openEHR `271` *no information* code, which has no data-absent-reason
+  equivalent.
+- **No ConceptMap, CodeSystem, or ValueSet is defined by this guide.** Both
+  sides of every terminology correspondence are cited to their own publisher.
 - **Quantities.** Added the field-level mappings for `DV_QUANTITY` ↔ `Quantity`,
   `DV_COUNT` ↔ `Count`, `DV_PROPORTION` ↔ `Ratio`, `DV_INTERVAL` ↔
   `Range` / `Period` / `Quantity`, `DV_QUANTITY` ↔ `Money` / `MoneyQuantity`,

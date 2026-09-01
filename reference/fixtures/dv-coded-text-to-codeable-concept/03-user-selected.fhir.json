@@ -1,0 +1,16 @@
+{
+  "coding": [
+    {
+      "system": "http://snomed.info/sct",
+      "code": "271737000",
+      "display": "Anemia"
+    },
+    {
+      "system": "http://hl7.org/fhir/sid/icd-10",
+      "code": "D64.9",
+      "display": "Anaemia, unspecified",
+      "userSelected": true
+    }
+  ],
+  "text": "Anaemia, unspecified"
+}

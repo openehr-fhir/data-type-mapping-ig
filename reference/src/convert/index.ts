@@ -11,6 +11,7 @@
 
 // ── Converter modules ────────────────────────────────────────────────────────
 import './quantity.ts';
+import './coded.ts';
 
 export { registered, converterFor, register } from '../registry.ts';
 export type { ConverterPair } from '../registry.ts';
