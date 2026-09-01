@@ -24,6 +24,7 @@ import { validateLedger } from './validate.ts';
 // One line per `reference/ledger/*.ts`, appended by the phase that lands it.
 import boolean_ from '../../ledger/boolean.ts';
 import coded from '../../ledger/coded.ts';
+import gaps from '../../ledger/gaps.ts';
 import numeric from '../../ledger/numeric.ts';
 import referenceTypes from '../../ledger/reference-types.ts';
 import temporal from '../../ledger/temporal.ts';
@@ -31,7 +32,7 @@ import textual from '../../ledger/textual.ts';
 import other from '../../ledger/other.ts';
 import quantity from '../../ledger/quantity.ts';
 
-const MODULES: readonly (readonly Mapping[])[] = [quantity, coded, boolean_, numeric, textual, referenceTypes, temporal, other];
+const MODULES: readonly (readonly Mapping[])[] = [quantity, coded, boolean_, numeric, textual, referenceTypes, temporal, other, gaps];
 
 let cached: readonly Mapping[] | undefined;
 

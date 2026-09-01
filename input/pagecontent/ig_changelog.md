@@ -15,6 +15,13 @@ Categories, in the order they appear under a version:
 
 **Compatible, Substantive**
 
+- **Gaps.** `gaps.html` now publishes four inventories, three of them **derived from**
+  **the whole ledger** rather than transcribed: openEHR → FHIR, FHIR → openEHR, and
+  not-yet-discussed. A gap therefore cannot fall out of step with the mapping it
+  belongs to. The fourth inventory lists FHIR types with no openEHR counterpart at
+  all — `Address`, `HumanName`, `ContactPoint`, `Annotation`, `Signature`,
+  `SampledData`, `RatioRange`, `Money`, `Meta`, `Narrative` — each citing the
+  openEHR Data Types inventory page, so "no counterpart exists" stays a sourced claim.
 - **Other data.** Added `DV_MULTIMEDIA` ↔ `Attachment`, `DV_PARSABLE` ↔ `string`, and
   `DV_STATE` ↔ `CodeableConcept`. `compression_algorithm` (FHIR-56003),
   non-SHA-1 `integrity_check_algorithm` (FHIR-55422), and `thumbnail` (FHIR-56002)

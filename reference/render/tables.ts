@@ -251,6 +251,124 @@ export function renderExample(fixturePath: string): string {
   return ['```json', raw, '```'].join('\n');
 }
 
+// ── the gaps: renderers ──────────────────────────────────────────────────────
+
+const GAP_HEADER = [
+  '| Feature | Counterpart | Fidelity | Maturity | Owner | Why |',
+  '|-|-|-|-|-|-|',
+];
+
+/** The owner named by a row's verdict in one direction, if any. */
+function verdictOwner(verdict: Verdict): string {
+  return verdict.fidelity === 'unmapped' && verdict.owner !== undefined
+    ? ownerCell(verdict.owner)
+    : '—';
+}
+
+/** The reason a direction is a gap: the unmapped reason, or the drop list. */
+function gapReason(verdict: Verdict): string {
+  if (verdict.fidelity === 'unmapped') return cell(verdict.reason);
+  if (verdict.fidelity === 'lossy') {
+    return cell(verdict.drops.map((d) => `\`${d.path}\` — ${d.reason}`).join('; '));
+  }
+  return '';
+}
+
+/** Rows that are a gap in one direction, gathered from the **whole** ledger. */
+function gapRows(direction: Direction): readonly { mapping: Mapping; row: Row }[] {
+  const out: { mapping: Mapping; row: Row }[] = [];
+  for (const mapping of ledger()) {
+    for (const row of mapping.rows) {
+      if (row.maturity === 'not-discussed') continue;
+      if (row[direction].fidelity === 'lossless') continue;
+      out.push({ mapping, row });
+    }
+  }
+  return out;
+}
+
+function gapTable(
+  entries: readonly { mapping: Mapping; row: Row }[],
+  direction: Direction,
+): string {
+  const lines = [...GAP_HEADER];
+  if (entries.length === 0) {
+    lines.push('', 'No gaps recorded yet.');
+    return lines.join('\n');
+  }
+  for (const { mapping, row } of entries) {
+    const feature = direction === 'toFhir' ? openehrCell(row.openehr) : fhirCell(row.fhir);
+    const counterpart = direction === 'toFhir' ? fhirCell(row.fhir) : openehrCell(row.openehr);
+    lines.push(
+      tableRow([
+        `${feature} <br/>*[${cell(mapping.title)}](${CATEGORY_PAGE[mapping.category]})*`,
+        counterpart,
+        fidelityCell(row[direction]),
+        `\`${row.maturity}\``,
+        verdictOwner(row[direction]),
+        gapReason(row[direction]),
+      ]),
+    );
+  }
+  return lines.join('\n');
+}
+
+/** openEHR features that cannot be carried into FHIR. */
+export function renderGapsOpenehrToFhir(): string {
+  return gapTable(gapRows('toFhir'), 'toFhir');
+}
+
+/** FHIR features that cannot be carried into openEHR. */
+export function renderGapsFhirToOpenehr(): string {
+  return gapTable(gapRows('toOpenehr'), 'toOpenehr');
+}
+
+/** FHIR types for which the openEHR Reference Model has no counterpart at all. */
+export function renderGapsFhirNoCounterpart(): string {
+  const lines = [
+    '| FHIR type | Why openEHR has no counterpart | Owner |',
+    '|-|-|-|',
+  ];
+  let found = 0;
+  for (const mapping of ledger()) {
+    for (const row of mapping.rows) {
+      if (!isNoCounterpart(row.openehr)) continue;
+      if (row.maturity === 'not-discussed') continue;
+      found += 1;
+      lines.push(
+        tableRow([
+          fhirCell(row.fhir),
+          cell(row.openehr.reason) + ` ([inventory](${row.openehr.cite.url}))`,
+          verdictOwner(row.toOpenehr),
+        ]),
+      );
+    }
+  }
+  if (found === 0) {
+    lines.push('', 'No types recorded yet.');
+  }
+  return lines.join('\n');
+}
+
+/** Everything on either side the working group has not examined. */
+export function renderGapsNotDiscussed(): string {
+  const lines = ['| Construct | Side | Why it is listed |', '|-|-|-|'];
+  let found = 0;
+  for (const mapping of ledger()) {
+    for (const row of mapping.rows) {
+      if (row.maturity !== 'not-discussed') continue;
+      found += 1;
+      const side = isNoCounterpart(row.openehr) ? 'FHIR' : 'openEHR';
+      const feature = isNoCounterpart(row.openehr) ? fhirCell(row.fhir) : openehrCell(row.openehr);
+      lines.push(tableRow([feature, side, gapReason(row.toFhir)]));
+    }
+  }
+  if (found === 0) {
+    lines.push('', 'Nothing recorded yet.');
+  }
+  return lines.join('\n');
+}
+
 // ── the registry ─────────────────────────────────────────────────────────────
 
 /** Renders the body of one managed region. */
@@ -266,6 +384,10 @@ export function regionRenderers(): ReadonlyMap<string, RegionRenderer> {
   const renderers = new Map<string, RegionRenderer>();
 
   renderers.set('summary:all', () => renderSummaryAll());
+  renderers.set('gaps:openehr-to-fhir', () => renderGapsOpenehrToFhir());
+  renderers.set('gaps:fhir-to-openehr', () => renderGapsFhirToOpenehr());
+  renderers.set('gaps:fhir-no-counterpart', () => renderGapsFhirNoCounterpart());
+  renderers.set('gaps:not-discussed', () => renderGapsNotDiscussed());
 
   // Only categories the ledger actually holds get a `summary:` renderer, so a
   // category region and its renderer land in the same commit -- the category's
@@ -276,6 +398,10 @@ export function regionRenderers(): ReadonlyMap<string, RegionRenderer> {
   }
 
   for (const mapping of ledger()) {
+    // The `gaps` category's rows are published by the four `gaps:*` renderers,
+    // which derive their tables from the whole ledger. A per-mapping field
+    // table would duplicate them, so none is registered.
+    if (mapping.category === 'gaps') continue;
     renderers.set(`mapping:${mapping.id}`, () => renderMappingTable(mapping));
   }
 
