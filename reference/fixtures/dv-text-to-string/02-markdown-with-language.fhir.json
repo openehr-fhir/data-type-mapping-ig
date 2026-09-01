@@ -1,0 +1,13 @@
+{
+  "value": "**Allergy:** penicillin",
+  "extension": [
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/rendering-markdown",
+      "valueString": "**Allergy:** penicillin"
+    },
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/language",
+      "valueString": "en"
+    }
+  ]
+}

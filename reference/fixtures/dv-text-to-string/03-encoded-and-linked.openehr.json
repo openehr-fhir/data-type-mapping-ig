@@ -1,0 +1,29 @@
+{
+  "_type": "DV_TEXT",
+  "value": "Single line only",
+  "formatting": "plain_no_newlines",
+  "encoding": {
+    "_type": "CODE_PHRASE",
+    "terminology_id": {
+      "value": "IANA_character-sets"
+    },
+    "code_string": "UTF-8"
+  },
+  "hyperlink": {
+    "_type": "DV_URI",
+    "value": "https://example.org/guideline"
+  },
+  "mappings": [
+    {
+      "_type": "TERM_MAPPING",
+      "match": "=",
+      "target": {
+        "_type": "CODE_PHRASE",
+        "terminology_id": {
+          "value": "http://snomed.info/sct"
+        },
+        "code_string": "25064002"
+      }
+    }
+  ]
+}

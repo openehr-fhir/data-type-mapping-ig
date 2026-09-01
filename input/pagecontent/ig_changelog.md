@@ -15,6 +15,10 @@ Categories, in the order they appear under a version:
 
 **Compatible, Substantive**
 
+- **Textual data.** Added `DV_TEXT` ↔ `string` / `markdown`, covering `formatting`,
+  `language`, `encoding` (`unmapped`: FHIR mandates UTF-8 and the sender converts),
+  the deprecated `hyperlink`, and `mappings`, which belongs to a `CodeableConcept`.
+  `DV_PARAGRAPH` is recorded `not-discussed` rather than given an invented mapping.
 - **Boolean data.** Added `DV_BOOLEAN` ↔ `boolean`, recording that `DV_BOOLEAN.value`
   is mandatory in the Reference Model while a FHIR `boolean` element may be absent.
 - **Numeric primitives.** Added `Integer` ↔ `integer`, `Integer64` ↔ `integer64`,

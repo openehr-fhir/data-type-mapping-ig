@@ -30,6 +30,7 @@ export type Category =
   | 'coded'
   | 'boolean'
   | 'numeric'
+  | 'textual'
   | 'gaps';
 
 /**

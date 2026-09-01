@@ -1,0 +1,12 @@
+{
+  "_type": "DV_TEXT",
+  "value": "**Allergy:** penicillin",
+  "formatting": "markdown",
+  "language": {
+    "_type": "CODE_PHRASE",
+    "terminology_id": {
+      "value": "urn:ietf:bcp:47"
+    },
+    "code_string": "en"
+  }
+}
