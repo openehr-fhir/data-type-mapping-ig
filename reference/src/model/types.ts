@@ -32,6 +32,7 @@ export type Category =
   | 'numeric'
   | 'textual'
   | 'reference'
+  | 'temporal'
   | 'gaps';
 
 /**

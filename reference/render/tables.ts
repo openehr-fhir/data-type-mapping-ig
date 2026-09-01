@@ -40,6 +40,7 @@ export const CATEGORY_PAGE: Readonly<Record<Category, string>> = {
   numeric: 'mapping-numeric.html',
   textual: 'mapping-textual.html',
   reference: 'mapping-reference.html',
+  temporal: 'mapping-temporal.html',
   gaps: 'gaps.html',
 };
 
@@ -51,6 +52,7 @@ export const CATEGORY_LABEL: Readonly<Record<Category, string>> = {
   numeric: 'Numeric Primitives',
   textual: 'Textual Data',
   reference: 'Resource-Locator Data and References',
+  temporal: 'Temporal Data',
   gaps: 'Gaps',
 };
 

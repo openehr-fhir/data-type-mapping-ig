@@ -15,6 +15,14 @@ Categories, in the order they appear under a version:
 
 **Compatible, Substantive**
 
+- **Temporal data.** Added `DV_DATE`, `DV_TIME`, `DV_DATE_TIME`, and `DV_DURATION`,
+  with the ISO 8601 subset differences stated as mapping rules: compact openEHR forms
+  SHALL be expanded, partial precision SHALL be truncated rather than padded,
+  fractional seconds truncate from nine digits to three, and a `time` carries its
+  offset in the `timezone` extension because FHIR `time` cannot. `DV_TEMPORAL.accuracy`
+  is `unmapped`. The archetype-scope `Timing` mapping names the four openEHR timing
+  archetypes and is deferred. `DV_GENERAL_TIME_SPECIFICATION` and
+  `DV_PERIODIC_TIME_SPECIFICATION` are recorded `not-discussed`.
 - **Resource-locator data and references.** Added `DV_IDENTIFIER` ↔ `Identifier`,
   `DV_URI` / `DV_EHR_URI` ↔ `uri` / `url`, and `LINK` ↔ `Reference` /
   `CodeableReference`, including the `system::value` convention and its

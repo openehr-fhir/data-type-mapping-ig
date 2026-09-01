@@ -1,0 +1,9 @@
+{
+  "value": "14:30:00",
+  "extension": [
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/timezone",
+      "valueString": "+01:00"
+    }
+  ]
+}
