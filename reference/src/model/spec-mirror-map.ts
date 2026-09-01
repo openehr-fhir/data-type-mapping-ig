@@ -78,6 +78,11 @@ export const SPEC_MIRRORS: readonly MirrorEntry[] = [
     file: 'extensibility.html',
   },
   {
+    prefix: 'https://hl7.org/fhir/R5/references.html',
+    root: 'fhir',
+    file: 'references.html',
+  },
+  {
     prefix: 'https://hl7.org/fhir/R5/observation.html',
     root: 'fhir',
     file: 'observation.html',

@@ -39,6 +39,7 @@ export const CATEGORY_PAGE: Readonly<Record<Category, string>> = {
   boolean: 'mapping-boolean.html',
   numeric: 'mapping-numeric.html',
   textual: 'mapping-textual.html',
+  reference: 'mapping-reference.html',
   gaps: 'gaps.html',
 };
 
@@ -49,6 +50,7 @@ export const CATEGORY_LABEL: Readonly<Record<Category, string>> = {
   boolean: 'Boolean Data',
   numeric: 'Numeric Primitives',
   textual: 'Textual Data',
+  reference: 'Resource-Locator Data and References',
   gaps: 'Gaps',
 };
 

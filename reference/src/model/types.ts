@@ -31,6 +31,7 @@ export type Category =
   | 'boolean'
   | 'numeric'
   | 'textual'
+  | 'reference'
   | 'gaps';
 
 /**

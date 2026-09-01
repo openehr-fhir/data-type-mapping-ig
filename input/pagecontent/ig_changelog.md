@@ -15,6 +15,13 @@ Categories, in the order they appear under a version:
 
 **Compatible, Substantive**
 
+- **Resource-locator data and references.** Added `DV_IDENTIFIER` ↔ `Identifier`,
+  `DV_URI` / `DV_EHR_URI` ↔ `uri` / `url`, and `LINK` ↔ `Reference` /
+  `CodeableReference`, including the `system::value` convention and its
+  last-`::` parsing rule, the `Identifier.use` and `Identifier.period` gaps, and
+  the sub-element addressing that `Reference.reference` cannot express. The pending
+  `LINK` / `PARTY_IDENTIFIED` / `OBJECT_REF` unification is named as a reason and
+  **not anticipated**: the Reference Model is mapped as published today.
 - **Textual data.** Added `DV_TEXT` ↔ `string` / `markdown`, covering `formatting`,
   `language`, `encoding` (`unmapped`: FHIR mandates UTF-8 and the sender converts),
   the deprecated `hyperlink`, and `mappings`, which belongs to a `CodeableConcept`.

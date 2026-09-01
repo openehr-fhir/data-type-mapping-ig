@@ -1,0 +1,7 @@
+{
+  "_type": "DV_IDENTIFIER",
+  "id": "12345",
+  "issuer": "http://example.org/hospital",
+  "type": "http://terminology.hl7.org/CodeSystem/v2-0203::MR",
+  "assigner": "http://example.org/org::OrgRef123"
+}
