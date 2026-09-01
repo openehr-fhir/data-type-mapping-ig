@@ -60,9 +60,24 @@ verdict on a row that is not yet settled SHALL name an owner, so that every open
 gap has somebody it belongs to.
 
 These are not editorial claims. Each is a machine-checked property of the
-[reference implementation](reference-implementation.html): a `lossless` row must
-round-trip a paired fixture unchanged, and a `lossy` row must drop **exactly**
-what it says it drops — no more, and no less.
+[reference implementation](reference-implementation.html) — with two scoping
+rules that are part of the claim rather than exceptions to it:
+
+- A `lossless` row must **round-trip a paired fixture unchanged**, and a `lossy`
+  row must drop **exactly** what it says it drops — no more, and no less.
+- Rows at **`archetype` scope are outside the matrix**, because their FHIR home
+  is a resource element and a data-type conversion never sees a resource. That
+  exemption is itself checked: a row claiming it while targeting an ordinary
+  data-type element is rejected, so the set of unchecked rows cannot quietly
+  grow.
+- A row whose **source side has no counterpart** in the direction under test is
+  skipped, because there is nothing to convert from. What is *not* skipped is
+  the target side: a row that claims nothing can be carried is held to
+  producing nothing.
+
+Every fixture pair is additionally asserted to be a pair — each side producible
+from the other, modulo the drops the ledger declares — and a pair that holds in
+one direction only says so, with a reason, in a marker beside it.
 
 <a name="mandatory-attributes"></a>
 
@@ -157,7 +172,10 @@ mirrors its tests resolve citations against hold the openEHR Reference Model and
 the FHIR R5 **core** specification, and neither contains extension definitions.
 A dagger therefore means *"this citation is taken on the working group's
 authority"*. Citations to openEHR RM pages and to FHIR R5 core pages carry no
-dagger, and each is resolved to a real page before the guide is published.
+dagger, and each is resolved — to a real **anchor** on a real page, not merely
+to the page — before the guide is published. That check is **conditional on the
+mirrors being configured**: it is part of the release gate, and it skips
+silently for a contributor who has not set them up.
 
 Citations to [terminology.hl7.org](https://terminology.hl7.org) and to
 [jira.hl7.org](https://jira.hl7.org) are likewise verified as well-formed and

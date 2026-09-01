@@ -46,9 +46,15 @@ code.
   machine-checked mapping ledger and written into sentinel-delimited managed
   regions in the page sources. A published example *is* the fixture the
   converters are tested against, so the two cannot drift.
-- Fidelity claims are **checked, not asserted**: a `lossless` row must
-  round-trip a paired instance unchanged, and a `lossy` row must drop exactly
-  what it declares — no more and no less.
+- Fidelity claims are **checked, not asserted**, within a scope the guide states
+  rather than leaves implied: a `lossless` row must round-trip a paired instance
+  unchanged and a `lossy` row must drop exactly what it declares — no more and
+  no less — for every row at `datatype` scope. Rows at `archetype` scope are
+  outside the matrix because their FHIR home is a resource element, and that
+  exemption is itself checked; a row whose source side has no counterpart in the
+  direction under test is skipped because nothing exists to convert from. Every
+  fixture pair is also asserted to be a pair, and the ones that hold in a single
+  direction say so.
 - Extension-pack citations are marked with a dagger and are taken on the
   working group's authority, because they cannot be resolved against a local
   mirror of the FHIR R5 core specification. `build.fhir.org` citations are not
@@ -128,6 +134,11 @@ code.
   on and names who owns them.
 
 *Review remediation*
+
+Everything in this group is a correction made in response to a full review of
+the first content release. The wording changes below are filed as
+**Compatible, Non-Substantive**; everything else in this group changes what the
+guide asserts and is **Compatible, Substantive**.
 - **The mandatory-attribute rule is stated and enforced.** A conversion never
   invents a value for an attribute the target standard declares mandatory:
   where the source carries nothing for one, it produces no value at all and
@@ -273,3 +284,13 @@ code.
   and openEHR permits all three, so such a code has no valid FHIR form at all;
   the sub-case is its own `unmapped` row with an owner, and the guide emits
   nothing rather than an instance a validator rejects.
+
+**Compatible, Non-Substantive**
+
+- **The guide now says exactly what is machine-checked.** `conventions.html`
+  and `reference-implementation.html` stated an unqualified claim — every
+  fidelity verdict is a machine-checked property — while the harness has always
+  had two scoping rules. Both are now stated where the claim is made, together
+  with the fact that citation resolution is conditional on the specification
+  mirrors being configured. No verdict, no conformance verb, and no mapping
+  changed: this is the wording catching up with what the tests do.

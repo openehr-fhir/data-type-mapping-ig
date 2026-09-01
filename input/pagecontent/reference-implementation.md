@@ -141,7 +141,11 @@ zero skipped tests, rather than the bare run.
 - A mapping that claims something can be carried has a converter and a fixture;
   a mapping that claims nothing can be has neither.
 
-Two scoping rules are deliberate. Rows at `archetype` scope are outside the
-matrix, because their FHIR home is a resource element and a data-type converter
-never sees a resource. And a row whose **source** side has no counterpart in the
-direction under test is skipped, because there is nothing to convert from.
+Two scoping rules are deliberate, and both are narrower than they were. Rows at
+`archetype` scope are outside the matrix, because their FHIR home is a resource
+element and a data-type converter never sees a resource — and a row that claims
+that exemption while targeting an ordinary data-type element is now **rejected**,
+so the exempt set cannot grow by inattention. And a row whose **source** side
+has no counterpart in the direction under test is skipped, because there is
+nothing to convert from; its **target** side is not skipped, and a conversion
+that produces nothing at all has to name a path the ledger declares `unmapped`.
