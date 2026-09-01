@@ -29,6 +29,7 @@ import {
 } from '../src/model/types.ts';
 import { aggregateVerdict, categories, ledger, mappingsFor } from '../src/model/load.ts';
 import { ISO8601_FORMS } from '../src/shared/iso8601-subset.ts';
+import { OPEN_ITEMS, type Side } from '../content/open-items.ts';
 
 /** Where `example:` regions read their fixtures from. */
 export const FIXTURES_ROOT = new URL('../fixtures/', import.meta.url);
@@ -391,6 +392,57 @@ export function renderIso8601Subset(): string {
   return lines.join('\n');
 }
 
+// ── the review-coverage and open-items renderers ─────────────────────────────
+
+/** Reviewer coverage, from every `Mapping.review` field. */
+export function renderReviewCoverage(): string {
+  const lines = [
+    '| Mapping | Category | openEHR review | FHIR review |',
+    '|-|-|-|-|',
+  ];
+  const names = (reviewers: readonly string[]): string =>
+    reviewers.length === 0 ? '**unchecked**' : `✓ ${cell(reviewers.join(', '))}`;
+
+  for (const mapping of ledger()) {
+    lines.push(
+      tableRow([
+        `[${cell(mapping.title)}](${CATEGORY_PAGE[mapping.category]})`,
+        CATEGORY_LABEL[mapping.category],
+        names(mapping.review.openehr),
+        names(mapping.review.fhir),
+      ]),
+    );
+  }
+  return lines.join('\n');
+}
+
+/** The open-items register, grouped by side. */
+export function renderOpenItems(): string {
+  const sides: readonly { readonly side: Side; readonly heading: string }[] = [
+    { side: 'fhir', heading: 'FHIR-side actions' },
+    { side: 'openehr', heading: 'openEHR-side actions' },
+    { side: 'documentation', heading: 'Documentation and tooling' },
+  ];
+
+  const lines: string[] = [];
+  for (const { side, heading } of sides) {
+    const items = OPEN_ITEMS.filter((item) => item.side === side);
+    lines.push(`#### ${heading}`, '');
+    lines.push('| Item | Owner | Priority | Status |', '|-|-|-|-|');
+    for (const item of items) {
+      const title =
+        item.ticket === undefined
+          ? cell(item.title)
+          : `${cell(item.title)} <br/>[${cell(item.ticket.label)}](${item.ticket.url})`;
+      lines.push(
+        tableRow([title, cell(item.owner), `\`${item.priority}\``, cell(item.status)]),
+      );
+    }
+    lines.push('');
+  }
+  return lines.join('\n').trimEnd();
+}
+
 // ── the registry ─────────────────────────────────────────────────────────────
 
 /** Renders the body of one managed region. */
@@ -411,6 +463,8 @@ export function regionRenderers(): ReadonlyMap<string, RegionRenderer> {
   renderers.set('gaps:fhir-no-counterpart', () => renderGapsFhirNoCounterpart());
   renderers.set('gaps:not-discussed', () => renderGapsNotDiscussed());
   renderers.set('iso8601-subset', () => renderIso8601Subset());
+  renderers.set('review-coverage', () => renderReviewCoverage());
+  renderers.set('open-items', () => renderOpenItems());
 
   // Only categories the ledger actually holds get a `summary:` renderer, so a
   // category region and its renderer land in the same commit -- the category's

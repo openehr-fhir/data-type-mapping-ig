@@ -15,6 +15,12 @@ Categories, in the order they appear under a version:
 
 **Compatible, Substantive**
 
+- **Reviewer coverage and the open-items register.** `open-items.html` now publishes
+  which mappings have been reviewed from which side — including the ones reviewed from
+  neither — and the full register of unresolved FHIR-side, openEHR-side, and
+  documentation actions with an owner and a status for each. Every `Owner` a mapping
+  row blames is asserted to appear in the register, so a gap cannot cite a ticket the
+  page then fails to list.
 - **Cross-cutting concerns.** `cross-cutting.html` now carries the material the
   working documents scattered: the three candidate `terminology_id` formats with
   their trade-offs and **no decision**, the character-encoding rule, the `DV_AMOUNT`
