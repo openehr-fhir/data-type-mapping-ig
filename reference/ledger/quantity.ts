@@ -13,7 +13,7 @@ import type { Cite, Mapping, Review } from '../src/model/types.ts';
 
 const RM = 'https://specifications.openehr.org/releases/RM/latest/data_types.html';
 const R5 = 'https://hl7.org/fhir/R5/datatypes.html';
-const R5_OBS = 'https://hl7.org/fhir/R5/observation.html';
+const R5_OBS = 'https://hl7.org/fhir/R5/observation-definitions.html';
 const EXT_PACK = 'https://hl7.org/fhir/extensions/StructureDefinition';
 
 function rm(anchor: string, label: string): Cite {
@@ -46,6 +46,8 @@ function jira(ticket: string): Cite {
 
 const DV_QUANTITY = rm('_dv_quantity_class', 'openEHR RM — DV_QUANTITY');
 const DV_AMOUNT = rm('_dv_amount_class', 'openEHR RM — DV_AMOUNT');
+const DV_ORDERED = rm('_dv_ordered_class', 'openEHR RM — DV_ORDERED');
+const DV_QUANTIFIED = rm('_dv_quantified_class', 'openEHR RM — DV_QUANTIFIED');
 const QUANTITY = r5('Quantity', 'FHIR R5 — Quantity');
 
 const REVIEWED_BOTH: Review = {
@@ -79,7 +81,7 @@ const dvQuantityToQuantity = {
   fhirType: 'Quantity',
   title: 'DV_QUANTITY ↔ Quantity',
   scope: 'datatype',
-  sources: [DV_QUANTITY, QUANTITY, DV_AMOUNT],
+  sources: [DV_QUANTITY, QUANTITY, DV_ORDERED, DV_QUANTIFIED, DV_AMOUNT],
   review: REVIEWED_BOTH,
   rows: [
     {
@@ -220,7 +222,7 @@ const dvQuantityToQuantity = {
         cardinality: '0..1',
         type: 'String',
         kind: 'element',
-        cite: DV_QUANTITY,
+        cite: DV_QUANTIFIED,
       },
       fhir: [
         {
@@ -348,7 +350,7 @@ const dvQuantityToQuantity = {
         cardinality: '0..1',
         type: 'DV_INTERVAL<DV_QUANTITY>',
         kind: 'element',
-        cite: DV_AMOUNT,
+        cite: DV_ORDERED,
       },
       fhir: [
         {
@@ -374,7 +376,7 @@ const dvQuantityToQuantity = {
         cardinality: '0..*',
         type: 'REFERENCE_RANGE<DV_QUANTITY>',
         kind: 'element',
-        cite: DV_AMOUNT,
+        cite: DV_ORDERED,
       },
       fhir: [
         {
@@ -399,7 +401,7 @@ const dvQuantityToQuantity = {
         cardinality: '0..1',
         type: 'CODE_PHRASE',
         kind: 'element',
-        cite: DV_AMOUNT,
+        cite: DV_ORDERED,
       },
       fhir: [
         {
@@ -442,7 +444,7 @@ const dvCountToCount = {
   fhirType: 'Count',
   title: 'DV_COUNT ↔ Count',
   scope: 'datatype',
-  sources: [DV_COUNT, COUNT, DV_AMOUNT],
+  sources: [DV_COUNT, COUNT, DV_ORDERED, DV_QUANTIFIED, DV_AMOUNT],
   review: REVIEWED_BOTH,
   rows: [
     {
@@ -479,7 +481,7 @@ const dvCountToCount = {
         cardinality: '0..1',
         type: 'String',
         kind: 'element',
-        cite: DV_AMOUNT,
+        cite: DV_QUANTIFIED,
       },
       fhir: [
         {
@@ -562,7 +564,7 @@ const dvCountToCount = {
         path: 'DV_COUNT.normal_range',
         cardinality: '0..1',
         kind: 'element',
-        cite: DV_AMOUNT,
+        cite: DV_ORDERED,
       },
       fhir: [
         {
@@ -577,7 +579,7 @@ const dvCountToCount = {
       maturity: 'settled',
       note:
         '`archetype` scope. `normal_range`, `other_reference_ranges`, and `normal_status` ' +
-        'are inherited from `DV_AMOUNT` and follow the same pattern as `DV_QUANTITY`.',
+        'are inherited from `DV_ORDERED` and follow the same pattern as `DV_QUANTITY`.',
     },
   ],
 } satisfies Mapping;
@@ -1244,6 +1246,35 @@ const dvOrdinalToObservationComponent = {
         'A value carried in the `itemWeight` extension is unlikely to be surfaced by a ' +
         'FHIR search, which matters when choosing between the two shapes.',
     },
+    {
+      id: 'dv-ordinal.dv-ordered-inherited',
+      scope: 'archetype',
+      openehr: {
+        path: 'DV_ORDINAL.normal_range',
+        cardinality: '0..1',
+        kind: 'element',
+        cite: DV_ORDERED,
+      },
+      fhir: [
+        {
+          path: 'Observation.referenceRange',
+          cardinality: '0..*',
+          kind: 'resource-element',
+          cite: obs('Observation.referenceRange', 'FHIR R5 — Observation.referenceRange'),
+        },
+      ],
+      toFhir: { fidelity: 'lossless' },
+      toOpenehr: { fidelity: 'lossless' },
+      maturity: 'settled',
+      note:
+        '`archetype` scope. `DV_ORDINAL` inherits `normal_range`, ' +
+        '`other_reference_ranges`, and `normal_status` from `DV_ORDERED` like every other ' +
+        'ordered value, and they follow the same pattern as `DV_QUANTITY`: the ranges ' +
+        'become `Observation.referenceRange` entries and `normal_status` becomes ' +
+        '`Observation.interpretation`. Without this row the aggregate would read ' +
+        '`lossless` while a `DV_ORDINAL` carrying a `normal_range` had nowhere stated to ' +
+        'put it.',
+    },
   ],
 } satisfies Mapping;
 
@@ -1312,6 +1343,35 @@ const dvScaleToObservationComponent = {
       note:
         '`DV_SCALE.value` is a `Real`, so unlike `DV_ORDINAL.value` it cannot land in ' +
         '`valueInteger`. The distances between scale points need not be constant.',
+    },
+    {
+      id: 'dv-scale.dv-ordered-inherited',
+      scope: 'archetype',
+      openehr: {
+        path: 'DV_SCALE.normal_range',
+        cardinality: '0..1',
+        kind: 'element',
+        cite: DV_ORDERED,
+      },
+      fhir: [
+        {
+          path: 'Observation.referenceRange',
+          cardinality: '0..*',
+          kind: 'resource-element',
+          cite: obs('Observation.referenceRange', 'FHIR R5 — Observation.referenceRange'),
+        },
+      ],
+      toFhir: { fidelity: 'lossless' },
+      toOpenehr: { fidelity: 'lossless' },
+      maturity: 'settled',
+      note:
+        '`archetype` scope. `DV_SCALE` inherits `normal_range`, `other_reference_ranges`, ' +
+        'and `normal_status` from `DV_ORDERED` like every other ordered value, and they ' +
+        'follow the same pattern as `DV_QUANTITY`: the ranges become ' +
+        '`Observation.referenceRange` entries and `normal_status` becomes ' +
+        '`Observation.interpretation`. Without this row the aggregate would read ' +
+        '`lossless` while a `DV_SCALE` carrying a `normal_range` had nowhere stated to ' +
+        'put it.',
     },
   ],
 } satisfies Mapping;

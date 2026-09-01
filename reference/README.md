@@ -105,6 +105,12 @@ npm --prefix reference test
 Citations are always written as **published URLs**. A machine-local path never
 appears in a citation.
 
+The check resolves each `spec-local` citation to a real **anchor** on the page
+it names, not merely to the file, so a citation that points at a heading which
+does not exist fails. Because it **skips silently** when the roots are unset,
+the bare `npm --prefix reference test` is not the publication gate: a release
+run uses the form above and expects **0 skipped**.
+
 ## What the tests prove
 
 - A `lossless` row **round-trips**: the value at that row's path survives

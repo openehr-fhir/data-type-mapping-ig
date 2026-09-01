@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { citesOf, type Cite } from '../src/model/types.ts';
@@ -75,6 +75,63 @@ test('every spec-local citation resolves to a file in the local mirrors', (t) =>
     missing,
     [],
     `spec-local citations whose mirror file is absent:\n${missing.join('\n')}`,
+  );
+});
+
+test('every spec-local citation resolves to a real anchor, not merely to a file', (t) => {
+  if (!CONFIGURED) {
+    t.skip(SKIP_MESSAGE);
+    return;
+  }
+
+  // Each mirror file is read once and its anchors indexed, because there are
+  // hundreds of citations and a handful of very large pages.
+  const anchorsByFile = new Map<string, ReadonlySet<string>>();
+  const anchorsOf = (path: string): ReadonlySet<string> => {
+    const cached = anchorsByFile.get(path);
+    if (cached !== undefined) return cached;
+    const found = new Set<string>();
+    if (existsSync(path)) {
+      const html = readFileSync(path, 'utf8');
+      for (const match of html.matchAll(/(?:\bid|\bname)\s*=\s*"([^"]+)"/g)) {
+        const value = match[1];
+        if (value !== undefined) found.add(value);
+      }
+      for (const match of html.matchAll(/(?:\bid|\bname)\s*=\s*'([^']+)'/g)) {
+        const value = match[1];
+        if (value !== undefined) found.add(value);
+      }
+    }
+    anchorsByFile.set(path, found);
+    return found;
+  };
+
+  const unresolved: string[] = [];
+  let checked = 0;
+
+  for (const { where, cite } of allCites()) {
+    if (cite.verification !== 'spec-local') continue;
+    const hash = cite.url.indexOf('#');
+    if (hash < 0) continue;
+    const fragment = decodeURIComponent(cite.url.slice(hash + 1));
+    if (fragment === '') continue;
+
+    const entry = resolveMirror(cite.url);
+    if (entry === undefined) continue;
+    const root = ROOTS[entry.root];
+    if (root === undefined) continue;
+
+    checked += 1;
+    if (!anchorsOf(join(root, entry.file)).has(fragment)) {
+      unresolved.push(`${where}: ${cite.url} → no id="${fragment}" in ${entry.file}`);
+    }
+  }
+
+  assert.ok(checked > 0, 'no fragment-bearing spec-local citation was checked');
+  assert.deepEqual(
+    unresolved,
+    [],
+    `spec-local citations whose anchor does not exist:\n${unresolved.join('\n')}`,
   );
 });
 

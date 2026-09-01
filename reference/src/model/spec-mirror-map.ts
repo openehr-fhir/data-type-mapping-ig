@@ -87,6 +87,21 @@ export const SPEC_MIRRORS: readonly MirrorEntry[] = [
     root: 'fhir',
     file: 'observation.html',
   },
+  {
+    prefix: 'https://hl7.org/fhir/R5/observation-definitions.html',
+    root: 'fhir',
+    file: 'observation-definitions.html',
+  },
+  {
+    prefix: 'https://hl7.org/fhir/R5/resource.html',
+    root: 'fhir',
+    file: 'resource.html',
+  },
+  {
+    prefix: 'https://hl7.org/fhir/R5/narrative.html',
+    root: 'fhir',
+    file: 'narrative.html',
+  },
 ];
 
 /** The entry that resolves `url`, or `undefined` if the table does not know it. */

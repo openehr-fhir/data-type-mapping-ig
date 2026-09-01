@@ -44,7 +44,7 @@ const IDENTIFIER = r5('Identifier', 'FHIR R5 — Identifier');
 const FHIR_URI = r5('uri', 'FHIR R5 — uri');
 const FHIR_URL = r5('url', 'FHIR R5 — url');
 const REFERENCE = refs('Reference', 'FHIR R5 — Reference');
-const CODEABLE_REFERENCE = r5('CodeableReference', 'FHIR R5 — CodeableReference');
+const CODEABLE_REFERENCE = refs('CodeableReference', 'FHIR R5 — CodeableReference');
 
 const REVIEWED_BOTH: Review = { openehr: ['Severin'], fhir: ['Gino'] };
 const REVIEWED_NEITHER: Review = { openehr: [], fhir: [] };

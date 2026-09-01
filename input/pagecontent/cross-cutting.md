@@ -64,17 +64,22 @@ belongs in the MIME type as a `charset` parameter — see
 
 ### The `DV_AMOUNT` pattern
 
-Every type deriving from `DV_AMOUNT` — `DV_QUANTITY`, `DV_COUNT`,
-`DV_PROPORTION`, and `DV_DURATION` — inherits the same set of attributes, and
-they follow **one** mapping pattern regardless of the concrete subtype:
+The name is a convenience: the six attributes below are **not** all declared on
+`DV_AMOUNT`. They arrive along an inheritance chain —
+`DV_ORDERED` → `DV_QUANTIFIED` → `DV_AMOUNT` → `DV_QUANTITY` — and the table
+names the class that actually declares each one, because that is where a
+citation has to point. `DV_QUANTITY`, `DV_COUNT`, `DV_PROPORTION`, and
+`DV_DURATION` all inherit them, and they follow **one** mapping pattern
+regardless of the concrete subtype:
 
-| Inherited property | FHIR counterpart | Scope |
-|-|-|-|
-| `magnitude_status` | `Quantity.comparator`, or the per-type equivalent | `datatype` |
-| `accuracy` | The `quantity-accuracy` extension, with `accuracy_is_percent` `false` | `datatype` |
-| `normal_range` | `Observation.referenceRange` with `type` = `normal` | `archetype` |
-| `other_reference_ranges` | `Observation.referenceRange` with `type` ≠ `normal` | `archetype` |
-| `normal_status` | `Observation.interpretation` | `archetype` |
+| Inherited property | Declared on | FHIR counterpart | Scope |
+|-|-|-|-|
+| `magnitude_status` | `DV_QUANTIFIED` | `Quantity.comparator`, or the per-type equivalent | `datatype` |
+| `accuracy` | `DV_AMOUNT` | The `quantity-accuracy` extension, whose `value[x]` is a `Quantity` | `datatype` |
+| `accuracy_is_percent` | `DV_AMOUNT` | The unit of that accuracy `Quantity` — UCUM `%` when true | `datatype` |
+| `normal_range` | `DV_ORDERED` | `Observation.referenceRange` with `type` = `normal` | `archetype` |
+| `other_reference_ranges` | `DV_ORDERED` | `Observation.referenceRange` with `type` ≠ `normal` | `archetype` |
+| `normal_status` | `DV_ORDERED` | `Observation.interpretation` | `archetype` |
 
 The last three are **only meaningful at the FHIR resource level**, not on the
 data type. Anything carrying a `normal_range` or a `normal_status` in openEHR

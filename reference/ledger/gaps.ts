@@ -19,6 +19,15 @@ const RM_STRUCTURES =
   'https://specifications.openehr.org/releases/RM/latest/data_structures.html';
 const RM_EHR = 'https://specifications.openehr.org/releases/RM/latest/ehr.html';
 const R5 = 'https://hl7.org/fhir/R5/datatypes.html';
+const R5_RESOURCE = 'https://hl7.org/fhir/R5/resource.html';
+const R5_NARRATIVE = 'https://hl7.org/fhir/R5/narrative.html';
+
+/** The FHIR R5 data-type **inventory** page. It has no anchor of its own. */
+const R5_INVENTORY: Cite = {
+  url: R5,
+  label: 'FHIR R5 — Data Types (inventory)',
+  verification: 'spec-local',
+};
 
 /** The openEHR Data Types **inventory** page, cited by every no-counterpart row. */
 const RM_INVENTORY: Cite = {
@@ -31,12 +40,19 @@ function r5(anchor: string, label: string): Cite {
   return { url: `${R5}#${anchor}`, label, verification: 'spec-local' };
 }
 
+/** `Meta` and `Narrative` are defined outside `datatypes.html`. */
+function onPage(page: string, anchor: string, label: string): Cite {
+  return { url: `${page}#${anchor}`, label, verification: 'spec-local' };
+}
+
 const NOT_REVIEWED: Review = { openehr: [], fhir: [] };
 
 /** One FHIR type with no openEHR data-type counterpart. */
 interface NoCounterpartEntry {
   readonly type: string;
   readonly anchor: string;
+  /** The R5 page the type is defined on, when it is not `datatypes.html`. */
+  readonly page?: string;
   readonly reason: string;
 }
 
@@ -100,6 +116,7 @@ const FHIR_ONLY: readonly NoCounterpartEntry[] = [
   {
     type: 'Meta',
     anchor: 'Meta',
+    page: R5_RESOURCE,
     reason:
       'Resource metadata — version, last-updated, profiles, security labels, tags — has no ' +
       'openEHR data type. openEHR carries the equivalents on `VERSION` and `AUDIT_DETAILS` ' +
@@ -108,6 +125,7 @@ const FHIR_ONLY: readonly NoCounterpartEntry[] = [
   {
     type: 'Narrative',
     anchor: 'Narrative',
+    page: R5_NARRATIVE,
     reason:
       'FHIR resource narrative is XHTML with a generation status. openEHR has no ' +
       'counterpart data type; narrative is either archetype content or absent.',
@@ -121,7 +139,7 @@ const fhirTypesWithNoOpenehrCounterpart = {
   fhirType: 'Address, HumanName, ContactPoint, and others',
   title: 'FHIR types with no openEHR counterpart',
   scope: 'datatype',
-  sources: [RM_INVENTORY, r5('datatypes', 'FHIR R5 — Data Types')],
+  sources: [RM_INVENTORY, R5_INVENTORY],
   review: NOT_REVIEWED,
   rows: FHIR_ONLY.map((entry) => ({
     id: `fhir:${entry.type.toLowerCase()}`,
@@ -132,7 +150,10 @@ const fhirTypesWithNoOpenehrCounterpart = {
         path: entry.type,
         cardinality: '0..1',
         kind: 'element' as const,
-        cite: r5(entry.anchor, `FHIR R5 — ${entry.type}`),
+        cite:
+          entry.page === undefined
+            ? r5(entry.anchor, `FHIR R5 — ${entry.type}`)
+            : onPage(entry.page, entry.anchor, `FHIR R5 — ${entry.type}`),
       },
     ] as const,
     toFhir: {
@@ -259,7 +280,7 @@ const openehrTypesNotYetDiscussed = {
       reason:
         'No FHIR target has been agreed, because the construct has not been examined. ' +
         'Listing a candidate here would be a guess.',
-      cite: r5('datatypes', 'FHIR R5 — Data Types (inventory)'),
+      cite: R5_INVENTORY,
     },
     toFhir: {
       fidelity: 'unmapped' as const,

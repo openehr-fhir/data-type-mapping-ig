@@ -215,14 +215,19 @@ npm --prefix reference run render:check
   `reference/ledger/` change.
 
 `reference/test/cite-local.test.ts` resolves every `spec-local` citation
-against local mirrors of the two specifications, and **skips** unless both
-`OPENEHR_SPEC_DIR` and `FHIR_R5_DIR` are set:
+against local mirrors of the two specifications — to a real **anchor**, not
+merely to a file — and **skips** unless both `OPENEHR_SPEC_DIR` and
+`FHIR_R5_DIR` are set. Because it skips silently, the bare `npm --prefix
+reference test` is **not** the release gate; this is:
 
 ```powershell
 $env:OPENEHR_SPEC_DIR = 'C:\ai\support\openEHR'
 $env:FHIR_R5_DIR = 'C:\ai\support\fhir-r5'
 npm --prefix reference test
 ```
+
+A publication run SHALL use the form above and expect **0 skipped**. The bare
+form stays available for contributors without the mirrors.
 
 Citations in the ledger are always **published URLs**; a machine-local path
 must never be written into one.

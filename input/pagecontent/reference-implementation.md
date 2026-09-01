@@ -121,8 +121,10 @@ npm --prefix reference test
 ```
 
 With both set, every `spec-local` citation in the ledger is resolved to a real
-page in the specification it claims to cite. Without them, that one test skips
-and the rest of the suite runs unchanged.
+**anchor** on a real page in the specification it claims to cite — not merely to
+a file. Without them, that one test skips and the rest of the suite runs
+unchanged, which is why **the publication gate is the form above**, expecting
+zero skipped tests, rather than the bare run.
 
 #### What the tests actually prove
 

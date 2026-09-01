@@ -15,6 +15,7 @@ const RM_SUPPORT = 'https://specifications.openehr.org/releases/RM/latest/suppor
 const TERM = 'https://specifications.openehr.org/releases/TERM/latest/SupportTerminology.html';
 const R5 = 'https://hl7.org/fhir/R5/datatypes.html';
 const R5_OBS = 'https://hl7.org/fhir/R5/observation.html';
+const R5_OBS_DEFS = 'https://hl7.org/fhir/R5/observation-definitions.html';
 const R5_EXTENSIBILITY = 'https://hl7.org/fhir/R5/extensibility.html';
 const EXT_PACK = 'https://hl7.org/fhir/extensions/StructureDefinition';
 
@@ -45,7 +46,7 @@ const OPENEHR_TERMINOLOGY: Cite = {
   verification: 'spec-local',
 };
 const OPENEHR_SUPPORT_IM: Cite = {
-  url: `${RM_SUPPORT}#_terminology_id_class`,
+  url: `${RM_SUPPORT}#_terminology_identifiers`,
   label: 'openEHR RM — TERMINOLOGY_ID',
   verification: 'spec-local',
 };
@@ -57,7 +58,7 @@ const DAR_EXTENSION: Cite = {
 const DAR_VALUESET = tho('CodeSystem-data-absent-reason.html', 'THO — data-absent-reason');
 const NULLFLAVOR_CS = tho('CodeSystem-v3-NullFlavor.html', 'THO — v3 NullFlavor');
 const OBS_DAR: Cite = {
-  url: `${R5_OBS}#Observation.dataAbsentReason`,
+  url: `${R5_OBS_DEFS}#Observation.dataAbsentReason`,
   label: 'FHIR R5 — Observation.dataAbsentReason',
   verification: 'spec-local',
 };

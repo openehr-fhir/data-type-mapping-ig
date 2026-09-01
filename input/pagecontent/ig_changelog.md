@@ -227,3 +227,21 @@ code.
   the work.** A row whose own note calls timing and dosage "the hardest mapping
   problem" and defers it to a dedicated session is `unmapped` in both
   directions, exactly as `DV_GENERAL_TIME_SPECIFICATION` is.
+- **Every citation now resolves to a real anchor, not merely to a real page.**
+  Eight targets did not exist and are corrected: `CodeableReference` is defined
+  on `references.html`, `Meta` on `resource.html`, `Narrative` on
+  `narrative.html`, `Observation.interpretation` and
+  `Observation.dataAbsentReason` on `observation-definitions.html`; the openEHR
+  `TERMINOLOGY_ID` and ISO 8601 time-type anchors are corrected to the ones the
+  specifications publish; and the FHIR data-type inventory is cited as a page
+  rather than through an anchor it does not have.
+- **Six quantity rows cited a class that does not declare the attribute.**
+  `normal_status`, `normal_range`, and `other_reference_ranges` are declared on
+  `DV_ORDERED`; `magnitude_status` on `DV_QUANTIFIED`; only `accuracy` and
+  `accuracy_is_percent` are `DV_AMOUNT`'s. The rows, the per-type Sources
+  lines, and the "`DV_AMOUNT` pattern" prose now state the
+  `DV_ORDERED` → `DV_QUANTIFIED` → `DV_AMOUNT` → `DV_QUANTITY` chain and name
+  the declaring class for each inherited attribute.
+- **`DV_ORDINAL` and `DV_SCALE` inherit the reference-range attributes too**,
+  and now say so: without those rows the summary read `lossless` for both types
+  while a `DV_SCALE` carrying a `normal_range` had nowhere stated to put it.
