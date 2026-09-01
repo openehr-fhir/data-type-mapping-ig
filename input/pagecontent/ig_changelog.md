@@ -15,6 +15,16 @@ Categories, in the order they appear under a version:
 
 **Compatible, Substantive**
 
+- The mapping tables are now **generated** from a single machine-checked
+  mapping ledger and written into sentinel-delimited managed regions in the
+  page sources. `mapping.html` carries the first such region, the all-mappings
+  summary table. Hand-editing a generated region is detected and rejected;
+  hand-written prose outside the sentinels is never touched.
+- `conventions.html` gained a citation-tier note: extension-pack citations are
+  marked with a dagger and are taken on the working group's authority, because
+  they cannot be resolved against a local mirror of the FHIR R5 core
+  specification. `build.fhir.org` citations are not permitted anywhere in this
+  guide.
 - Page inventory and navigation: added `type-systems.html`,
   `conventions.html`, the eight category pages (`mapping-boolean.html`,
   `mapping-numeric.html`, `mapping-reference.html`, `mapping-textual.html`,

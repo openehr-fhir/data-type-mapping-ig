@@ -1,0 +1,300 @@
+/**
+ * The region renderers.
+ *
+ * Each renderer turns part of the ledger into the markdown body of one managed
+ * region. Renderers are registered by **region id**; `render-pages.ts` treats a
+ * region id in a page that no renderer claims, and a renderer whose region has
+ * no home in any page, as **errors**. That is why a region and its renderer
+ * always land in the same commit.
+ *
+ * Nothing here writes files. `render-pages.ts` does the I/O.
+ */
+
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import {
+  endpointsOf,
+  isNoCounterpart,
+  type Category,
+  type Cite,
+  type Direction,
+  type Endpoint,
+  type Fidelity,
+  type Mapping,
+  type NoCounterpart,
+  type Row,
+  type Verdict,
+} from '../src/model/types.ts';
+import { aggregateVerdict, categories, ledger, mappingsFor } from '../src/model/load.ts';
+
+/** Where `example:` regions read their fixtures from. */
+export const FIXTURES_ROOT = new URL('../fixtures/', import.meta.url);
+
+/** The page each category's mappings are published on. */
+export const CATEGORY_PAGE: Readonly<Record<Category, string>> = {
+  quantity: 'mapping-quantity.html',
+  coded: 'mapping-coded.html',
+  gaps: 'gaps.html',
+};
+
+/** Human-readable category names, for table cells and headings. */
+export const CATEGORY_LABEL: Readonly<Record<Category, string>> = {
+  quantity: 'Quantities',
+  coded: 'Coded Data',
+  gaps: 'Gaps',
+};
+
+// ── cell helpers ─────────────────────────────────────────────────────────────
+
+/** One markdown table row from its cells. */
+export function tableRow(cells: readonly string[]): string {
+  return `| ${cells.join(' | ')} |`;
+}
+
+/** Escape the characters that would break out of a markdown table cell. */
+export function cell(text: string): string {
+  return text.replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
+}
+
+/** A markdown link to a citation, with the extension-tier marker where it applies. */
+export function citeLink(cite: Cite, label: string): string {
+  const marker = cite.verification === 'extension-unverified' ? '<sup>†</sup>' : '';
+  return `[${cell(label)}](${cite.url})${marker}`;
+}
+
+/** The rendered form of one fidelity value. */
+export function fidelityCell(verdict: Verdict): string {
+  switch (verdict.fidelity) {
+    case 'lossless':
+      return '`lossless`';
+    case 'lossy':
+      return '`lossy`';
+    case 'unmapped':
+      return '`unmapped`';
+  }
+}
+
+/** The rendered form of an aggregate (mapping-level) fidelity value. */
+export function aggregateCell(fidelity: Fidelity): string {
+  return `\`${fidelity}\``;
+}
+
+/** A Jira browse URL for an owner that names a ticket. */
+export function ownerCell(owner: string): string {
+  return /^(FHIR|HTA)-\d+$/.test(owner)
+    ? `[${owner}](https://jira.hl7.org/browse/${owner})`
+    : `\`${owner}\``;
+}
+
+/** The Notes cell: drop list, unmapped reason, owner, and the row's own note. */
+export function notesCell(row: Row): string {
+  const parts: string[] = [];
+
+  const describe = (verdict: Verdict, arrow: string): void => {
+    if (verdict.fidelity === 'lossy') {
+      const drops = verdict.drops
+        .map((d) => `\`${d.path}\` — ${d.reason}`)
+        .join('; ');
+      parts.push(`${arrow} drops ${drops}`);
+    }
+    if (verdict.fidelity === 'unmapped') {
+      const owner = verdict.owner === undefined ? '' : ` (owner: ${ownerCell(verdict.owner)})`;
+      parts.push(`${arrow} ${verdict.reason}${owner}`);
+    }
+  };
+
+  describe(row.toFhir, '→ FHIR:');
+  describe(row.toOpenehr, '→ openEHR:');
+  if (row.note !== undefined) parts.push(row.note);
+
+  return parts.length === 0 ? '' : cell(parts.join(' '));
+}
+
+/** The openEHR side of a row, as a cell. */
+export function openehrCell(side: Endpoint | NoCounterpart): string {
+  if (isNoCounterpart(side)) return `— <br/>*no counterpart* ([inventory](${side.cite.url}))`;
+  const cardinality = side.cardinality === undefined ? '' : ` \`${side.cardinality}\``;
+  return `${citeLink(side.cite, side.path)}${cardinality}`;
+}
+
+/** The FHIR side of a row, as a cell. One line per candidate target. */
+export function fhirCell(side: readonly Endpoint[] | NoCounterpart): string {
+  if (isNoCounterpart(side)) return `— <br/>*no counterpart* ([inventory](${side.cite.url}))`;
+  const lines = side.map((endpoint) => {
+    const when = endpoint.when === undefined ? '' : `*when* ${endpoint.when}: `;
+    const kind = endpoint.kind === 'extension' ? ' *(extension)*' : '';
+    return `${when}${citeLink(endpoint.cite, endpoint.path)}${kind}`;
+  });
+  return cell(lines.join(' <br/>'));
+}
+
+// ── the mapping: renderer ────────────────────────────────────────────────────
+
+const FIELD_HEADER = [
+  '| openEHR field | FHIR target | → FHIR | → openEHR | Maturity | Notes |',
+  '|-|-|-|-|-|-|',
+];
+
+/** The per-type field table, preceded by its `**Sources:**` line. */
+export function renderMappingTable(mapping: Mapping): string {
+  const sources = mapping.sources.map((c) => citeLink(c, c.label)).join(' · ');
+  const lines: string[] = [`**Sources:** ${sources}`, ''];
+
+  if (mapping.scope === 'archetype') {
+    lines.push(
+      '*This mapping is `archetype` scope: it is not expressible between the two data ' +
+        'types alone and needs the surrounding openEHR archetype and FHIR resource.*',
+      '',
+    );
+  }
+
+  lines.push(...FIELD_HEADER);
+  if (mapping.rows.length === 0) {
+    lines.push(tableRow(['—', '—', '—', '—', '—', 'No field rows recorded yet.']));
+  }
+  for (const row of mapping.rows) {
+    lines.push(
+      tableRow([
+        openehrCell(row.openehr),
+        fhirCell(row.fhir),
+        fidelityCell(row.toFhir),
+        fidelityCell(row.toOpenehr),
+        `\`${row.maturity}\``,
+        notesCell(row),
+      ]),
+    );
+  }
+  return lines.join('\n');
+}
+
+// ── the summary: renderers ───────────────────────────────────────────────────
+
+const SUMMARY_HEADER = [
+  '| openEHR type | FHIR type | → FHIR | → openEHR | Maturity | Scope |',
+  '|-|-|-|-|-|-|',
+];
+
+/** The coarsest maturity present in a mapping: the least settled row wins. */
+export function mappingMaturity(mapping: Mapping): string {
+  if (mapping.rows.some((r) => r.maturity === 'not-discussed')) return 'not-discussed';
+  if (mapping.rows.some((r) => r.maturity === 'open')) return 'open';
+  return 'settled';
+}
+
+function summaryRow(mapping: Mapping, withLink: boolean): string {
+  const page = CATEGORY_PAGE[mapping.category];
+  const name = withLink
+    ? `[${cell(mapping.openehrType)}](${page})`
+    : `\`${cell(mapping.openehrType)}\``;
+  return tableRow([
+    name,
+    `\`${cell(mapping.fhirType)}\``,
+    aggregateCell(aggregateVerdict(mapping, 'toFhir')),
+    aggregateCell(aggregateVerdict(mapping, 'toOpenehr')),
+    `\`${mappingMaturity(mapping)}\``,
+    `\`${mapping.scope}\``,
+  ]);
+}
+
+/** Every mapping in the ledger, one row each, linked to its category page. */
+export function renderSummaryAll(): string {
+  const all = ledger();
+  const lines = [...SUMMARY_HEADER];
+  if (all.length === 0) {
+    lines.push('');
+    lines.push('No mappings recorded yet.');
+    return lines.join('\n');
+  }
+  for (const category of categories()) {
+    for (const mapping of mappingsFor(category)) lines.push(summaryRow(mapping, true));
+  }
+  return lines.join('\n');
+}
+
+/** Every mapping in one category, one row each. */
+export function renderSummaryCategory(category: Category): string {
+  const mappings = mappingsFor(category);
+  const lines = [...SUMMARY_HEADER];
+  if (mappings.length === 0) {
+    lines.push('');
+    lines.push('No mappings recorded yet.');
+    return lines.join('\n');
+  }
+  for (const mapping of mappings) lines.push(summaryRow(mapping, false));
+  return lines.join('\n');
+}
+
+// ── the example: renderer ────────────────────────────────────────────────────
+
+/**
+ * A worked example, read **verbatim from the fixture** the converters are
+ * tested against. The published example *is* the fixture, so there is no
+ * drift channel between the guide and the code.
+ */
+export function renderExample(fixturePath: string): string {
+  const file = join(fileURLToPath(FIXTURES_ROOT), fixturePath);
+  const raw = readFileSync(file, 'utf8').replace(/\r\n/g, '\n').replace(/\s+$/, '');
+  return ['```json', raw, '```'].join('\n');
+}
+
+// ── the registry ─────────────────────────────────────────────────────────────
+
+/** Renders the body of one managed region. */
+export type RegionRenderer = () => string;
+
+/**
+ * Every region this renderer knows how to fill, keyed by region id.
+ *
+ * Grown by each phase that adds a region. A page carrying an id absent from
+ * here is an error, and an id here with no home in any page is an error.
+ */
+export function regionRenderers(): ReadonlyMap<string, RegionRenderer> {
+  const renderers = new Map<string, RegionRenderer>();
+
+  renderers.set('summary:all', () => renderSummaryAll());
+
+  // Only categories the ledger actually holds get a `summary:` renderer, so a
+  // category region and its renderer land in the same commit -- the category's
+  // own content phase -- rather than the renderer arriving first and reporting
+  // itself homeless for ten consecutive phases.
+  for (const category of categories()) {
+    renderers.set(`summary:${category}`, () => renderSummaryCategory(category));
+  }
+
+  for (const mapping of ledger()) {
+    renderers.set(`mapping:${mapping.id}`, () => renderMappingTable(mapping));
+  }
+
+  return renderers;
+}
+
+/**
+ * `example:` regions are keyed by fixture path rather than enumerated, so they
+ * are resolved dynamically rather than registered.
+ */
+export const EXAMPLE_PREFIX = 'example:';
+
+/** Resolve a region id to a renderer, including the dynamic `example:` family. */
+export function rendererFor(
+  id: string,
+  renderers: ReadonlyMap<string, RegionRenderer>,
+): RegionRenderer | undefined {
+  const registered = renderers.get(id);
+  if (registered !== undefined) return registered;
+  if (id.startsWith(EXAMPLE_PREFIX)) {
+    const fixture = id.slice(EXAMPLE_PREFIX.length);
+    return () => renderExample(fixture);
+  }
+  return undefined;
+}
+
+/** The direction labels, exported so tests and renderers agree on them. */
+export const DIRECTION_LABEL: Readonly<Record<Direction, string>> = {
+  toFhir: '→ FHIR',
+  toOpenehr: '→ openEHR',
+};
+
+/** Re-exported so `render-pages.ts` need not import the model directly. */
+export { endpointsOf };

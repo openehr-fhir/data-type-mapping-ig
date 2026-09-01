@@ -104,6 +104,22 @@ recorded `not-discussed` or `open` rather than asserted.
 Citations are always published URLs. Where a row targets a FHIR **extension**
 rather than a core element, the citation is to the extension pack.
 
+<a name="citation-tiers"></a>
+
+Extension-pack citations are marked with a dagger — <sup>†</sup>. They are the
+one class of citation this guide cannot verify mechanically: the specification
+mirrors its tests resolve citations against hold the openEHR Reference Model and
+the FHIR R5 **core** specification, and neither contains extension definitions.
+A dagger therefore means *"this citation is taken on the working group's
+authority"*. Citations to openEHR RM pages and to FHIR R5 core pages carry no
+dagger, and each is resolved to a real page before the guide is published.
+
+Citations to [terminology.hl7.org](https://terminology.hl7.org) and to
+[jira.hl7.org](https://jira.hl7.org) are likewise verified as well-formed and
+host-allow-listed only; they exist in neither mirror. Citations to
+`build.fhir.org` are **not permitted** anywhere in this guide, because a
+continuous-build snapshot is not a published specification.
+
 #### Conformance language
 
 `SHALL`, `SHALL NOT`, `SHOULD`, and `MAY` are used in the sense
