@@ -28,6 +28,7 @@ import {
   type Verdict,
 } from '../src/model/types.ts';
 import { aggregateVerdict, categories, ledger, mappingsFor } from '../src/model/load.ts';
+import { ISO8601_FORMS } from '../src/shared/iso8601-subset.ts';
 
 /** Where `example:` regions read their fixtures from. */
 export const FIXTURES_ROOT = new URL('../fixtures/', import.meta.url);
@@ -369,6 +370,27 @@ export function renderGapsNotDiscussed(): string {
   return lines.join('\n');
 }
 
+/** Render the ISO 8601 subset comparison from the capability table itself. */
+export function renderIso8601Subset(): string {
+  const lines = [
+    '| Form | Example | openEHR | FHIR | Mapping rule |',
+    '|-|-|-|-|-|',
+  ];
+  const tick = (accepted: boolean): string => (accepted ? '✓' : '—');
+  for (const form of ISO8601_FORMS) {
+    lines.push(
+      tableRow([
+        `${cell(form.description)} <br/>*(\`${form.kind}\`)*`,
+        `\`${cell(form.example)}\``,
+        tick(form.openehr),
+        tick(form.fhir),
+        cell(form.action),
+      ]),
+    );
+  }
+  return lines.join('\n');
+}
+
 // ── the registry ─────────────────────────────────────────────────────────────
 
 /** Renders the body of one managed region. */
@@ -388,6 +410,7 @@ export function regionRenderers(): ReadonlyMap<string, RegionRenderer> {
   renderers.set('gaps:fhir-to-openehr', () => renderGapsFhirToOpenehr());
   renderers.set('gaps:fhir-no-counterpart', () => renderGapsFhirNoCounterpart());
   renderers.set('gaps:not-discussed', () => renderGapsNotDiscussed());
+  renderers.set('iso8601-subset', () => renderIso8601Subset());
 
   // Only categories the ledger actually holds get a `summary:` renderer, so a
   // category region and its renderer land in the same commit -- the category's

@@ -119,4 +119,6 @@ line up one-to-one.
   each fidelity and maturity value means.
 - **[Data Type Mapping](mapping.html)** — the mappings themselves, by category.
 - **[Cross-Cutting Concerns](cross-cutting.html)** — the questions that are not
-  about any one type.
+  about any one type, including the two ISO 8601 subsets and the `DV_AMOUNT`
+  pattern.
+- **[Gaps](gaps.html)** — what has no counterpart, in both directions.

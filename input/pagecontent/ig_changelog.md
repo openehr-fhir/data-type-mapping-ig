@@ -15,6 +15,16 @@ Categories, in the order they appear under a version:
 
 **Compatible, Substantive**
 
+- **Cross-cutting concerns.** `cross-cutting.html` now carries the material the
+  working documents scattered: the three candidate `terminology_id` formats with
+  their trade-offs and **no decision**, the character-encoding rule, the `DV_AMOUNT`
+  pattern stated once for all four subtypes, the validation position (validation is
+  out of scope; data is mapped as found), and both halves of the bindings and process
+  guidance the source documents left empty.
+- **ISO 8601 subsets.** The comparison of which temporal forms each standard accepts
+  is published as a **generated** table, rendered directly from the capability table
+  the converters themselves consult, so the guide and the code cannot disagree. This
+  closes the open action item asking for a detailed subset comparison.
 - **Gaps.** `gaps.html` now publishes four inventories, three of them **derived from**
   **the whole ledger** rather than transcribed: openEHR → FHIR, FHIR → openEHR, and
   not-yet-discussed. A gap therefore cannot fall out of step with the mapping it

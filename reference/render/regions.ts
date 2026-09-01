@@ -59,10 +59,27 @@ export function parseRegions(markdown: string): readonly Region[] {
   let openId: string | undefined;
   let openStart = 0;
   let bodyStart = 0;
+  let fence: string | undefined;
 
   for (const rawLine of lines) {
     const line = rawLine.endsWith('\r') ? rawLine.slice(0, -1) : rawLine;
     const lineLength = rawLine.length + 1; // include the '\n' we split on
+
+    // A sentinel inside a fenced code block is documentation of the convention,
+    // not an instance of it. `conventions.html` shows editors what a region
+    // looks like, and that example must not be treated as a region.
+    const fenceMatch = /^\s*(```+|~~~+)/.exec(line);
+    if (fenceMatch !== null) {
+      const marker = fenceMatch[1] as string;
+      if (fence === undefined) fence = marker;
+      else if (marker.startsWith(fence)) fence = undefined;
+      offset += lineLength;
+      continue;
+    }
+    if (fence !== undefined) {
+      offset += lineLength;
+      continue;
+    }
 
     const opened = OPENER.exec(line);
     if (opened) {

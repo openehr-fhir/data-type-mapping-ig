@@ -4,37 +4,206 @@ Some questions are not about any one data type. They apply across the whole
 mapping, and answering them once here keeps the per-type tables from repeating
 themselves — or, worse, from answering them inconsistently.
 
-This page collects:
+### Terminology URI and `terminology_id`
 
-- **Terminology URI ↔ `terminology_id`** — how a FHIR `system` plus `version`
-  becomes a single openEHR `terminology_id`, and why the guide does not yet pick
-  one of the candidate formats.
-- **Character encoding** — FHIR mandates UTF-8; openEHR does not.
-- **The `DV_AMOUNT` pattern** — the inherited `accuracy`,
-  `accuracy_is_percent`, `magnitude_status`, `normal_range`,
-  `other_reference_ranges`, and `normal_status` attributes, mapped once for
-  every `DV_AMOUNT` subtype rather than repeated per type.
-- **The ISO 8601 subsets** — which compact and partial temporal forms each
-  standard accepts, published as a table generated directly from the code that
-  implements the conversion.
-- **Validation expectations** — what a mapping engine is and is not responsible
-  for checking.
+FHIR names a terminology system with a full URI — `http://snomed.info/sct`.
+openEHR names one with a shorter identifier string in
+`CODE_PHRASE.terminology_id`. A URI maps to an identifier and back without
+difficulty; **what does not yet have an answer is what to do with a version.**
 
-Two of these are worth stating up front.
+FHIR carries `Coding.version` as a separate element. openEHR has no separate
+version field, so a version has to be folded into `terminology_id` — and three
+formats are under discussion:
 
-**Validation is not mapping.** The working group's position is that validating
-an instance against an archetype, a template, a profile, or a terminology
-binding is the responsibility of the receiving system, not of the mapping
-engine. A mapping engine SHOULD report what it could not carry; it is not
-expected to enforce the target model's constraints. This guide therefore
-describes information loss, not conformance failure.
+| Option | Form | Example |
+|-|-|-|
+| A — pipe | `system\|version` | `http://hl7.org/fhir/encounter-status\|5.0.0` |
+| B — parenthetical | `system (version)` | `http://hl7.org/fhir/encounter-status (5.0.0)` |
+| C — hash | `system#version` | `http://hl7.org/fhir/encounter-status#5.0.0` |
 
-**An open question stays open.** Where the working group has not chosen between
-candidate approaches — the `terminology_id` format is the clearest example —
-this page states the candidates and their trade-offs and stops there. The
-reference implementation is written so that no default can be adopted by
-accident: the helper that needs the format takes it as a required parameter with
-no default value, so no test, render, or build can quietly bless one candidate.
+The trade-offs, as the working group stated them:
+
+- The **pipe** is the FHIR canonical convention and is what search parameters
+  use, which makes it familiar. Against it: the pipe is also used, variably, to
+  separate a code from its text rubric, so a reader may misread it.
+- The **parenthetical** is unambiguous to a human and is unlikely to collide
+  with anything else in a system URI. Against it: it is not a convention either
+  standard already uses, and the space makes it fiddly to parse.
+- The **hash** is what FHIR implementation guides use for package versions,
+  which is a closer analogy than the search syntax. Against it: `#` already has
+  a meaning in a URI, as a fragment separator.
+
+**No option is adopted here.** The
+[reference implementation](reference-implementation.html) exposes the join and
+the split as helpers that take the format as a **required parameter with no
+default value**, and the registered converters do not call them at all — they
+treat `terminology_id` as opaque. That is deliberate: no test, render, or build
+can quietly bless a candidate the working group has not chosen.
+
+Some code systems side-step the question entirely by embedding the version in
+the URI itself, as SNOMED CT does with
+`http://snomed.info/sct/900000000000207008/version/20240101`. The
+[HL7 guidance on using SNOMED CT](https://terminology.hl7.org/en/SNOMEDCT.html)
+describes how a `system` identifies the edition and version.
+
+### Character encoding
+
+FHIR mandates **UTF-8** throughout and has no element recording the character
+set of a value, because there is only one.
+
+openEHR permits several through its `character_sets` code system — UTF-8,
+UTF-16, US-ASCII, the ISO-8859 family, and UTF-7 among them.
+
+The rule is therefore one-directional and settled: **the sender converts.**
+Non-UTF-8 content SHALL be converted to UTF-8 before mapping, and the original
+encoding is not preserved on the FHIR side. `DV_TEXT.encoding` and
+`DV_ENCAPSULATED.charset` are `unmapped` for this reason, and the rows say so.
+Where a charset applies to attached binary content rather than to text, it
+belongs in the MIME type as a `charset` parameter — see
+[Other Data](mapping-other.html).
+
+### The `DV_AMOUNT` pattern
+
+Every type deriving from `DV_AMOUNT` — `DV_QUANTITY`, `DV_COUNT`,
+`DV_PROPORTION`, and `DV_DURATION` — inherits the same set of attributes, and
+they follow **one** mapping pattern regardless of the concrete subtype:
+
+| Inherited property | FHIR counterpart | Scope |
+|-|-|-|
+| `magnitude_status` | `Quantity.comparator`, or the per-type equivalent | `datatype` |
+| `accuracy` | The `quantity-accuracy` extension, with `accuracy_is_percent` `false` | `datatype` |
+| `normal_range` | `Observation.referenceRange` with `type` = `normal` | `archetype` |
+| `other_reference_ranges` | `Observation.referenceRange` with `type` ≠ `normal` | `archetype` |
+| `normal_status` | `Observation.interpretation` | `archetype` |
+
+The last three are **only meaningful at the FHIR resource level**, not on the
+data type. Anything carrying a `normal_range` or a `normal_status` in openEHR
+maps to an `Observation` in FHIR, and this guide marks those rows `archetype`
+scope rather than pretending they are data-type mappings.
+
+Two consequences follow. `accuracy` is rarely used in practice, and where it is,
+`accuracy_is_percent` SHALL be `false` for the value to be carried at all —
+the FHIR extension records an absolute maximum deviation, and a percentage has
+no home. And openEHR binds `normal_status` to its own `normal_statuses` code
+system with `required` strength, which is narrower than FHIR's `extensible`
+binding on `Observation.interpretation`; a change request to relax the openEHR
+binding is open.
+
+<a name="iso8601"></a>
+
+### The two ISO 8601 subsets
+
+Both standards use ISO 8601. **They do not use the same subset of it.**
+
+The table below is generated directly from the capability table in the
+[reference implementation](reference-implementation.html) that the converters
+themselves consult, so the guide and the code cannot disagree about it. A ✓ means
+the standard accepts the form; a — means it does not.
+
+<!-- >>> mapping ledger: iso8601-subset (generated by npm --prefix reference run render) >>> -->
+| Form | Example | openEHR | FHIR | Mapping rule |
+|-|-|-|-|-|
+| Full date, extended form <br/>*(`date`)* | `2026-03-01` | ✓ | ✓ | Carried unchanged. |
+| Full date, compact form <br/>*(`date`)* | `20260301` | ✓ | — | SHALL be expanded to the extended form before mapping to FHIR. |
+| Year and month only <br/>*(`date`)* | `2026-03` | ✓ | ✓ | Carried unchanged. The FHIR lexical form is **truncated** to match the source precision, never padded — padding invents a day the source did not record. |
+| Year and month, compact form <br/>*(`date`)* | `202603` | ✓ | — | SHALL be expanded to `2026-03`. |
+| Year only <br/>*(`date`)* | `2026` | ✓ | ✓ | Carried unchanged. |
+| Full time, extended form <br/>*(`time`)* | `14:30:00` | ✓ | ✓ | Carried unchanged. |
+| Full time, compact form with the `T` designator <br/>*(`time`)* | `T143000` | ✓ | — | SHALL be expanded to `14:30:00`; FHIR `time` carries no `T` prefix. |
+| Hours and minutes only <br/>*(`time`)* | `14:30` | ✓ | — | FHIR `time` requires seconds. The value SHALL be completed to `14:30:00`, which adds a precision the source did not state. |
+| Fractional seconds, 3 digits <br/>*(`time`)* | `14:30:00.123` | ✓ | ✓ | Carried unchanged. |
+| Fractional seconds, up to 9 digits <br/>*(`time`)* | `14:30:00.123456789` | — | ✓ | openEHR restricts fractional seconds to 3 digits. Excess precision SHALL be truncated when mapping FHIR → openEHR, and that is a **named drop**. |
+| Time with a UTC offset <br/>*(`time`)* | `14:30:00+01:00` | ✓ | — | FHIR `time` **cannot** carry a time zone. The offset SHALL be carried in the `timezone` extension on the element. |
+| Full date and time in UTC <br/>*(`dateTime`)* | `2026-03-01T14:30:00Z` | ✓ | ✓ | Carried unchanged. A fully precise UTC value MAY use FHIR `instant`. |
+| Full date and time, compact form <br/>*(`dateTime`)* | `20260301T143000Z` | ✓ | — | SHALL be expanded to the extended form before mapping to FHIR. |
+| Full date and time with a UTC offset <br/>*(`dateTime`)* | `2026-03-01T14:30:00+01:00` | ✓ | ✓ | Carried unchanged. Unlike `time`, `dateTime` does carry an offset. |
+| Date and time without seconds <br/>*(`dateTime`)* | `2026-03-01T14:30` | ✓ | — | FHIR `dateTime` requires seconds once a time is present. The value SHALL be completed to `2026-03-01T14:30:00`, with a time zone, which adds precision the source did not state. |
+<!-- <<< mapping ledger: iso8601-subset (generated by npm --prefix reference run render) <<< -->
+
+Three rules carry most of the weight:
+
+- **Compact forms SHALL be expanded** before mapping to FHIR. openEHR permits
+  `20250301` and `T143000`; FHIR requires `2025-03-01` and `14:30:00`.
+- **Partial precision SHALL be preserved by truncating, never by padding.**
+  `202604` becomes `2026-04`. Padding it to `2026-04-01` invents a day the
+  source did not record.
+- **Fractional seconds truncate from nine digits to three** when mapping FHIR →
+  openEHR. That is a named drop, not a rounding decision.
+
+### Validation expectations
+
+**Validation is not mapping.** Validating an instance against an archetype, a
+template, a profile, or a terminology binding is the responsibility of the
+receiving system, not of the mapping engine.
+
+Consider a `DV_INTERVAL` whose upper bound is below its lower bound. Three
+things could happen: the openEHR system could reject it before mapping, the
+mapping engine could reject it, or the mapping engine could faithfully produce
+the equally invalid FHIR instance. The working group's resolution is the third:
+**validation is out of scope entirely, data is mapped as it is found, and
+systems should validate before mapping where they can.**
+
+A mapping engine SHOULD report what it could not carry — that is what the
+`Issue` list in the [reference implementation](reference-implementation.html)
+is for — and SHOULD NOT be expected to enforce the target model's constraints.
+
+This guide therefore describes **information loss**, not conformance failure.
+The two are different, and conflating them would make every mapping table an
+assertion about systems this guide has no view of.
+
+### Bindings and expectations, moving into FHIR
+
+Different FHIR elements impose different requirements on cardinality, binding
+target, binding strength (`required`, `extensible`, `preferred`, `example`), and
+usage context, including conditional bindings and jurisdictional rules.
+Implementers SHOULD consult the target element's binding before deciding how to
+populate `system`, `code`, and `display`.
+
+Where a core FHIR element carries a `required` binding that an openEHR value
+cannot satisfy, the mapping fails at that element rather than degrading
+silently. Identifying which elements those are needs an archetype-by-archetype
+review, and this guide recommends that the core-specification cases be published
+with guidance for implementation-guide authors and jurisdictions.
+
+### Bindings and expectations, moving into openEHR
+
+The same applies in reverse, and is easy to overlook because openEHR expresses
+its constraints somewhere else. Archetypes and operational templates constrain
+coded values to specific terminologies, constrain units, and constrain
+cardinalities — the equivalents of a FHIR profile's bindings and slicing.
+
+Two consequences matter for mapping:
+
+- **The template decides the `defining_code`.** Where an openEHR template names
+  the terminology for a slot, that terminology takes precedence over
+  `userSelected` in choosing which incoming coding becomes the `defining_code`.
+  A data-type converter cannot see the template, so it can only apply the second
+  and third rules; a template-aware engine SHOULD apply the first.
+- **A `required` binding on the openEHR side can be narrower than its FHIR
+  counterpart.** `normal_status` is the worked example: openEHR's binding is
+  `required` and FHIR's `Observation.interpretation` is `extensible`, so a
+  legitimate FHIR value can have nowhere to land. Where that happens, the guide
+  records it as a `lossy` direction and names the change request, rather than
+  quietly widening the openEHR binding on paper.
+
+### Process and recommendations
+
+**Moving content into FHIR**, the recommended order of work is: identify the
+target element and read its binding; decide the target type from the element
+definition rather than from the openEHR source type; map the value; and report
+everything that could not be carried, naming the source path. Do **not** produce
+an extension for a field this guide records as `unmapped` — an invented
+extension is worse than a recorded gap, because it looks like conformance.
+
+**Moving content into openEHR**, the recommended order is: establish which
+archetype and template the value is destined for, because they decide the
+terminology and the units; map the value; supply the mandatory openEHR fields
+that FHIR leaves optional, and record which ones were supplied rather than
+carried; and treat an inference — a defaulted `TERM_MAPPING.match`, an inferred
+`DV_PROPORTION.type`, an assumed SHA-1 hash algorithm — as exactly that.
+
+In both directions, the guide's fidelity columns are the contract: a `lossless`
+row round-trips, and a `lossy` row drops exactly what it says it drops.
 
 See [Conventions](conventions.html) for the fidelity and maturity vocabulary,
 and [Open Items](open-items.html) for who owns each unresolved question.

@@ -172,6 +172,28 @@ test('the empty ledger still renders a summary region', () => {
   assert.match(body, /openEHR type \| FHIR type/);
 });
 
+test('a sentinel inside a fenced code block is documentation, not a region', () => {
+  const documented = [
+    '### Conventions',
+    '',
+    'A managed region looks like this:',
+    '',
+    '```',
+    openerFor('<region-id>'),
+    closerFor('<region-id>'),
+    '```',
+    '',
+    openerFor('summary:all'),
+    'real body',
+    closerFor('summary:all'),
+    '',
+  ].join('\n');
+
+  const regions = parseRegions(documented);
+  assert.equal(regions.length, 1);
+  assert.equal(regions[0]?.id, 'summary:all');
+});
+
 test('table cells escape pipes and collapse newlines', () => {
   assert.equal(cell('a|b'), 'a\\|b');
   assert.equal(cell('a\nb'), 'a b');
