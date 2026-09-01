@@ -398,18 +398,7 @@ const dvDurationToDuration = {
           cite: FHIR_DURATION,
         },
       ],
-      toFhir: {
-        fidelity: 'lossy',
-        drops: [
-          {
-            path: 'DV_DURATION.value',
-            reason:
-              'an ISO 8601 duration naming **more than one** component — `P1Y6M` — has no ' +
-              'single UCUM unit, because the number of days in a month and in a year is ' +
-              'not fixed; combining them would invent a precision the source does not have',
-          },
-        ],
-      },
+      toFhir: { fidelity: 'lossless' },
       toOpenehr: { fidelity: 'lossless' },
       maturity: 'open',
       note:
@@ -425,6 +414,44 @@ const dvDurationToDuration = {
         'precision may be lost. A standalone conversion library is planned by the working ' +
         'group; if one is published it supersedes the reference helper rather than ' +
         'conflicting with it.',
+    },
+    {
+      id: 'dv-duration.value.multi-component',
+      scope: 'datatype',
+      openehr: {
+        path: 'DV_DURATION.value[multi-component]',
+        cardinality: '1..1',
+        type: 'Iso8601_duration',
+        kind: 'element',
+        cite: DV_DURATION,
+      },
+      fhir: {
+        kind: 'none',
+        reason:
+          'A FHIR `Duration` is a `Quantity`, and a `Quantity` carries **one** unit. An ' +
+          'ISO 8601 duration naming more than one component — `P1Y6M` — has no single UCUM ' +
+          'unit to be expressed in, because the number of days in a month and in a year is ' +
+          'not fixed.',
+        cite: FHIR_DURATION,
+      },
+      toFhir: {
+        fidelity: 'unmapped',
+        reason:
+          'Nothing is produced. Combining the components would invent a precision the ' +
+          'source does not have, and an empty `Duration` is an invalid instance claiming ' +
+          'to be a partial success.',
+        owner: 'working-group',
+      },
+      toOpenehr: {
+        fidelity: 'unmapped',
+        reason: 'Nothing arrives, because nothing was emitted.',
+        owner: 'working-group',
+      },
+      maturity: 'open',
+      note:
+        'Split out from the value row so the round-trip matrix polices it: a ' +
+        'single-component duration converts cleanly and keeps its `lossless` claim, and ' +
+        'this sub-case is where the conversion stops.',
     },
     {
       id: 'dv-duration.units',

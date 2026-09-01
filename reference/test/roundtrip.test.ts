@@ -140,18 +140,22 @@ function roundTrip(
   mappingId: string,
   direction: Direction,
   instance: unknown,
-): { readonly out: MappingResult<unknown>; readonly back: unknown } {
+): {
+  readonly out: MappingResult<unknown>;
+  readonly back: unknown;
+  readonly backIssues: readonly Issue[];
+} {
   const pair = converterFor(mappingId);
   assert.ok(pair, `no converter registered for '${mappingId}'`);
   const out =
     direction === 'toFhir' ? pair.toFhir(instance) : pair.toOpenehr(instance);
-  const back =
+  const backResult =
     out.value === undefined
       ? undefined
       : direction === 'toFhir'
-        ? pair.toOpenehr(out.value).value
-        : pair.toFhir(out.value).value;
-  return { out, back };
+        ? pair.toOpenehr(out.value)
+        : pair.toFhir(out.value);
+  return { out, back: backResult?.value, backIssues: backResult?.issues ?? [] };
 }
 
 // ── the matrix ───────────────────────────────────────────────────────────────
@@ -164,11 +168,37 @@ for (const mapping of testableMappings()) {
     const side = direction === 'toFhir' ? 'openehr' : 'fhir';
     const declared = declaredPaths(mapping, direction);
 
+    /** Every source path some row declares `unmapped` in one direction. */
+    const unmappedPathsIn = (which: Direction): ReadonlySet<string> => {
+      const paths = new Set<string>();
+      for (const row of matrixRows(mapping)) {
+        if (row[which].fidelity !== 'unmapped') continue;
+        const source = sourceSide(row, which);
+        if (source === undefined) continue;
+        for (const endpoint of endpointsOf(source)) paths.add(endpoint.path);
+      }
+      return paths;
+    };
+
     test(`${mapping.id} ${label}: lossless rows survive the round trip`, () => {
       for (const stem of stems) {
         const instance = readFixture(mapping.id, stem, side);
-        const { out, back } = roundTrip(mapping.id, direction, instance);
+        const { out, back, backIssues } = roundTrip(mapping.id, direction, instance);
         const issuePaths = out.issues.map((i: Issue) => i.path);
+
+        // The conversion itself produced nothing. That is legitimate only when
+        // the converter said why, naming a path the ledger declares `unmapped`
+        // in this direction — a converter that silently produces nothing fails
+        // here rather than skipping every row below.
+        if (out.value === undefined) {
+          const declaredUnmapped = unmappedPathsIn(direction);
+          assert.ok(
+            issuePaths.some((path) => declaredUnmapped.has(path)),
+            `${mapping.id}/${stem} ${label}: the conversion produced no value and named ` +
+              'no path the ledger declares unmapped in this direction',
+          );
+          continue;
+        }
 
         for (const row of matrixRows(mapping)) {
           if (row[direction].fidelity !== 'lossless') continue;
@@ -192,15 +222,18 @@ for (const mapping of testableMappings()) {
 
             // A one-directional mapping cannot round-trip: the reverse
             // conversion produces nothing to compare against. That is only
-            // legitimate when the ledger says so, so assert the ledger's own
-            // claim instead of comparing a value that cannot exist.
+            // legitimate when the ledger says so **and** the reverse conversion
+            // said why, naming a path some row declares `unmapped` in that
+            // direction — so a converter that silently produces nothing still
+            // fails here.
             if (back === undefined) {
               const reverse: Direction = direction === 'toFhir' ? 'toOpenehr' : 'toFhir';
-              assert.equal(
-                row[reverse].fidelity,
-                'unmapped',
-                `${mapping.id}/${stem} ${label}: the reverse conversion produced nothing, ` +
-                  `so row '${row.id}' may not claim '${row[reverse].fidelity}' in that direction`,
+              const declaredUnmapped = unmappedPathsIn(reverse);
+              assert.ok(
+                backIssues.some((issue: Issue) => declaredUnmapped.has(issue.path)),
+                `${mapping.id}/${stem} ${label}: the reverse conversion produced nothing ` +
+                  `and named no path the ledger declares unmapped in that direction, so ` +
+                  `row '${row.id}' cannot claim to survive a round trip`,
               );
               continue;
             }
@@ -247,7 +280,7 @@ for (const mapping of testableMappings()) {
       );
     });
 
-    test(`${mapping.id} ${label}: unmapped rows report their path and produce no value`, () => {
+    test(`${mapping.id} ${label}: unmapped rows report their path, and nothing they cover is produced`, () => {
       for (const stem of stems) {
         const instance = readFixture(mapping.id, stem, side);
         const { out } = roundTrip(mapping.id, direction, instance);
@@ -270,7 +303,26 @@ for (const mapping of testableMappings()) {
           );
 
           const target = targetSide(row, direction);
-          if (target === undefined) continue;
+          if (target === undefined) {
+            // The target side has no counterpart at all, so the row claims
+            // nothing can be carried. When the whole conversion produced
+            // nothing, that is the strongest form of the claim and is asserted
+            // directly. When the mapping legitimately produced a value from its
+            // other rows, assert instead that nothing at *this* row's source
+            // path travelled into it — the weaker statement, said out loud
+            // rather than skipped.
+            if (out.value === undefined) continue;
+            for (const path of paths) {
+              assert.equal(
+                valueAtPath(out.value, path),
+                undefined,
+                `${mapping.id}/${stem} ${label}: row '${row.id}' has no counterpart in ` +
+                  `this direction, but '${path}' survived into the produced value`,
+              );
+            }
+            continue;
+          }
+
           for (const endpoint of target) {
             assert.equal(
               valueAtPath(out.value, endpoint.path),

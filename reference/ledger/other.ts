@@ -154,7 +154,55 @@ const dvMultimediaToAttachment = {
       maturity: 'open',
       note:
         'The **original** size in bytes, before any compression or encoding. `0` is a real ' +
-        'size, not a missing one.' + MANDATORY_RULE,
+        'size, not a missing one. The two types are **not the same width**: RM `Integer` ' +
+        'is 32-bit and R5 `Attachment.size` is an `integer64`, so an attachment larger ' +
+        'than 2,147,483,647 bytes has no `DV_MULTIMEDIA.size` to land in. That sub-case is ' +
+        'the row below, and it is the same gap the numeric category publishes as ' +
+        '`Integer64[overflow]` on [Numeric Primitives](mapping-numeric.html).' +
+        MANDATORY_RULE,
+    },
+    {
+      id: 'fhir:attachment.size.overflow',
+      scope: 'datatype',
+      openehr: {
+        kind: 'none',
+        reason:
+          '`DV_MULTIMEDIA.size` is an RM `Integer`, which is 32-bit. There is no openEHR ' +
+          'attribute that can hold a size beyond \u00b12,147,483,647, so an attachment ' +
+          'larger than about 2 GiB has nowhere to record its size.',
+        cite: DV_MULTIMEDIA,
+      },
+      fhir: [
+        {
+          path: 'Attachment.size[overflow]',
+          cardinality: '0..1',
+          type: 'integer64',
+          kind: 'element',
+          cite: ATTACHMENT,
+        },
+      ],
+      toFhir: {
+        fidelity: 'unmapped',
+        reason:
+          'openEHR cannot produce a value outside its own 32-bit range, so this case never ' +
+          'arises in this direction.',
+        owner: 'openehr-modelling',
+      },
+      toOpenehr: {
+        fidelity: 'unmapped',
+        reason:
+          'Nothing in openEHR can receive it, and `size` is mandatory, so no ' +
+          '`DV_MULTIMEDIA` is produced at all rather than one carrying a truncated or ' +
+          'invented size. Widening `DV_MULTIMEDIA.size` is an openEHR Reference Model ' +
+          'question.',
+        owner: 'openehr-modelling',
+      },
+      maturity: 'open',
+      note:
+        'Cross-refer to `Integer64[overflow]` on ' +
+        '[Numeric Primitives](mapping-numeric.html): it is the identical 32-bit/64-bit gap, ' +
+        'and publishing one as a first-class `unmapped` row while folding the other into a ' +
+        '`lossless` claim was a transcription slip rather than a position.',
     },
     {
       id: 'dv-multimedia.alternate_text',

@@ -1,0 +1,4 @@
+{
+  "directions": [],
+  "reason": "This pair records a boundary rather than a conversion. R5 Attachment.size is an integer64 and RM DV_MULTIMEDIA.size is a 32-bit Integer, so the FHIR side is larger than any openEHR size can hold and nothing is produced from it; the openEHR side carries the largest size openEHR can express, which is a different attachment. The fhir:attachment.size.overflow row states the gap."
+}

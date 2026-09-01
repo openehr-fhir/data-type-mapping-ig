@@ -38,6 +38,7 @@ export const TEMPORAL_PATH = {
   durationValueAbsent: 'Duration.value[absent]',
   durationCodeAbsent: 'Duration.code[absent]',
   timeOffset: 'DV_TIME.value[timezone]',
+  durationMultiComponent: 'DV_DURATION.value[multi-component]',
 } as const;
 
 /** Why a completed value is a drop, in the words the ledger row uses. */
@@ -165,13 +166,18 @@ export function dvDurationToDuration(source: DvDuration): MappingResult<FhirDura
     // An empty `Duration` labelled `lossy` is an invalid FHIR instance claiming
     // to be a partial success. Nothing is produced instead, and the helper's own
     // diagnostic — which names *why* the duration has no single UCUM unit — is
-    // carried rather than replaced by a generic message.
+    // carried rather than replaced by a generic message. The path is the
+    // sub-case the ledger declares, not the whole value: a single-component
+    // duration converts cleanly and that row stays `lossless`.
+    const messages = converted.issues.map((issue) => issue.message);
     return unmapped([
       {
-        path: TEMPORAL_PATH.durationValue,
-        message: 'the duration has no single UCUM unit, so no FHIR Duration is produced',
+        path: TEMPORAL_PATH.durationMultiComponent,
+        message:
+          messages.length > 0
+            ? messages.join('; ')
+            : 'the duration has no single UCUM unit, so no FHIR Duration is produced',
       },
-      ...issuesOf(converted),
     ]);
   }
   return resultFor(

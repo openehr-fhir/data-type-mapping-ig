@@ -176,8 +176,7 @@ code.
   offset is not. Both rows now publish the gap with an owner, and
   `DV_PARSABLE ↔ string` is stated as the one-directional mapping it is. No
   substitute extension is invented for either.
-- **Every worked example is asserted to be a pair.** Each `openEHR` example and
-  its `FHIR` partner are now checked to be producible from one another, modulo
+- **Every worked example is asserted to be a pair.** Each `openEHR` example and  its `FHIR` partner are now checked to be producible from one another, modulo
   the drops the ledger declares. Where a pair holds in one direction only — an
   approximate `magnitude_status`, a `Quantity.comparator` of `ad`, a `Ratio`
   carrying units, a nine-digit fractional second, a `Coding` with no system, a
@@ -188,3 +187,25 @@ code.
   actually documents; and a `CodeableConcept` with two codings becomes a
   `DV_CODED_TEXT` with a term mapping. A new `asked-unknown` example was added
   for the L2-to-L1 collapse.
+- **`integer64` is published in the wire format FHIR R5 actually has.** An
+  `integer64` is a **JSON String**, not a JSON number; the worked examples and
+  the reference types now say so, with boundary examples at exactly the 32-bit
+  maximum and minimum and one beyond them. A value outside the 32-bit range is
+  refused rather than silently emitted into an element typed `integer`, which is
+  what the `Integer64[overflow]` row already declared.
+- **`Attachment.size` no longer claims a range it does not have.** RM
+  `DV_MULTIMEDIA.size` is a 32-bit `Integer` and R5 `Attachment.size` is an
+  `integer64`, so an attachment larger than 2,147,483,647 bytes has no openEHR
+  attribute to land in. That is now a first-class `unmapped` row with an owner,
+  cross-referring to the identical gap in the numeric category, instead of a
+  `lossless` claim on both sides.
+- **A multi-component `DV_DURATION` is `unmapped`, not `lossy`.** `P1Y6M` has no
+  single UCUM unit, so nothing is produced; splitting the sub-case out of the
+  value row lets the single-component conversion keep its `lossless` claim and
+  puts the gap under test.
+- **The `unmapped` contract is checked for every row-direction.** A row that
+  claims nothing can be carried is now held to it: where the whole conversion
+  produces nothing, that is asserted directly, and where the mapping produces a
+  value from its other rows, nothing at the unmapped row's own path may survive
+  into it. A conversion that produces nothing must also say why, naming a path
+  the ledger declares `unmapped`.

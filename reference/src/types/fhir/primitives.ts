@@ -7,7 +7,12 @@
 
 export type FhirBoolean = boolean;
 export type FhirInteger = number;
-export type FhirInteger64 = number;
+/**
+ * FHIR R5 serialises `integer64` as a **JSON String** "due to issues with
+ * precision in floating point libraries", so it is modelled as one here.
+ * Publishing a bare JSON number would publish a wire format R5 does not have.
+ */
+export type FhirInteger64 = string;
 export type FhirDecimal = number;
 
 /** The inclusive bounds of the 32-bit signed FHIR `integer`. */

@@ -38,6 +38,18 @@ reference implementation of the conversions those facts describe.
   mapping must round-trip, and a `lossy` mapping must drop exactly what it says
   it drops — no more and no less.
 
+## One limitation of this code
+
+The FHIR side of `integer64` is modelled as a **string**, which is the R5 wire
+format. The openEHR side stays a JSON number, because that is openEHR canonical
+JSON — and a JavaScript number represents integers exactly only up to
+±(2^53 − 1). A FHIR `integer64` beyond that range is read as the nearest
+representable value.
+
+That is a limitation of *this* implementation, not a mapping fact: `Integer64`
+and `integer64` have the same range, so there is nothing for the ledger to
+declare. It is written down here instead.
+
 ## What this is not
 
 - **Not a published package.** It is `"private": true`, it is not on npm, and it

@@ -114,10 +114,15 @@ const integer64ToInteger64 = {
       toOpenehr: { fidelity: 'lossless' },
       maturity: 'settled',
       note:
-        '`integer64` is **rare in practice**: most FHIR elements holding integer data are ' +
+        'FHIR serialises `integer64` as a **JSON String**, not as a JSON number, "due to ' +
+        'issues with precision in floating point libraries" — a guide that publishes a bare ' +
+        'number for one publishes a wire format R5 does not have. `integer64` is also ' +
+        '**rare in practice**: most FHIR elements holding integer data are ' +
         'typed `integer`. For a 64-bit openEHR attribute it is generally more useful to map ' +
         'in-range values into the designated 32-bit element and use an extension for ' +
-        'anything that exceeds it, than to expect an `integer64` element to be there.',
+        'anything that exceeds it, than to expect an `integer64` element to be there — ' +
+        'which is why the row below, and the reference implementation, treat the 32-bit ' +
+        'range as the one that decides whether a value can be carried.',
     },
     {
       id: 'integer64.overflow',

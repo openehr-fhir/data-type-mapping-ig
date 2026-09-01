@@ -275,9 +275,9 @@ test('a multi-component duration produces no FHIR Duration and says why', () => 
   assert.equal(result.value, undefined, 'an empty Duration is not a partial success');
   assert.deepEqual(
     result.issues.map((issue: Issue) => issue.path),
-    ['DV_DURATION.value', 'DV_DURATION.value'],
+    ['DV_DURATION.value[multi-component]'],
   );
-  assert.match(result.issues[1]?.message ?? '', /no single UCUM unit/);
+  assert.match(result.issues[0]?.message ?? '', /no single UCUM unit/);
 });
 
 test('a Duration whose code is not a time unit produces no DV_DURATION', () => {

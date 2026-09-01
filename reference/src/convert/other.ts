@@ -10,6 +10,7 @@
 
 import { register } from '../registry.ts';
 import { issuesOf, resultFor, unmapped, type Issue, type MappingResult } from '../result.ts';
+import { INT32_MAX } from '../types/fhir/primitives.ts';
 import type { DvMultimedia, DvParsable, DvState } from '../types/openehr/other.ts';
 import type { Attachment } from '../types/fhir/other.ts';
 import type { FhirStringElement } from '../types/fhir/textual.ts';
@@ -30,6 +31,7 @@ export const OTHER_PATH = {
   isTerminal: 'DV_STATE.is_terminal',
   attachmentContentTypeAbsent: 'Attachment.contentType[absent]',
   attachmentSizeAbsent: 'Attachment.size[absent]',
+  attachmentSizeOverflow: 'Attachment.size[overflow]',
   stringValueAbsent: 'string.value[absent]',
   stringMimeTypeAbsent: 'string.extension[mimeType][absent]',
   stringValue: 'string.value',
@@ -108,8 +110,7 @@ export function attachmentToDvMultimedia(source: Attachment): MappingResult<DvMu
   // `DV_MULTIMEDIA.media_type` and `.size` are both mandatory (1..1) while
   // `Attachment.contentType` and `.size` are `0..1`, so an Attachment that
   // omits either cannot become a DV_MULTIMEDIA.
-  if (source.contentType === undefined || source.size === undefined) {
-    const mediaType: Issue = {
+  if (source.contentType === undefined || source.size === undefined) {    const mediaType: Issue = {
       path: OTHER_PATH.attachmentContentTypeAbsent,
       message:
         'DV_MULTIMEDIA.media_type is mandatory (1..1) and the Attachment supplies no ' +
@@ -127,6 +128,22 @@ export function attachmentToDvMultimedia(source: Attachment): MappingResult<DvMu
       return unmapped([mediaType, size]);
     }
     return unmapped(source.contentType === undefined ? [mediaType] : [size]);
+  }
+
+  // RM `Integer` is 32-bit and R5 `Attachment.size` is an `integer64`, so an
+  // attachment larger than 2,147,483,647 bytes has no `DV_MULTIMEDIA.size` to
+  // land in. `size` is mandatory, so nothing is produced rather than a
+  // truncated one.
+  if (source.size > INT32_MAX) {
+    return unmapped([
+      {
+        path: OTHER_PATH.attachmentSizeOverflow,
+        message:
+          'Attachment.size is an integer64 and DV_MULTIMEDIA.size is a 32-bit RM Integer, ' +
+          'so a size beyond 2,147,483,647 has no openEHR attribute to land in; size is ' +
+          'mandatory, so no DV_MULTIMEDIA is produced',
+      },
+    ]);
   }
 
   return resultFor(

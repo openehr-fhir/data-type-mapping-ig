@@ -65,7 +65,17 @@ same test file pins that in both directions.
 
 The openEHR side uses the canonical openEHR JSON form, with the `_type`
 discriminator naming the Reference Model class. The FHIR side uses ordinary FHIR
-JSON.
+JSON — including the places where that is not the obvious JavaScript value:
+`integer64` is serialised as a **JSON String**, because FHIR R5 says so "due to
+issues with precision in floating point libraries", and this implementation
+publishes the format R5 has rather than the one that would be convenient.
+
+**One limitation of this code, which is not a mapping fact.** The openEHR side
+of a numeric primitive is a JSON number, and a JavaScript number represents
+integers exactly only up to ±(2<sup>53</sup> − 1). A FHIR `integer64` beyond
+that range is read as the nearest representable value. Nothing in either
+standard makes that a loss — `Integer64` and `integer64` have the same range —
+so it is stated here rather than published as a ledger row.
 
 #### A caveat on citations
 

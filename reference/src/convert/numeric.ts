@@ -8,7 +8,7 @@
  */
 
 import { register } from '../registry.ts';
-import { resultFor, type Issue, type MappingResult } from '../result.ts';
+import { resultFor, unmapped, type Issue, type MappingResult } from '../result.ts';
 import type {
   OpenehrInteger,
   OpenehrInteger64,
@@ -49,22 +49,38 @@ function overflowIssue(): Issue {
   return {
     path: NUMERIC_PATH.integer64Overflow,
     message:
-      'the value exceeds the 32-bit range of the FHIR integer type; an element typed ' +
-      'integer cannot carry it, and which extension should is element-specific',
+      'the value is outside the 32-bit range \u00b12,147,483,647 that a FHIR integer ' +
+      'element can carry; the ledger declares that case unmapped, so nothing is produced ' +
+      'and which extension should carry it is element-specific',
   };
 }
 
+/**
+ * `Integer64` → `integer64`, as the **JSON String** FHIR R5 serialises it as.
+ *
+ * The range check is the **32-bit** one on purpose: `integer64.overflow`
+ * declares that a value outside \u00b12,147,483,647 has no home in an element
+ * typed `integer`, and the guide's own advice is to map in-range values into
+ * the designated 32-bit element rather than expect an `integer64` element to be
+ * there. A row the ledger declares `unmapped` produces no value, so the
+ * converter refuses rather than reporting a loss and emitting anyway.
+ */
 export function integer64ToInteger64(
   source: OpenehrInteger64,
 ): MappingResult<FhirInteger64> {
-  const issues = source > INT32_MAX || source < INT32_MIN ? [overflowIssue()] : [];
-  return resultFor(source, issues);
+  if (source > INT32_MAX || source < INT32_MIN) return unmapped([overflowIssue()]);
+  return resultFor(String(source), []);
 }
 
 export function integer64ToOpenehrInteger64(
   source: FhirInteger64,
 ): MappingResult<OpenehrInteger64> {
-  return resultFor(source, []);
+  // The openEHR side stays a JSON number, because that is openEHR canonical
+  // JSON. A value beyond \u00b1(2^53 \u2212 1) cannot be represented exactly by a
+  // JavaScript number: that is a limitation of *this* implementation, not a
+  // mapping fact, so it is documented in `reference/README.md` and on
+  // `reference-implementation.html` rather than invented as a ledger row.
+  return resultFor(Number(source), []);
 }
 
 register<OpenehrInteger64, FhirInteger64>('integer64-to-integer64', {

@@ -1,0 +1,4 @@
+{
+  "directions": ["toOpenehr"],
+  "reason": "A value beyond the 32-bit range has no home in an element typed integer, which is the case the integer64.overflow row declares unmapped, so the openEHR side produces nothing. The FHIR integer64 string still reads back into an openEHR Integer64 exactly."
+}
