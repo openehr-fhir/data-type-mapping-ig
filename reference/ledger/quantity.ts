@@ -287,27 +287,21 @@ const dvQuantityToQuantity = {
         {
           path: 'Quantity.extension[quantity-accuracy]',
           cardinality: '0..1',
-          type: 'decimal',
+          type: 'Quantity',
           kind: 'extension',
           cite: ext('quantity-accuracy', 'FHIR Extensions — quantity-accuracy'),
         },
       ],
-      toFhir: {
-        fidelity: 'lossy',
-        drops: [
-          {
-            path: 'DV_QUANTITY.accuracy_is_percent',
-            reason:
-              'the FHIR extension carries the absolute maximum deviation, so an accuracy ' +
-              'expressed as a percentage has no home and is not carried at all',
-          },
-        ],
-      },
+      toFhir: { fidelity: 'lossless' },
       toOpenehr: { fidelity: 'lossless' },
       maturity: 'open',
       note:
         'Inherited from `DV_AMOUNT`. Agreed as the mapping target but rarely used in ' +
-        'practice; `accuracy_is_percent` SHALL be `false` for the value to be carried.',
+        'practice. The extension declares `value[x]` as a **`Quantity`**, not a `decimal`, ' +
+        'so `accuracy_is_percent` is carried too: an accuracy stated as a percentage takes ' +
+        'UCUM `%` as the accuracy quantity\u2019s unit, and an absolute one takes the ' +
+        'magnitude\u2019s own unit. Reading the extension back, `accuracy_is_percent` is ' +
+        '`true` exactly when the accuracy quantity\u2019s code is `%`.',
     },
     {
       id: 'fhir:quantity.comparator.ad',

@@ -152,7 +152,19 @@ const dvTextToString = {
           cite: ext('language', 'FHIR Extensions — language'),
         },
       ],
-      toFhir: { fidelity: 'lossless' },
+      toFhir: {
+        fidelity: 'lossy',
+        drops: [
+          {
+            path: 'DV_TEXT.language.terminology_id',
+            reason:
+              'the `language` extension declares `value[x]: code 1..1` with a **required** ' +
+              'binding to `all-languages`, so it carries the tag alone; the ' +
+              '`CODE_PHRASE.terminology_id` that stated which scheme the tag belongs to ' +
+              'has no home on a bare `code`',
+          },
+        ],
+      },
       toOpenehr: { fidelity: 'lossless' },
       maturity: 'open',
       note:
@@ -162,7 +174,10 @@ const dvTextToString = {
         'and `narrativeLanguageControl` — for anything finer. Which of those applies is a ' +
         'resource-level decision, so only the element-level `language` extension is stated ' +
         'here. A cluster archetype for narrative, accounting for narrative language ' +
-        'control, is owned by the openEHR modelling team.',
+        'control, is owned by the openEHR modelling team. Coming back, `terminology_id` is ' +
+        '**derived from the extension\u2019s own required binding** — a code carried there ' +
+        'is an IETF BCP 47 tag by definition — rather than invented; a `CODE_PHRASE` ' +
+        'stating any other scheme does not survive the trip out.',
     },
     {
       id: 'dv-text.encoding',

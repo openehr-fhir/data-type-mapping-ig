@@ -160,3 +160,19 @@ code.
   survive the return trip. The published unit list and the conversion helper
   both say so, and the test that used to skip the unit now asserts the
   asymmetry.
+- **Every published extension emits the `value[x]` its definition declares.**
+  `quantity-accuracy` is a `Quantity`, not a `decimal` — which is what lets an
+  accuracy expressed as a percentage be carried at all, in UCUM `%`, so the
+  `accuracy_is_percent` drop is gone; `rendering-markdown` is a `markdown`;
+  `language` is a `code`. A new gate resolves every extension a worked example
+  carries against a declared table of `value[x]` types, cardinalities, and
+  contexts, and every worked example in this guide **is** one of those fixtures.
+- **Two extension uses are withdrawn, and the gaps are published instead.**
+  `DV_PARSABLE.formalism` was mapped to the `mimeType` extension, whose context
+  is `Questionnaire.item` and `ElementDefinition` and whose purpose is a
+  design-time constraint on permitted attachments; it cannot carry an
+  instance's syntax. `DV_TIME`'s UTC offset was mapped to the `timezone`
+  extension, whose value is a `code` required-bound to IANA zone names, which an
+  offset is not. Both rows now publish the gap with an owner, and
+  `DV_PARSABLE ↔ string` is stated as the one-directional mapping it is. No
+  substitute extension is invented for either.

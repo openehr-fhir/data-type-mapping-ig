@@ -415,12 +415,20 @@ const dvParsableToString = {
         },
       ],
       toFhir: { fidelity: 'lossless' },
-      toOpenehr: { fidelity: 'lossless' },
+      toOpenehr: {
+        fidelity: 'unmapped',
+        reason:
+          'A FHIR `string` states nothing about the syntax its value is written in, and ' +
+          '`DV_PARSABLE.formalism` is mandatory, so **no `DV_PARSABLE` can be produced ' +
+          'from a `string` alone**. The formalism has to come from the element definition, ' +
+          'which a data-type conversion never sees. This mapping is one-directional.',
+        owner: 'session:dv-parsable-formalism',
+      },
       maturity: 'open',
       note:
         'Where the formalism is markdown, a `markdown` element is the better target. For ' +
         'genomic content such as HGVS, the Genomics Reporting IG uses a ' +
-        '`CodeableConcept.text` pattern instead.' + MANDATORY_RULE,
+        '`CodeableConcept.text` pattern instead.',
     },
     {
       id: 'dv-parsable.formalism',
@@ -432,22 +440,36 @@ const dvParsableToString = {
         kind: 'element',
         cite: DV_PARSABLE,
       },
-      fhir: [
-        {
-          path: 'string.extension[mimeType]',
-          cardinality: '0..1',
-          kind: 'extension',
-          cite: ext('mimeType', 'FHIR Extensions — mimeType'),
-        },
-      ],
-      toFhir: { fidelity: 'lossless' },
-      toOpenehr: { fidelity: 'lossless' },
+      fhir: {
+        kind: 'none',
+        reason:
+          'No FHIR element or extension carries the syntax a parsable instance is written ' +
+          'in. The `mimeType` extension is **not** it: its declared context is ' +
+          '`Questionnaire.item` and `ElementDefinition`, not `string` or any data type, ' +
+          'and its purpose is a design-time constraint on the attachments an element ' +
+          'permits — not a statement about an instance.',
+        cite: FHIR_STRING,
+      },
+      toFhir: {
+        fidelity: 'unmapped',
+        reason:
+          'Nothing carries it. The working group recorded a **Decision made** to use the ' +
+          '`mimeType` extension; the extension definition does not support that decision, ' +
+          'and this guide publishes the gap rather than an instance no validator accepts.',
+        owner: 'session:dv-parsable-formalism',
+      },
+      toOpenehr: {
+        fidelity: 'unmapped',
+        reason: 'Nothing arrives to map back, because nothing was emitted.',
+        owner: 'session:dv-parsable-formalism',
+      },
       maturity: 'open',
       note:
-        '`formalism` is **mandatory** in openEHR and the extension is optional in FHIR, so ' +
-        'a plain FHIR `string` arriving as a `DV_PARSABLE` requires the formalism to be ' +
-        'known from the element definition. Mapping a `string` into a `DV_PARSABLE` at all ' +
-        'is unusual.' + MANDATORY_RULE,
+        '`formalism` is **mandatory** in openEHR, so this gap is what makes ' +
+        '`DV_PARSABLE ↔ string` a one-way mapping: the value travels to FHIR, and nothing ' +
+        'travels back. Inventing a FHIR usage to fill an openEHR gap is exactly what this ' +
+        'guide will not do, so no substitute extension is proposed here — the decision ' +
+        'belongs to the working group, and it is recorded as open.',
     },
   ],
 } satisfies Mapping;

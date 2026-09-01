@@ -21,8 +21,6 @@ import type {
   DvTime,
 } from '../types/openehr/temporal.ts';
 import {
-  TIMEZONE_EXTENSION,
-  type Extension,
   type FhirDate,
   type FhirDateTime,
   type FhirDuration,
@@ -39,6 +37,7 @@ export const TEMPORAL_PATH = {
   dateTimeMinutePrecision: 'DV_DATE_TIME.value[minute-precision]',
   durationValueAbsent: 'Duration.value[absent]',
   durationCodeAbsent: 'Duration.code[absent]',
+  timeOffset: 'DV_TIME.value[timezone]',
 } as const;
 
 /** Why a completed value is a drop, in the words the ledger row uses. */
@@ -90,9 +89,19 @@ export function dvTimeToTime(source: DvTime): MappingResult<FhirTimeElement> {
   }
 
   const { time, offset } = splitOffset(completed.value);
-  const extension: Extension[] =
-    offset === undefined ? [] : [{ url: TIMEZONE_EXTENSION, valueString: offset }];
-  return resultFor(compact({ value: time, extension }), issues);
+  if (offset !== undefined) {
+    // The `timezone` extension is a `code` **required**-bound to the IANA zone
+    // names, and an offset is not a zone name, so nothing in FHIR can carry it
+    // on a `time`. The offset is dropped, and said to be dropped.
+    issues.push({
+      path: TEMPORAL_PATH.timeOffset,
+      message:
+        'FHIR time has no home for a UTC offset: the timezone extension is a code bound ' +
+        'to the IANA zone names, and an offset is not a zone name, so the offset is not ' +
+        'carried at all',
+    });
+  }
+  return resultFor(compact({ value: time }), issues);
 }
 
 export function timeToDvTime(source: FhirTimeElement): MappingResult<DvTime> {
@@ -109,11 +118,7 @@ export function timeToDvTime(source: FhirTimeElement): MappingResult<DvTime> {
     });
   }
 
-  const offset = source.extension?.find((e) => e.url === TIMEZONE_EXTENSION)?.valueString;
-  return resultFor(
-    { _type: 'DV_TIME' as const, value: offset === undefined ? value : `${value}${offset}` },
-    issues,
-  );
+  return resultFor({ _type: 'DV_TIME' as const, value }, issues);
 }
 
 register<DvTime, FhirTimeElement>('dv-time-to-time', {

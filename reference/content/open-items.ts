@@ -285,4 +285,34 @@ export const OPEN_ITEMS: readonly OpenItem[] = [
       'carry the several values.',
     ledgerOwner: 'working-group',
   },
+  {
+    id: 'doc-dv-parsable-formalism',
+    title: 'Decide how `DV_PARSABLE.formalism` reaches FHIR, if it can',
+    side: 'documentation',
+    owner: 'Group',
+    priority: 'high',
+    status:
+      'Reopened by review. The working group recorded a **Decision made** to carry the ' +
+      'formalism in the `mimeType` extension. That extension declares its context as ' +
+      '`Questionnaire.item` and `ElementDefinition` and exists to constrain the ' +
+      'attachments an element permits, so it cannot carry an instance\u2019s syntax and ' +
+      'the decision is not supported by the definition it names. **This guide publishes ' +
+      'the gap** rather than an instance no validator accepts, which makes ' +
+      '`DV_PARSABLE ↔ string` one-directional until the question is settled.',
+    ledgerOwner: 'session:dv-parsable-formalism',
+  },
+  {
+    id: 'doc-dv-time-offset',
+    title: 'Decide where a `DV_TIME` UTC offset goes, given FHIR `time` has no home for one',
+    side: 'documentation',
+    owner: 'Group',
+    priority: 'high',
+    status:
+      'Reopened by review. The `timezone` extension admits `time` as a context but is a ' +
+      '`code` **required**-bound to the IANA zone names, and an offset is neither a zone ' +
+      'name nor derivable from one. The guide therefore publishes the offset as a named ' +
+      'drop and recommends `dateTime` where the offset is clinically significant. Whether ' +
+      'to request a FHIR extension that carries an offset on a `time` is undecided.',
+    ledgerOwner: 'session:dv-time-offset',
+  },
 ];

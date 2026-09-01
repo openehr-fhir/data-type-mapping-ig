@@ -137,9 +137,9 @@ const MANDATORY: readonly {
   {
     converter: 'stringToDvParsable',
     mapping: 'dv-parsable-to-string',
-    why: 'DV_PARSABLE.value and .formalism are both 1..1',
-    run: () => stringToDvParsable({}),
-    paths: ['string.value[absent]', 'string.extension[mimeType][absent]'],
+    why: 'DV_PARSABLE.formalism is 1..1 and nothing in FHIR states the syntax of a value',
+    run: () => stringToDvParsable({ value: 'NM_000059.3:c.274G>A' }),
+    paths: ['string.value'],
   },
   {
     converter: 'stringToDvText',

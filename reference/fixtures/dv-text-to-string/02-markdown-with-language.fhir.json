@@ -3,11 +3,11 @@
   "extension": [
     {
       "url": "http://hl7.org/fhir/StructureDefinition/rendering-markdown",
-      "valueString": "**Allergy:** penicillin"
+      "valueMarkdown": "**Allergy:** penicillin"
     },
     {
       "url": "http://hl7.org/fhir/StructureDefinition/language",
-      "valueString": "en"
+      "valueCode": "en"
     }
   ]
 }

@@ -18,6 +18,7 @@ export const TEXTUAL_PATH = {
   hyperlink: 'DV_TEXT.hyperlink',
   mappings: 'DV_TEXT.mappings',
   stringValueAbsent: 'string.value[absent]',
+  languageTerminology: 'DV_TEXT.language.terminology_id',
 } as const;
 
 function compact<T extends object>(value: T): T {
@@ -37,10 +38,10 @@ function findExtension(
   return element.extension?.find((e) => e.url === url);
 }
 
-/** The `formatting` values that change what FHIR does. */
-const RENDERING: Readonly<Record<string, string>> = {
-  [TEXT_FORMATTING.markdown]: TEXT_EXT.renderingMarkdown,
-  [TEXT_FORMATTING.html]: TEXT_EXT.renderingXhtml,
+/** The `formatting` values that change what FHIR does, and how they are carried. */
+const RENDERING: Readonly<Record<string, { readonly url: string; readonly markdown: boolean }>> = {
+  [TEXT_FORMATTING.markdown]: { url: TEXT_EXT.renderingMarkdown, markdown: true },
+  [TEXT_FORMATTING.html]: { url: TEXT_EXT.renderingXhtml, markdown: false },
 };
 
 export function dvTextToString(source: DvText): MappingResult<FhirStringElement> {
@@ -48,16 +49,20 @@ export function dvTextToString(source: DvText): MappingResult<FhirStringElement>
   const extensions: Extension[] = [];
 
   if (source.formatting !== undefined) {
-    const url = RENDERING[source.formatting];
-    if (url === undefined) {
+    const rendering = RENDERING[source.formatting];
+    if (rendering === undefined) {
       issues.push({
         path: TEXTUAL_PATH.formatting,
         message:
           'the distinction between plain and plain_no_newlines has no FHIR representation; ' +
           'only markdown and html change what FHIR does',
       });
+    } else if (rendering.markdown) {
+      // `rendering-markdown` declares `value[x]: markdown`.
+      extensions.push({ url: rendering.url, valueMarkdown: source.value });
     } else {
-      extensions.push({ url, valueString: source.value });
+      // `rendering-xhtml` declares `value[x]: string`.
+      extensions.push({ url: rendering.url, valueString: source.value });
     }
   }
 
@@ -89,7 +94,17 @@ export function dvTextToString(source: DvText): MappingResult<FhirStringElement>
   }
 
   if (source.language !== undefined) {
-    extensions.push({ url: TEXT_EXT.language, valueString: source.language.code_string });
+    // The `language` extension declares `value[x]: code 1..1` with a required
+    // binding to `all-languages`, so it carries the tag and nothing else: the
+    // CODE_PHRASE's terminology identifier has no home on a bare `code`.
+    issues.push({
+      path: TEXTUAL_PATH.languageTerminology,
+      message:
+        'the language extension is a code required-bound to all-languages, so it carries ' +
+        'the tag alone; CODE_PHRASE.terminology_id is implied by the binding when it is ' +
+        'IETF BCP 47 or ISO 639-1, and is simply lost when it is anything else',
+    });
+    extensions.push({ url: TEXT_EXT.language, valueCode: source.language.code_string });
   }
 
   return resultFor(
@@ -116,12 +131,15 @@ export function stringToDvText(source: FhirStringElement): MappingResult<DvText>
 
   const languageExtension = findExtension(source, TEXT_EXT.language);
   const language: CodePhrase | undefined =
-    languageExtension?.valueString === undefined
+    languageExtension?.valueCode === undefined
       ? undefined
       : {
           _type: 'CODE_PHRASE' as const,
+          // Derived from the extension's own **required** binding to
+          // `all-languages`, not invented: a code carried there is a BCP 47
+          // tag by definition.
           terminology_id: { value: 'urn:ietf:bcp:47' },
-          code_string: languageExtension.valueString,
+          code_string: languageExtension.valueCode,
         };
 
   const formatting =

@@ -11,6 +11,9 @@ export interface Extension {
   readonly valueDecimal?: number;
   readonly valueString?: string;
   readonly valueBoolean?: boolean;
+  readonly valueCode?: string;
+  readonly valueMarkdown?: string;
+  readonly valueQuantity?: Quantity;
 }
 
 /** `Quantity`. */

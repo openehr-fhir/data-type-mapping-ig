@@ -201,22 +201,45 @@ const dvTimeToTime = {
         kind: 'element',
         cite: DV_TIME,
       },
-      fhir: [
-        {
-          path: 'time.extension[timezone]',
-          cardinality: '0..1',
-          kind: 'extension',
-          cite: ext('timezone', 'FHIR Extensions — timezone'),
-        },
-      ],
-      toFhir: { fidelity: 'lossless' },
-      toOpenehr: { fidelity: 'lossless' },
+      fhir: {
+        kind: 'none',
+        reason:
+          '**FHIR `time` cannot carry a time zone**, and no extension can rescue it. The ' +
+          '`timezone` extension does admit `time` as a context, but it declares ' +
+          '`value[x]: code 1..1` with a **required** binding to ' +
+          '`http://hl7.org/fhir/ValueSet/timezones`, whose codes are IANA zone names. ' +
+          '`+01:00` is not a permissible code, and an IANA zone name is not an offset — ' +
+          'one zone name denotes different offsets across daylight saving — so a ' +
+          '`DV_TIME` offset cannot be carried through it and none is emitted.',
+        cite: FHIR_TIME,
+      },
+      toFhir: {
+        fidelity: 'lossy',
+        drops: [
+          {
+            path: 'DV_TIME.value[timezone]',
+            reason:
+              'the time of day itself carries; the UTC offset does not, because no FHIR ' +
+              '`time` element or extension has a home for one. Where the offset matters, ' +
+              'the value belongs in a `dateTime`, which carries an offset directly',
+          },
+        ],
+        
+      },
+      toOpenehr: {
+        fidelity: 'unmapped',
+        reason:
+          'Nothing arrives to map back, because nothing was emitted. An incoming FHIR ' +
+          '`time` states no offset, so the local offset has to come from the enclosing ' +
+          'resource or from deployment context.',
+        owner: 'session:dv-time-offset',
+      },
       maturity: 'open',
       note:
-        '**FHIR `time` cannot carry a time zone**, while `dateTime` and `instant` can. ' +
-        'Where an openEHR `DV_TIME` carries an offset it is moved into the `timezone` ' +
-        'extension on the element and restored from there. openEHR data without a time ' +
-        'zone is rare in practice.',
+        '`dateTime` and `instant` **can** carry an offset, and a `DV_TIME` whose offset is ' +
+        'clinically significant SHOULD be mapped to one of those rather than to `time`. ' +
+        'openEHR data without a time zone is rare in practice, which is what makes this ' +
+        'gap worth an open item rather than a footnote.',
     },
   ],
 } satisfies Mapping;

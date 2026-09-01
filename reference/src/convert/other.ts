@@ -12,7 +12,7 @@ import { register } from '../registry.ts';
 import { issuesOf, resultFor, unmapped, type Issue, type MappingResult } from '../result.ts';
 import type { DvMultimedia, DvParsable, DvState } from '../types/openehr/other.ts';
 import type { Attachment } from '../types/fhir/other.ts';
-import { TEXT_EXT, type Extension, type FhirStringElement } from '../types/fhir/textual.ts';
+import type { FhirStringElement } from '../types/fhir/textual.ts';
 import {
   codeableConceptToDvCodedText,
   dvCodedTextToCodeableConcept,
@@ -32,6 +32,8 @@ export const OTHER_PATH = {
   attachmentSizeAbsent: 'Attachment.size[absent]',
   stringValueAbsent: 'string.value[absent]',
   stringMimeTypeAbsent: 'string.extension[mimeType][absent]',
+  stringValue: 'string.value',
+  parsableFormalism: 'DV_PARSABLE.formalism',
   codeableConceptUnconvertible: 'CodeableConcept.coding',
 } as const;
 
@@ -156,40 +158,31 @@ register<DvMultimedia, Attachment>('dv-multimedia-to-attachment', {
 // ── DV_PARSABLE ↔ string ─────────────────────────────────────────────────────
 
 export function dvParsableToString(source: DvParsable): MappingResult<FhirStringElement> {
-  const extension: Extension[] = [{ url: TEXT_EXT.mimeType, valueString: source.formalism }];
-  return resultFor({ value: source.value, extension }, []);
+  return resultFor({ value: source.value }, [
+    {
+      path: OTHER_PATH.parsableFormalism,
+      message:
+        'no FHIR element or extension carries the syntax a parsable instance is written ' +
+        'in, so the formalism is not carried and the resulting string cannot be read back ' +
+        'as a DV_PARSABLE',
+    },
+  ]);
 }
 
 export function stringToDvParsable(source: FhirStringElement): MappingResult<DvParsable> {
-  const formalism = source.extension?.find((e) => e.url === TEXT_EXT.mimeType)?.valueString;
-
-  // `DV_PARSABLE.value` and `.formalism` are both mandatory (1..1).
-  if (source.value === undefined || formalism === undefined) {
-    const value: Issue = {
-      path: OTHER_PATH.stringValueAbsent,
-      message:
-        'DV_PARSABLE.value is mandatory (1..1) and the string element supplies no value; ' +
-        'the mandatory-attribute rule forbids inventing one, so nothing is produced',
-    };
-    const syntax: Issue = {
-      path: OTHER_PATH.stringMimeTypeAbsent,
-      message:
-        'DV_PARSABLE.formalism is mandatory (1..1) and nothing in the string element ' +
-        'states the syntax the value is written in; the mandatory-attribute rule forbids ' +
-        'inventing one, so nothing is produced',
-    };
-    if (source.value === undefined && formalism === undefined) return unmapped([value, syntax]);
-    return unmapped(source.value === undefined ? [value] : [syntax]);
-  }
-
-  return resultFor(
+  // `DV_PARSABLE.formalism` is mandatory (1..1) and **nothing in FHIR states
+  // it**, so a data-type conversion cannot produce a DV_PARSABLE at all. The
+  // formalism has to come from the element definition, which a data-type
+  // converter never sees.
+  return unmapped([
     {
-      _type: 'DV_PARSABLE' as const,
-      value: source.value,
-      formalism,
+      path: OTHER_PATH.stringValue,
+      message:
+        'a FHIR string carries no statement of the syntax its value is written in, and ' +
+        'DV_PARSABLE.formalism is mandatory, so no DV_PARSABLE is produced; the formalism ' +
+        'must come from the element definition',
     },
-    [],
-  );
+  ]);
 }
 
 register<DvParsable, FhirStringElement>('dv-parsable-to-string', {

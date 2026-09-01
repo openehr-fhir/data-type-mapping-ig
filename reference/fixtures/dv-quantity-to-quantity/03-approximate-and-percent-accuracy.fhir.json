@@ -2,5 +2,15 @@
   "value": 120,
   "unit": "mmHg",
   "system": "http://unitsofmeasure.org",
-  "code": "mm[Hg]"
+  "code": "mm[Hg]",
+  "extension": [
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/quantity-accuracy",
+      "valueQuantity": {
+        "value": 10,
+        "system": "http://unitsofmeasure.org",
+        "code": "%"
+      }
+    }
+  ]
 }

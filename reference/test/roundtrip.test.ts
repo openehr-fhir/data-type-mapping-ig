@@ -189,6 +189,22 @@ for (const mapping of testableMappings()) {
 
             const before = valueAtPath(instance, endpoint.path);
             if (before === undefined) continue;
+
+            // A one-directional mapping cannot round-trip: the reverse
+            // conversion produces nothing to compare against. That is only
+            // legitimate when the ledger says so, so assert the ledger's own
+            // claim instead of comparing a value that cannot exist.
+            if (back === undefined) {
+              const reverse: Direction = direction === 'toFhir' ? 'toOpenehr' : 'toFhir';
+              assert.equal(
+                row[reverse].fidelity,
+                'unmapped',
+                `${mapping.id}/${stem} ${label}: the reverse conversion produced nothing, ` +
+                  `so row '${row.id}' may not claim '${row[reverse].fidelity}' in that direction`,
+              );
+              continue;
+            }
+
             const after = valueAtPath(back, endpoint.path);
             assert.deepEqual(
               after,

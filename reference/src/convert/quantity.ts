@@ -104,6 +104,24 @@ function extension(url: string, key: 'valueInteger' | 'valueDecimal', value: num
   return key === 'valueInteger' ? { url, valueInteger: value } : { url, valueDecimal: value };
 }
 
+/**
+ * The `quantity-accuracy` extension declares `value[x]: Quantity`, not
+ * `decimal`. An accuracy expressed as a percentage therefore *is* carriable —
+ * as a quantity in UCUM `%` — and an absolute one carries the magnitude's own
+ * unit.
+ */
+function accuracyExtension(source: DvQuantity): Extension {
+  const percent = source.accuracy_is_percent === true;
+  return {
+    url: EXT.quantityAccuracy,
+    valueQuantity: {
+      value: source.accuracy,
+      system: percent ? UCUM : (source.units_system ?? UCUM),
+      code: percent ? '%' : source.units,
+    },
+  };
+}
+
 /** Drop the `undefined`-valued keys so fixtures and results compare cleanly. */
 function compact<T extends object>(value: T): T {
   const out: Record<string, unknown> = {};
@@ -124,16 +142,7 @@ export function dvQuantityToQuantity(source: DvQuantity): MappingResult<Quantity
   }
 
   if (source.accuracy !== undefined) {
-    if (source.accuracy_is_percent === true) {
-      issues.push({
-        path: PATH.accuracyIsPercent,
-        message:
-          'the quantity-accuracy extension carries an absolute maximum deviation, so an ' +
-          'accuracy expressed as a percentage is not carried at all',
-      });
-    } else {
-      extensions.push(extension(EXT.quantityAccuracy, 'valueDecimal', source.accuracy));
-    }
+    extensions.push(accuracyExtension(source));
   }
 
   let comparator: string | undefined;
@@ -185,7 +194,8 @@ export function quantityToDvQuantity(source: Quantity): MappingResult<DvQuantity
   }
 
   const precision = extensionValue(source, EXT.quantityPrecision)?.valueInteger;
-  const accuracy = extensionValue(source, EXT.quantityAccuracy)?.valueDecimal;
+  const accuracyQuantity = extensionValue(source, EXT.quantityAccuracy)?.valueQuantity;
+  const accuracy = accuracyQuantity?.value;
 
   const value: DvQuantity = compact({
     _type: 'DV_QUANTITY' as const,
@@ -199,7 +209,7 @@ export function quantityToDvQuantity(source: Quantity): MappingResult<DvQuantity
         ? source.comparator
         : undefined,
     accuracy,
-    accuracy_is_percent: accuracy === undefined ? undefined : false,
+    accuracy_is_percent: accuracy === undefined ? undefined : accuracyQuantity?.code === '%',
   });
 
   return resultFor(value, issues);

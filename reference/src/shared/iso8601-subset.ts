@@ -123,8 +123,11 @@ export const ISO8601_FORMS: readonly Iso8601Form[] = [
     openehr: true,
     fhir: false,
     action:
-      'FHIR `time` **cannot** carry a time zone. The offset SHALL be carried in the ' +
-      '`timezone` extension on the element.',
+      'FHIR `time` **cannot** carry a time zone, and no extension rescues it: the ' +
+      '`timezone` extension is a `code` required-bound to the IANA zone names, and a UTC ' +
+      'offset is neither a zone name nor derivable from one. The time of day is carried ' +
+      'and the offset is a **named drop**. Where the offset matters, the value SHOULD be ' +
+      'mapped to a `dateTime`, which carries one directly.',
   },
   {
     kind: 'time',
@@ -134,7 +137,8 @@ export const ISO8601_FORMS: readonly Iso8601Form[] = [
     fhir: false,
     action:
       'SHALL be expanded to `14:30:00+01:00` before the offset is separated from the ' +
-      'time; FHIR accepts neither the compact time nor the compact offset.',
+      'time; FHIR accepts neither the compact time nor the compact offset, and then has ' +
+      'no home for the offset at all.',
   },
   {
     kind: 'dateTime',

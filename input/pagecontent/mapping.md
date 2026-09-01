@@ -58,7 +58,7 @@ pages are the normative statement.
 | [DV_DURATION](mapping-temporal.html) | `Duration` | `lossy` | `lossy` | `open` | `datatype` |
 | [DV_GENERAL_TIME_SPECIFICATION / DV_PERIODIC_TIME_SPECIFICATION](mapping-temporal.html) | `Timing` | `unmapped` | `unmapped` | `not-discussed` | `datatype` |
 | [DV_MULTIMEDIA](mapping-other.html) | `Attachment` | `lossy` | `lossy` | `open` | `datatype` |
-| [DV_PARSABLE](mapping-other.html) | `string` | `lossless` | `lossless` | `open` | `datatype` |
+| [DV_PARSABLE](mapping-other.html) | `string` | `lossy` | `unmapped` | `open` | `datatype` |
 | [DV_STATE](mapping-other.html) | `CodeableConcept` | `lossy` | `lossy` | `open` | `datatype` |
 | [(none)](gaps.html) | `Address, HumanName, ContactPoint, and others` | `unmapped` | `unmapped` | `open` | `datatype` |
 | [EVENT, DV_ENCAPSULATED, CLUSTER.media_file, COMPOSITION, PARTY_RELATED](gaps.html) | `(not determined)` | `unmapped` | `unmapped` | `not-discussed` | `datatype` |
