@@ -108,16 +108,19 @@ openEHR attribute is mandatory and whose FHIR element is optional stays
 `lossless`, because the field maps exactly when it is present. What the rule
 governs is what an implementation does when it is not.
 
-Exactly **two** substitutions are permitted, and both are recorded on the row
-that describes them:
+Exactly **three** substitutions are permitted, and each is recorded on the row
+that describes it:
 
 | Site | Why it is an exception |
 |-|-|
 | `CODE_PHRASE.terminology_id` from an absent `Coding.system` | The working group has explicitly refused to choose a strategy. The placeholder is substituted **and reported**, so the conversion is `lossy`, never `lossless` |
 | `DV_STATE.is_terminal` from a `CodeableConcept` | Nothing in a `CodeableConcept` can source it; it is inferred from the state machine the archetype defines, and the openEHR-only gap is published |
+| `TERM_MAPPING.match` from a `Coding` | A `Coding` carries no degree of equivalence and `match` is `1..1`. The Reference Model publishes a value for exactly this case — `?`, "the kind of mapping is unknown" — which is substituted **and reported**, so the conversion is `lossy`, never `lossless`, and no equivalence is asserted |
 
-The list is closed. A third exception would have to be argued for in the
-reference implementation's own contract tests, where the two above are pinned.
+The list is closed. A fourth exception would have to be argued for in the
+reference implementation's own contract tests, where the three above are pinned
+and where the published list and the substituting sites are asserted to be the
+same set.
 
 #### Composed conversions
 

@@ -434,12 +434,29 @@ const dvCodedTextToCodeableConcept = {
           },
         ],
       },
-      toOpenehr: { fidelity: 'lossless' },
+      toOpenehr: {
+        fidelity: 'lossy',
+        drops: [
+          {
+            path: 'TERM_MAPPING.match',
+            reason:
+              'each additional coding becomes one `TERM_MAPPING`, whose mandatory `match` ' +
+              'a `Coding` cannot source. The composed conversion carries the inner drop ' +
+              'forward: `?` — the Reference Model\u2019s *"the kind of mapping is ' +
+              'unknown"* — is written and reported on this result too. See the ' +
+              '[TERM_MAPPING ↔ Coding](#term-mapping) rows',
+          },
+        ],
+      },
+      delegates: ['term-mapping-to-coding'],
       maturity: 'open',
       note:
-        'Each additional coding becomes one `TERM_MAPPING`. Because `TERM_MAPPING.match` ' +
-        'is mandatory, an incoming coding is given `=`, which is an inference rather than ' +
-        'a carried value. See [TERM_MAPPING](#term-mapping) below. A conversion that ' +
+        'Each additional coding becomes one `TERM_MAPPING`, produced by the registered ' +
+        '`TERM_MAPPING ↔ Coding` converter rather than by a second copy of it. Because ' +
+        '`TERM_MAPPING.match` is mandatory and a `Coding` has no degree of equivalence to ' +
+        'source it from, an incoming coding is given the Reference Model\u2019s own ' +
+        '`?` — *"the kind of mapping is unknown"* — **and the substitution is reported**. ' +
+        'See [TERM_MAPPING](#term-mapping) below. A conversion that ' +
         'delegates to `CODE_PHRASE ↔ Coding` **carries that mapping\u2019s drops forward** ' +
         'rather than swallowing them, so a `Coding.version` or an absent `Coding.system` ' +
         'is reported on the composed result too; the rows that declare those drops are on ' +
@@ -524,12 +541,27 @@ const termMappingToCoding = {
           'the request for an instance-level representation.',
       },
       toOpenehr: {
-        fidelity: 'unmapped',
-        reason:
-          '`TERM_MAPPING.match` is mandatory, so a mapping engine must supply a value; ' +
-          '`=` is the only defensible default and it is an inference, not a carried value.',
+        fidelity: 'lossy',
+        drops: [
+          {
+            path: 'TERM_MAPPING.match',
+            reason:
+              '`Coding` carries no degree of equivalence, and `TERM_MAPPING.match` is ' +
+              '`1..1`. The Reference Model publishes a value for exactly this case — ' +
+              '`?`, *"the kind of mapping is unknown"* — so `?` is written **and ' +
+              'reported**, and no equivalence is asserted. Substituting `=` would claim ' +
+              'the two terms are equivalent on no evidence, which the ' +
+              '[mandatory-attribute rule](conventions.html#mandatory-attributes) forbids',
+          },
+        ],
       },
       maturity: 'settled',
+      note:
+        'The substitution is the **third and last** recorded exception to the ' +
+        'mandatory-attribute rule, and it is on the published closed list. It is not a ' +
+        'default: `?` is the RM\u2019s designated unknown, so writing it asserts nothing ' +
+        'about the two terms, and the conversion is `lossy` rather than `lossless` because ' +
+        'the value came from the mapping engine and not from the source.',
     },
     {
       id: 'term-mapping.purpose',

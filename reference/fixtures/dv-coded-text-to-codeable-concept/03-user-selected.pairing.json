@@ -1,4 +1,4 @@
 {
   "directions": ["toOpenehr"],
-  "reason": "openEHR puts the defining code first and FHIR marks it with userSelected wherever it sits, so converting the openEHR side back reorders the coding array. The fixture demonstrates the inbound userSelected case."
+  "reason": "openEHR puts the defining code first and FHIR marks it with userSelected wherever it sits, so converting the openEHR side back reorders the coding array. The fixture demonstrates the inbound userSelected case, and its TERM_MAPPING.match is the Reference Model's ? - the kind of mapping is unknown - because a Coding carries no degree of equivalence for the conversion to source one from."
 }

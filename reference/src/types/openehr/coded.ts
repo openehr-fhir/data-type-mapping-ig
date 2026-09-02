@@ -26,6 +26,27 @@ export interface TermMapping {
   readonly target: CodePhrase;
 }
 
+/**
+ * The four `TERM_MAPPING.match` codes the Reference Model publishes.
+ *
+ * RM § 5.2.2 declares `match: char` `1..1` and enumerates the results:
+ * `'>'` broader, `'='` "(supposedly) equivalent", `'<'` narrower, and — the one
+ * that matters most to a converter — `'?'`, *"the kind of mapping is
+ * unknown"*. The RM ships a designated unknown value, so a conversion with no
+ * source for the attribute has something to write that asserts nothing.
+ *
+ * `is_valid_match_code` and the `Match_valid` invariant are declared in the
+ * same section.
+ *
+ * @see https://specifications.openehr.org/releases/RM/latest/data_types.html#_term_mapping_class
+ */
+export const TERM_MAPPING_MATCH = {
+  broader: '>',
+  equivalent: '=',
+  narrower: '<',
+  unknown: '?',
+} as const;
+
 /** `DV_CODED_TEXT`. */
 export interface DvCodedText {
   readonly _type: 'DV_CODED_TEXT';

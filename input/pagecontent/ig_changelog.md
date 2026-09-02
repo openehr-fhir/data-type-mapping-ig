@@ -495,6 +495,21 @@ otherwise.
   The correspondence is now asserted in **both** directions and derived from the
   fixture tree, so neither a claim without an instance nor an instance without a
   claim can be introduced silently.
+- **`TERM_MAPPING.match` is the Reference Model's "unknown", and it is
+  reported.** `TERM_MAPPING ↔ Coding` minted `match: '='` — *"(supposedly)
+  equivalent"*, the strongest assertion the attribute can carry — from a
+  `Coding` that states no degree of equivalence at all, and reported
+  `lossless`. The same module declares, forty lines away and in the opposite
+  direction, that `Coding` has no element expressing equivalence. RM § 5.2.2
+  enumerates the `match` results and ships a designated value for exactly this
+  case: `?`, *"the kind of mapping is unknown"*. That value is now written and
+  **reported**, so the conversion is `lossy` and asserts nothing about the two
+  terms; the second site that built a `TERM_MAPPING` inline is gone, replaced by
+  a call to the one converter, so the two cannot diverge. The published closed
+  list of permitted substitutions grows from two to three, deliberately, and the
+  `SHALL NOT` above it is unchanged — the behaviour was made to obey the verb
+  rather than the verb softened. The list and the substituting sites in code are
+  now asserted to be the **same set**, so neither can grow without the other.
 
 **Compatible, Non-Substantive**
 

@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 import type { Issue, MappingResult } from '../src/result.ts';
 import type { Quantity } from '../src/types/fhir/quantity.ts';
@@ -52,8 +54,10 @@ import {
  * converter carries the inner result's issues forward, so a declared drop
  * cannot vanish behind a composition boundary.
  *
- * The exception list is **closed**: exactly two sites may substitute a value,
- * both are asserted below, and a third would have to be added here to exist.
+ * The exception list is **closed**: exactly three sites may substitute a value,
+ * each is asserted below, and the set is held equal to the list
+ * `conventions.html` publishes — so a fourth cannot exist in code without being
+ * published, and a published one cannot exist without being executed here.
  */
 
 // ── the mandatory-attribute rule ─────────────────────────────────────────────
@@ -338,7 +342,171 @@ test('every opt-out states a reason', () => {
   assert.deepEqual(silent, [], `opt-outs with no reason: ${silent.join(', ')}`);
 });
 
-// ── the two recorded exceptions ──────────────────────────────────────────────
+// ── the three recorded exceptions ────────────────────────────────────────────
+
+/**
+ * Every site where a converter writes a value the FHIR side cannot source.
+ *
+ * The mandatory-attribute gate above cannot see this class: it probes an
+ * **absent optional FHIR member**, and these attributes have no FHIR source at
+ * all, present or absent. That is the hole `B6`, `B7` and `B8` all arrived
+ * through.
+ *
+ * The set is closed over `conventions.html`'s published exception table below,
+ * so a fourth substitution in code fails until the guide publishes it, and a
+ * published exception with no test fails too.
+ */
+const SUBSTITUTIONS: readonly {
+  /** The `Site` cell of the published exception table, byte for byte. */
+  readonly site: string;
+  /** The issue path that reports the substitution. */
+  readonly path: string;
+  readonly run: () => MappingResult<unknown>;
+  /**
+   * Where the substitution is accounted for.
+   *
+   * `here` — the same result is `lossy` and names `path`. `opposite` — the
+   * value has no FHIR source at all and is inferred from the archetype's state
+   * machine, so the openEHR-only gap is published from the other direction,
+   * which `runOpposite` executes.
+   */
+  readonly reportedBy: 'here' | 'opposite';
+  readonly runOpposite?: () => MappingResult<unknown>;
+}[] = [
+  {
+    site: '`CODE_PHRASE.terminology_id` from an absent `Coding.system`',
+    path: 'Coding.system[absent]',
+    run: () => codingToCodePhrase({ code: 'PROC123', display: 'Local procedure 123' }),
+    reportedBy: 'here',
+  },
+  {
+    site: '`DV_STATE.is_terminal` from a `CodeableConcept`',
+    path: 'DV_STATE.is_terminal',
+    run: () =>
+      codeableConceptToDvState({
+        coding: [{ system: 'openehr', code: '532' }],
+        text: 'completed',
+      }),
+    reportedBy: 'opposite',
+    runOpposite: () =>
+      dvStateToCodeableConcept({
+        _type: 'DV_STATE',
+        value: {
+          _type: 'DV_CODED_TEXT',
+          value: 'completed',
+          defining_code: {
+            _type: 'CODE_PHRASE',
+            terminology_id: { value: 'openehr' },
+            code_string: '532',
+          },
+        },
+        is_terminal: true,
+      }),
+  },
+  {
+    site: '`TERM_MAPPING.match` from a `Coding`',
+    path: 'TERM_MAPPING.match',
+    run: () =>
+      codingToTermMapping({
+        system: 'http://hl7.org/fhir/sid/icd-10',
+        code: 'D64.9',
+        display: 'Anaemia',
+      }),
+    reportedBy: 'here',
+  },
+];
+
+for (const substitution of SUBSTITUTIONS) {
+  test(`substitution at ${substitution.site} is reported, never silent`, () => {
+    const result = substitution.run();
+    if (substitution.reportedBy === 'here') {
+      assert.equal(
+        result.fidelity,
+        'lossy',
+        'a substituted value is never a lossless conversion',
+      );
+      assert.ok(
+        result.issues.some((issue: Issue) => issue.path === substitution.path),
+        `the substitution must be reported at '${substitution.path}'`,
+      );
+      return;
+    }
+    const opposite = substitution.runOpposite?.();
+    assert.ok(opposite, 'an opposite-direction exception must execute that direction');
+    assert.ok(
+      opposite.issues.some((issue: Issue) => issue.path === substitution.path),
+      `the openEHR-only gap must be published at '${substitution.path}'`,
+    );
+  });
+}
+
+test('TERM_MAPPING.match is the RM unknown code, not an asserted equivalence', () => {
+  const result = codingToTermMapping({
+    system: 'http://hl7.org/fhir/sid/icd-10',
+    code: 'D64.9',
+    display: 'Anaemia',
+  });
+  assert.equal(
+    (result.value as { match?: string } | undefined)?.match,
+    '?',
+    'the RM publishes ? for "the kind of mapping is unknown"; = asserts equivalence',
+  );
+
+  // …and the composed converter sources it from the same place, so the two
+  // cannot diverge.
+  const composed = codeableConceptToDvCodedText({
+    coding: [
+      { system: 'http://snomed.info/sct', code: '271649006' },
+      { system: 'http://hl7.org/fhir/sid/icd-10', code: 'D64.9' },
+    ],
+    text: 'Anaemia',
+  });
+  const mappings = (composed.value as { mappings?: { match?: string }[] } | undefined)?.mappings;
+  assert.deepEqual(
+    mappings?.map((mapping) => mapping.match),
+    ['?'],
+  );
+  assert.ok(composed.issues.some((issue: Issue) => issue.path === 'TERM_MAPPING.match'));
+});
+
+test('the published exception list and the substituting sites are the same set', () => {
+  // `pages.test.ts` already reads repository markdown; the technique is the
+  // established one. The equality is the exhaustive part: neither side can grow
+  // without the other.
+  const conventions = readFileSync(
+    fileURLToPath(new URL('../../input/pagecontent/conventions.md', import.meta.url)),
+    'utf8',
+  );
+  const lines = conventions.split(/\r?\n/);
+  const header = lines.findIndex((line) => line.startsWith('| Site | Why it is an exception |'));
+  assert.ok(header >= 0, 'conventions.md no longer publishes the exception table');
+
+  const published: string[] = [];
+  for (const line of lines.slice(header + 2)) {
+    if (!line.startsWith('|')) break;
+    const site = line.split('|')[1]?.trim();
+    if (site !== undefined && site !== '') published.push(site);
+  }
+
+  assert.deepEqual(
+    published.sort(),
+    SUBSTITUTIONS.map((s) => s.site).sort(),
+    'a substitution in code must be published on the closed list, and a published ' +
+      'exception must be executed by a test',
+  );
+});
+
+test('the exception count the guide publishes matches the list it publishes', () => {
+  const conventions = readFileSync(
+    fileURLToPath(new URL('../../input/pagecontent/conventions.md', import.meta.url)),
+    'utf8',
+  );
+  const words = ['zero', 'one', 'two', 'three', 'four', 'five'];
+  assert.ok(
+    conventions.includes(`Exactly **${words[SUBSTITUTIONS.length]}** substitutions are permitted`),
+    `conventions.md must say "Exactly ${words[SUBSTITUTIONS.length]} substitutions are permitted"`,
+  );
+});
 
 test('exception 1: an absent Coding.system is reported and substituted, not refused', () => {
   const result = codingToCodePhrase({ code: 'PROC123', display: 'Local procedure 123' });
@@ -421,12 +589,12 @@ test('a %-unit accuracy reports the collision outbound and does not invent the f
   );
 });
 
-test('there is no third exception: every other substitution site refuses instead', () => {
+test('there is no unrecorded exception: every other substitution site refuses instead', () => {
   const substituting = MANDATORY.filter((example) => example.run().value !== undefined);
   assert.deepEqual(
     substituting.map((example) => example.converter),
     [],
-    'a converter that produces a value with a mandatory attribute absent is a third ' +
+    'a converter that produces a value with a mandatory attribute absent is a fourth ' +
       'exception, and must be argued for here rather than appearing silently',
   );
 });
@@ -545,12 +713,14 @@ test('codeableConceptToDvCodedText carries the Coding.version drop (the H1 case)
   );
 });
 
-test('codingToTermMapping carries the Coding.version drop', () => {
+test('codingToTermMapping reports its own substitution and carries the Coding.version drop', () => {
   const result = codingToTermMapping(VERSIONED_CODING);
   assert.equal(result.fidelity, 'lossy');
   assert.deepEqual(
     result.issues.map((issue: Issue) => issue.path),
-    ['Coding.version'],
+    // The substituted `match` is the converter's own drop and comes first; the
+    // inner `CODE_PHRASE ↔ Coding` drop still survives the composition boundary.
+    ['TERM_MAPPING.match', 'Coding.version'],
   );
 });
 

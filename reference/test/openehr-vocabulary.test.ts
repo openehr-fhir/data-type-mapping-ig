@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import { resolveMirror } from '../src/model/spec-mirror-map.ts';
 import { UNKNOWN_TERMINOLOGY } from '../src/convert/coded.ts';
+import { TERM_MAPPING_MATCH } from '../src/types/openehr/coded.ts';
 import { TEXT_FORMATTING } from '../src/types/openehr/textual.ts';
 import { ISO8601_FORMS, type TemporalKind } from '../src/shared/iso8601-subset.ts';
 
@@ -193,6 +194,16 @@ function codeSetViolations(): readonly string[] {
 
 // ── inventory 2: DV_TEXT.formatting values ───────────────────────────────────
 
+/** A section of `Data Types Information Model.html`, delimited by its own anchor. */
+function rmSection(anchor: string): string {
+  const html = mirrorHtml(SPEC_URL.dataTypes);
+  const start = html.indexOf(`id="${anchor}"`);
+  assert.ok(start >= 0, `the RM mirror has no ${anchor} anchor`);
+  const rest = html.slice(start);
+  const next = rest.slice(1).search(/<h[1-4][ >]/);
+  return plainText(next < 0 ? rest : rest.slice(0, next + 1));
+}
+
 /**
  * RM § 5.1.7 *Formatting and Hyperlinking*, delimited from its own heading
  * anchor to the next heading.
@@ -202,12 +213,7 @@ function codeSetViolations(): readonly string[] {
  * a formatting approach — while the enumeration quotes each value it defines.
  */
 function formattingSection(): string {
-  const html = mirrorHtml(SPEC_URL.dataTypes);
-  const start = html.indexOf('id="_formatting_and_hyperlinking"');
-  assert.ok(start >= 0, 'the RM mirror has no _formatting_and_hyperlinking anchor');
-  const rest = html.slice(start);
-  const next = rest.slice(1).search(/<h[1-4][ >]/);
-  return plainText(next < 0 ? rest : rest.slice(0, next + 1));
+  return rmSection('_formatting_and_hyperlinking');
 }
 
 function formattingViolations(): readonly string[] {
@@ -259,6 +265,21 @@ function iso8601Violations(): readonly string[] {
     .filter((form) => !OPENEHR_GRAMMAR[form.kind].test(form.example))
     .map((form) => form.example);
   return emit('iso8601', offenders);
+}
+
+// ── inventory 4: TERM_MAPPING.match codes ────────────────────────────────────
+
+/**
+ * RM § 5.2.2 enumerates the `match` results and **single-quotes** each one:
+ * `'>'`, `'='`, `'<'`, `'?'`. The section is delimited for the same reason the
+ * formatting one is — a bare `?` or `=` occurs everywhere on the page.
+ */
+function matchCodeViolations(): readonly string[] {
+  const section = rmSection('_term_mapping_class');
+  const offenders = Object.values(TERM_MAPPING_MATCH).filter(
+    (code) => !section.includes(`'${code}'`),
+  );
+  return emit('term-mapping-match', offenders);
 }
 
 // ── the checks ───────────────────────────────────────────────────────────────
@@ -328,5 +349,26 @@ test('every ISO 8601 form flagged openehr: true is accepted by the openEHR gramm
     iso8601Violations(),
     [],
     'openEHR examples rejected by valid_iso8601_date / _time / _date_time',
+  );
+});
+
+test('every TERM_MAPPING.match code the harness writes is enumerated by the RM', (t) => {
+  if (OPENEHR_ROOT === undefined) {
+    t.skip(SKIP_MESSAGE);
+    return;
+  }
+
+  const section = rmSection('_term_mapping_class');
+  assert.ok(
+    section.includes('the kind of mapping is unknown'),
+    'the RM TERM_MAPPING section was not delimited around its match enumeration',
+  );
+
+  assert.deepEqual(
+    matchCodeViolations(),
+    [],
+    `TERM_MAPPING.match codes absent from RM \u00a7 5.2.2, from ${Object.values(
+      TERM_MAPPING_MATCH,
+    ).join(', ')}`,
   );
 });

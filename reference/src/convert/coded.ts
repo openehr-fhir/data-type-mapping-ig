@@ -24,6 +24,7 @@ import { issuesOf, resultFor, unmapped, type Issue, type MappingResult } from '.
 import {
   NULL_FLAVOUR,
   OPENEHR_TERMINOLOGY,
+  TERM_MAPPING_MATCH,
   type CodePhrase,
   type DvCodedText,
   type NullFlavour,
@@ -318,7 +319,11 @@ export function codeableConceptToDvCodedText(
   }
 
   const definingResult = codingToCodePhrase(defining);
-  const restResults = rest.map((c) => codingToCodePhrase(c));
+  // Each remaining coding becomes one `TERM_MAPPING` through the registered
+  // converter, not through an inline copy of it. One site cannot drift from
+  // itself, and `conventions.html`'s *Composed conversions* rule already
+  // requires the inner drops to surface on the outer result.
+  const restResults = rest.map((c) => codingToTermMapping(c));
   const definingPhrase = definingResult.value;
 
   const unconvertible: Issue = {
@@ -338,7 +343,7 @@ export function codeableConceptToDvCodedText(
     if (result.value === undefined) {
       return unmapped([unconvertible, ...issuesOf(definingResult, ...restResults)]);
     }
-    mappings.push({ _type: 'TERM_MAPPING' as const, match: '=', target: result.value });
+    mappings.push(result.value);
   }
 
   return resultFor(
@@ -408,10 +413,25 @@ export function codingToTermMapping(source: Coding): MappingResult<TermMapping> 
   return resultFor(
     {
       _type: 'TERM_MAPPING' as const,
-      match: '=',
+      // `match` is `1..1 : char` and a `Coding` carries no degree of
+      // equivalence at all, so there is nothing to source it from. The RM
+      // publishes a designated value for exactly this case — `'?'`, "the kind
+      // of mapping is unknown" — so that is written, and it is **reported**:
+      // picking `'='` would assert equivalence nobody sent, which is what
+      // `conventions.html`'s mandatory-attribute rule forbids.
+      match: TERM_MAPPING_MATCH.unknown,
       target: target.value,
     },
-    issuesOf(target),
+    [
+      {
+        path: CODED_PATH.termMappingMatch,
+        message:
+          'Coding carries no degree of equivalence, and TERM_MAPPING.match is mandatory; ' +
+          'the RM\u2019s own "the kind of mapping is unknown" value ? is substituted and ' +
+          'reported, rather than an equivalence being asserted',
+      },
+      ...issuesOf(target),
+    ],
   );
 }
 
