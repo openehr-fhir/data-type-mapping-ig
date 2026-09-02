@@ -431,6 +431,99 @@ test('there is no third exception: every other substitution site refuses instead
   );
 });
 
+// ── the language code set openEHR publishes ──────────────────────────────────
+
+/**
+ * FHIR binds `language` to **BCP 47** and openEHR to its own published
+ * `ISO_639-1` code set, which BCP 47 strictly contains. Both inbound converters
+ * share one narrowing helper, and both are asserted here — the point of sharing
+ * it is that they cannot diverge again, and two copies of this rule is how the
+ * defect reached two files in the first place.
+ */
+const LANGUAGE_BRANCHES: readonly {
+  readonly tag: string;
+  readonly why: string;
+  /** The `CODE_PHRASE.code_string` expected, or `undefined` for no `language`. */
+  readonly codeString: string | undefined;
+  readonly textualPaths: readonly string[];
+  readonly attachmentPaths: readonly string[];
+}[] = [
+  {
+    tag: 'en',
+    why: 'an alpha-2 tag is an ISO 639-1 code and is carried with no loss',
+    codeString: 'en',
+    textualPaths: [],
+    attachmentPaths: [],
+  },
+  {
+    tag: 'en-US',
+    why: 'ISO 639-1 has no code for a region subtag, so it is a named drop',
+    codeString: 'en',
+    textualPaths: ['string.extension[language][region-subtag]'],
+    attachmentPaths: ['Attachment.language[region-subtag]'],
+  },
+  {
+    tag: 'gla',
+    why: 'a three-letter ISO 639-2 tag is outside the code set Language_valid requires',
+    codeString: undefined,
+    textualPaths: ['string.extension[language][outside-code-set]'],
+    attachmentPaths: ['Attachment.language[outside-code-set]'],
+  },
+];
+
+for (const branch of LANGUAGE_BRANCHES) {
+  test(`stringToDvText narrows '${branch.tag}': ${branch.why}`, () => {
+    const result = stringToDvText({
+      value: 'hello',
+      extension: [{ url: 'http://hl7.org/fhir/StructureDefinition/language', valueCode: branch.tag }],
+    });
+    assert.equal(result.value?.language?.code_string, branch.codeString);
+    if (branch.codeString !== undefined) {
+      assert.equal(
+        result.value?.language?.terminology_id.value,
+        'ISO_639-1',
+        'openEHR publishes exactly one language code set and it is not BCP 47',
+      );
+    }
+    assert.deepEqual(
+      result.issues.map((issue: Issue) => issue.path),
+      branch.textualPaths,
+    );
+  });
+
+  test(`attachmentToDvMultimedia narrows '${branch.tag}': ${branch.why}`, () => {
+    const result = attachmentToDvMultimedia({
+      contentType: 'audio/mpeg',
+      size: '20416',
+      language: branch.tag,
+    });
+    assert.equal(result.value?.language?.code_string, branch.codeString);
+    if (branch.codeString !== undefined) {
+      assert.equal(result.value?.language?.terminology_id.value, 'ISO_639-1');
+    }
+    assert.deepEqual(
+      result.issues.map((issue: Issue) => issue.path),
+      branch.attachmentPaths,
+    );
+  });
+}
+
+test('no converter writes an openEHR language identifier the code set does not publish', () => {
+  const emitted = [
+    stringToDvText({
+      value: 'hello',
+      extension: [{ url: 'http://hl7.org/fhir/StructureDefinition/language', valueCode: 'en' }],
+    }).value?.language?.terminology_id.value,
+    attachmentToDvMultimedia({ contentType: 'audio/mpeg', size: '1', language: 'en' }).value
+      ?.language?.terminology_id.value,
+  ];
+  assert.deepEqual(
+    emitted,
+    ['ISO_639-1', 'ISO_639-1'],
+    'both call sites go through the one shared narrowing, so neither can drift',
+  );
+});
+
 // ── composed converters carry their inner issues ─────────────────────────────
 
 const VERSIONED_CODING = {

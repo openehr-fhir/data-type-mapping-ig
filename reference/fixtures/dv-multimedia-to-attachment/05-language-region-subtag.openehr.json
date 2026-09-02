@@ -5,18 +5,14 @@
     "terminology_id": {
       "value": "IANA_media-types"
     },
-    "code_string": "video/mp4"
+    "code_string": "audio/mpeg"
   },
-  "size": 1048576,
+  "size": 20416,
   "language": {
     "_type": "CODE_PHRASE",
     "terminology_id": {
       "value": "ISO_639-1"
     },
-    "code_string": "en"
-  },
-  "uri": {
-    "_type": "DV_URI",
-    "value": "https://example.org/media/echocardiogram.mp4"
+    "code_string": "pt"
   }
 }

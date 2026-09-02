@@ -114,8 +114,10 @@ export const EXTENSION_TYPES: readonly ExtensionType[] = [
     published: true,
     cite: ext('language', 'FHIR Extensions — language'),
     note:
-      'The binding to `all-languages` is **required**, so the code is an IETF BCP 47 tag ' +
-      'and the `CODE_PHRASE.terminology_id` that stated as much has no home of its own.',
+      'The binding to `all-languages` is **required**, so the code is an IETF BCP 47 tag. ' +
+      'openEHR binds `language` to its own published `ISO_639-1` code set, which BCP 47 ' +
+      'strictly contains, so the two are **not** the same set and the ' +
+      '`CODE_PHRASE.terminology_id` naming openEHR\u2019s set has no home of its own here.',
   },
   {
     name: 'iso21090-nullFlavor',

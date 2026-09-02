@@ -1,0 +1,11 @@
+{
+  "_type": "DV_MULTIMEDIA",
+  "media_type": {
+    "_type": "CODE_PHRASE",
+    "terminology_id": {
+      "value": "IANA_media-types"
+    },
+    "code_string": "audio/mpeg"
+  },
+  "size": 20416
+}

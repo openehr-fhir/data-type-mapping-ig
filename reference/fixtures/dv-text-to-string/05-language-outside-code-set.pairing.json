@@ -1,0 +1,4 @@
+{
+  "directions": ["toOpenehr"],
+  "reason": "The FHIR side carries gla, a three-letter ISO 639-2 tag that openEHR's languages code set - External_id ISO_639-1 - has no code for, so DV_TEXT.Language_valid would reject it. No language is written at all rather than a terminology_id being invented for a code the code set does not hold, and the omission is reported. Converting the openEHR side back therefore carries no language extension. The dv-text.language row declares the drop."
+}

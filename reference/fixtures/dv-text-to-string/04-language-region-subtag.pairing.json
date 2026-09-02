@@ -1,0 +1,4 @@
+{
+  "directions": ["toOpenehr"],
+  "reason": "The FHIR side carries the BCP 47 tag en-GB and openEHR binds language to its own ISO_639-1 code set, which holds alpha-2 codes only, so the region subtag is dropped and the openEHR side records en. The narrowing is not reversible: converting the openEHR side back gives the tag en, not en-GB. The dv-text.language row declares the drop."
+}

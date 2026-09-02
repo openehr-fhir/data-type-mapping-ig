@@ -55,9 +55,6 @@ const FIXTURES = fileURLToPath(new URL('../fixtures/', import.meta.url));
  * extended.** A new violation is a defect to fix, not an entry to add.
  */
 const KNOWN_VIOLATIONS: readonly string[] = [
-  // B7 — `urn:ietf:bcp:47` is not an openEHR code-set identifier; openEHR
-  // publishes `ISO_639-1` for languages. Removed by Phase 37.
-  'code-set: urn:ietf:bcp:47',
   // B8 — `html` is not a `DV_TEXT.formatting` value; RM § 5.1.7 enumerates the
   // set exhaustively and rejects HTML explicitly. Removed by Phase 38, which
   // also deletes this constant.

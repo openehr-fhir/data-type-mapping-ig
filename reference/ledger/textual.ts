@@ -8,6 +8,7 @@
 import type { Cite, Mapping, Review } from '../src/model/types.ts';
 
 const RM = 'https://specifications.openehr.org/releases/RM/latest/data_types.html';
+const TERM = 'https://specifications.openehr.org/releases/TERM/latest/SupportTerminology.html';
 const R5 = 'https://hl7.org/fhir/R5/datatypes.html';
 const EXT_PACK = 'https://hl7.org/fhir/extensions/StructureDefinition';
 
@@ -28,6 +29,11 @@ const TEXT_FORMATTING = rm('_text_formatting', 'openEHR RM — text formatting')
 const FHIR_STRING = r5('string', 'FHIR R5 — string');
 const FHIR_MARKDOWN = r5('markdown', 'FHIR R5 — markdown');
 const CODE_PHRASE = rm('_code_phrase_class', 'openEHR RM — CODE_PHRASE');
+const OPENEHR_LANGUAGES: Cite = {
+  url: `${TERM}#_languages`,
+  label: 'openEHR TERM — languages code set (External_id: ISO_639-1)',
+  verification: 'spec-local',
+};
 const CODEABLE_CONCEPT = r5('CodeableConcept', 'FHIR R5 — CodeableConcept');
 
 const REVIEWED_BOTH: Review = { openehr: ['Ciprian'], fhir: ['Gino'] };
@@ -50,7 +56,7 @@ const dvTextToString = {
   fhirType: 'string | markdown',
   title: 'DV_TEXT ↔ string / markdown',
   scope: 'datatype',
-  sources: [DV_TEXT, FHIR_STRING, FHIR_MARKDOWN],
+  sources: [DV_TEXT, FHIR_STRING, FHIR_MARKDOWN, OPENEHR_LANGUAGES],
   review: REVIEWED_BOTH,
   rows: [
     {
@@ -165,7 +171,29 @@ const dvTextToString = {
           },
         ],
       },
-      toOpenehr: { fidelity: 'lossless' },
+      toOpenehr: {
+        fidelity: 'lossy',
+        drops: [
+          {
+            path: 'string.extension[language][region-subtag]',
+            reason:
+              'FHIR\u2019s `all-languages` binding is **BCP 47** and openEHR binds ' +
+              '`language` to its own published `ISO_639-1` code set. BCP 47 strictly ' +
+              'contains ISO 639-1, so `en-US` and `zh-Hant` are BCP 47 tags that ISO ' +
+              '639-1 has no code for. The primary language subtag is carried and the ' +
+              'region or script subtag is not',
+          },
+          {
+            path: 'string.extension[language][outside-code-set]',
+            reason:
+              'a tag that is not an ISO 639-1 alpha-2 code \u2014 a three-letter ISO ' +
+              '639-2 code, a private-use tag \u2014 is outside the code set `Language_valid` ' +
+              'requires, so **no `language` is written at all** rather than a ' +
+              '`terminology_id` being invented for a code the code set does not hold. ' +
+              '`language` is `0..1`, and the text itself converts faithfully',
+          },
+        ],
+      },
       maturity: 'open',
       note:
         'The two standards carry language at **different levels of the model**. openEHR ' +
@@ -174,10 +202,13 @@ const dvTextToString = {
         'and `narrativeLanguageControl` — for anything finer. Which of those applies is a ' +
         'resource-level decision, so only the element-level `language` extension is stated ' +
         'here. A cluster archetype for narrative, accounting for narrative language ' +
-        'control, is owned by the openEHR modelling team. Coming back, `terminology_id` is ' +
-        '**derived from the extension\u2019s own required binding** — a code carried there ' +
-        'is an IETF BCP 47 tag by definition — rather than invented; a `CODE_PHRASE` ' +
-        'stating any other scheme does not survive the trip out.',
+        'control, is owned by the openEHR modelling team. Coming back, the two standards ' +
+        'do not bind language to the same set: FHIR\u2019s `all-languages` binding is ' +
+        '**BCP 47** and openEHR publishes exactly one language code set, ' +
+        '`Id: languages, External_id: ISO_639-1`, which `DV_TEXT.Language_valid` requires ' +
+        'the value to belong to. BCP 47 **strictly contains** ISO 639-1, so the inbound ' +
+        'conversion is a narrowing and says so, rather than deriving an openEHR ' +
+        'identifier from a FHIR binding.',
     },
     {
       id: 'dv-text.encoding',

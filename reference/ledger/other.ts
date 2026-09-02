@@ -10,6 +10,7 @@
 import type { Cite, Mapping, Review } from '../src/model/types.ts';
 
 const RM = 'https://specifications.openehr.org/releases/RM/latest/data_types.html';
+const TERM = 'https://specifications.openehr.org/releases/TERM/latest/SupportTerminology.html';
 const R5 = 'https://hl7.org/fhir/R5/datatypes.html';
 const EXT_PACK = 'https://hl7.org/fhir/extensions/StructureDefinition';
 
@@ -29,6 +30,11 @@ const DV_MULTIMEDIA = rm('_dv_multimedia_class', 'openEHR RM — DV_MULTIMEDIA')
 const DV_PARSABLE = rm('_dv_parsable_class', 'openEHR RM — DV_PARSABLE');
 const DV_STATE = rm('_dv_state_class', 'openEHR RM — DV_STATE');
 const DV_ENCAPSULATED = rm('_dv_encapsulated_class', 'openEHR RM — DV_ENCAPSULATED');
+const OPENEHR_LANGUAGES: Cite = {
+  url: `${TERM}#_languages`,
+  label: 'openEHR TERM — languages code set (External_id: ISO_639-1)',
+  verification: 'spec-local',
+};
 const ATTACHMENT = r5('Attachment', 'FHIR R5 — Attachment');
 const FHIR_STRING = r5('string', 'FHIR R5 — string');
 const CODEABLE_CONCEPT = r5('CodeableConcept', 'FHIR R5 — CodeableConcept');
@@ -102,7 +108,7 @@ const dvMultimediaToAttachment = {
   fhirType: 'Attachment',
   title: 'DV_MULTIMEDIA ↔ Attachment',
   scope: 'datatype',
-  sources: [DV_MULTIMEDIA, ATTACHMENT, DV_ENCAPSULATED],
+  sources: [DV_MULTIMEDIA, ATTACHMENT, DV_ENCAPSULATED, OPENEHR_LANGUAGES],
   review: NOT_REVIEWED,
   rows: [
     {
@@ -483,14 +489,41 @@ const dvMultimediaToAttachment = {
           },
         ],
       },
-      toOpenehr: { fidelity: 'lossless' },
+      toOpenehr: {
+        fidelity: 'lossy',
+        drops: [
+          {
+            path: 'Attachment.language[region-subtag]',
+            reason:
+              '`Attachment.language`\u2019s `all-languages` binding is **BCP 47** and ' +
+              'openEHR binds `language` to its own published `ISO_639-1` code set. BCP 47 ' +
+              'strictly contains ISO 639-1, so `en-US` and `zh-Hant` are BCP 47 tags that ' +
+              'ISO 639-1 has no code for. The primary language subtag is carried and the ' +
+              'region or script subtag is not',
+          },
+          {
+            path: 'Attachment.language[outside-code-set]',
+            reason:
+              'a tag that is not an ISO 639-1 alpha-2 code is outside the code set ' +
+              '`DV_ENCAPSULATED.Language_valid` requires, so **no `language` is written at ' +
+              'all** rather than a `terminology_id` being invented for a code the code set ' +
+              'does not hold. `language` is `0..1`, and the attachment itself converts ' +
+              'faithfully',
+          },
+        ],
+      },
       maturity: 'open',
       note:
         '`DV_MULTIMEDIA` inherits `language` from `DV_ENCAPSULATED` (RM § 9.2.1), so — ' +
         'unlike `creation`, `height`, `width`, `frames`, `duration`, and `pages` — this ' +
         'one **does** have an openEHR counterpart, and folding it into a ' +
-        'no-counterpart claim was a fabricated gap. Coming back, `terminology_id` is ' +
-        'derived from the FHIR binding rather than invented.',
+        'no-counterpart claim was a fabricated gap. Coming back, the two standards do not ' +
+        'bind language to the same set: FHIR\u2019s binding is **BCP 47** and openEHR ' +
+        'publishes exactly one language code set, ' +
+        '`Id: languages, External_id: ISO_639-1`, which ' +
+        '`DV_ENCAPSULATED.Language_valid` requires the value to belong to. BCP 47 ' +
+        '**strictly contains** ISO 639-1, so the inbound conversion is a narrowing and ' +
+        'says so, rather than deriving an openEHR identifier from a FHIR binding.',
     },
     {
       id: 'dv-multimedia.charset',

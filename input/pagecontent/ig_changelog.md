@@ -456,6 +456,22 @@ otherwise.
   publish, are new rows with new drops: `DV_TIME.value[hour-precision]` and
   `DV_DATE_TIME.value[hour-precision]`, each naming the two levels of precision
   the FHIR value claims that the source did not state.
+- **The language code set is the one openEHR publishes.** Both inbound language
+  converters wrote `terminology_id: urn:ietf:bcp:47` into an openEHR
+  `CODE_PHRASE` and reported `lossless`. openEHR's Support Terminology
+  publishes exactly one language code set —
+  `Id: languages, External_id: ISO_639-1` — and both `DV_TEXT` and
+  `DV_ENCAPSULATED` carry a `Language_valid` invariant requiring the value to
+  belong to it, so a round trip through the guide turned a conformant instance
+  into a non-conformant one and said nothing had been lost. The derivation also
+  ran the wrong way: it read an **openEHR** identifier off a **FHIR** binding.
+  Both converters now share one narrowing, written once: an alpha-2 tag is an
+  ISO 639-1 code and is carried; a tag with a region or script subtag keeps its
+  alpha-2 prefix and the subtag is a **named drop**; anything else is outside
+  the code set the invariant requires, so no `language` is written at all and
+  the omission is reported. BCP 47 strictly contains ISO 639-1, so both
+  `toOpenehr` verdicts move from `lossless` to `lossy`, and the two published
+  worked examples are corrected.
 
 **Compatible, Non-Substantive**
 

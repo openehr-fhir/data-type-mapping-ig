@@ -7,6 +7,7 @@
 
 import { register } from '../registry.ts';
 import { resultFor, unmapped, type Issue, type MappingResult } from '../result.ts';
+import { narrowLanguageTag } from '../shared/language.ts';
 import { TEXT_FORMATTING, type DvText } from '../types/openehr/textual.ts';
 import { TEXT_EXT, type Extension, type FhirStringElement } from '../types/fhir/textual.ts';
 import type { CodePhrase } from '../types/openehr/coded.ts';
@@ -19,6 +20,8 @@ export const TEXTUAL_PATH = {
   mappings: 'DV_TEXT.mappings',
   stringValueAbsent: 'string.value[absent]',
   languageTerminology: 'DV_TEXT.language.terminology_id',
+  languageRegionSubtag: 'string.extension[language][region-subtag]',
+  languageOutsideCodeSet: 'string.extension[language][outside-code-set]',
 } as const;
 
 function compact<T extends object>(value: T): T {
@@ -101,8 +104,8 @@ export function dvTextToString(source: DvText): MappingResult<FhirStringElement>
       path: TEXTUAL_PATH.languageTerminology,
       message:
         'the language extension is a code required-bound to all-languages, so it carries ' +
-        'the tag alone; CODE_PHRASE.terminology_id is implied by the binding when it is ' +
-        'IETF BCP 47 or ISO 639-1, and is simply lost when it is anything else',
+        'the tag alone; the CODE_PHRASE.terminology_id naming openEHR\u2019s ISO_639-1 ' +
+        'code set has nowhere to live on a bare code',
     });
     extensions.push({ url: TEXT_EXT.language, valueCode: source.language.code_string });
   }
@@ -130,17 +133,14 @@ export function stringToDvText(source: FhirStringElement): MappingResult<DvText>
   }
 
   const languageExtension = findExtension(source, TEXT_EXT.language);
-  const language: CodePhrase | undefined =
-    languageExtension?.valueCode === undefined
-      ? undefined
-      : {
-          _type: 'CODE_PHRASE' as const,
-          // Derived from the extension's own **required** binding to
-          // `all-languages`, not invented: a code carried there is a BCP 47
-          // tag by definition.
-          terminology_id: { value: 'urn:ietf:bcp:47' },
-          code_string: languageExtension.valueCode,
-        };
+  // FHIR's binding is BCP 47 and openEHR's code set is ISO 639-1, which BCP 47
+  // strictly contains. The narrowing is shared with `attachmentToDvMultimedia`
+  // so the two cannot diverge again.
+  const narrowed = narrowLanguageTag(languageExtension?.valueCode, {
+    regionSubtag: TEXTUAL_PATH.languageRegionSubtag,
+    outsideCodeSet: TEXTUAL_PATH.languageOutsideCodeSet,
+  });
+  const language: CodePhrase | undefined = narrowed.language;
 
   const formatting =
     findExtension(source, TEXT_EXT.renderingMarkdown) !== undefined
@@ -156,7 +156,7 @@ export function stringToDvText(source: FhirStringElement): MappingResult<DvText>
       formatting,
       language,
     }),
-    [],
+    [...narrowed.issues],
   );
 }
 

@@ -1,7 +1,6 @@
 {
   "_type": "DV_TEXT",
-  "value": "**Allergy:** penicillin",
-  "formatting": "markdown",
+  "value": "Blood pressure recorded at triage",
   "language": {
     "_type": "CODE_PHRASE",
     "terminology_id": {

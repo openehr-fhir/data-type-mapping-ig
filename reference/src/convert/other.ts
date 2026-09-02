@@ -10,6 +10,7 @@
 
 import { register } from '../registry.ts';
 import { issuesOf, resultFor, unmapped, type Issue, type MappingResult } from '../result.ts';
+import { narrowLanguageTag } from '../shared/language.ts';
 import { INT32_MAX } from '../types/fhir/primitives.ts';
 import type { DvMultimedia, DvParsable, DvState } from '../types/openehr/other.ts';
 import type { Attachment } from '../types/fhir/other.ts';
@@ -38,6 +39,8 @@ export const OTHER_PATH = {
   parsableFormalism: 'DV_PARSABLE.formalism',
   codeableConceptUnconvertible: 'CodeableConcept.coding',
   encapsulatedLanguage: 'DV_ENCAPSULATED.language.terminology_id',
+  attachmentLanguageRegionSubtag: 'Attachment.language[region-subtag]',
+  attachmentLanguageOutsideCodeSet: 'Attachment.language[outside-code-set]',
   attachmentHeight: 'Attachment.height',
   attachmentWidth: 'Attachment.width',
   attachmentFrames: 'Attachment.frames',
@@ -117,8 +120,8 @@ export function dvMultimediaToAttachment(source: DvMultimedia): MappingResult<At
       path: OTHER_PATH.encapsulatedLanguage,
       message:
         'Attachment.language is a code required-bound to all-languages, so it carries the ' +
-        'tag alone; CODE_PHRASE.terminology_id is implied by the binding when it is IETF ' +
-        'BCP 47 or ISO 639-1, and is simply lost when it is anything else',
+        'tag alone; the CODE_PHRASE.terminology_id naming openEHR\u2019s ISO_639-1 code ' +
+        'set has nowhere to live on a bare code',
     });
   }
 
@@ -214,6 +217,15 @@ export function attachmentToDvMultimedia(source: Attachment): MappingResult<DvMu
     });
   }
 
+  // FHIR's binding is BCP 47 and openEHR's code set is ISO 639-1, which BCP 47
+  // strictly contains. The narrowing is shared with `stringToDvText` so the two
+  // cannot diverge again.
+  const narrowed = narrowLanguageTag(source.language, {
+    regionSubtag: OTHER_PATH.attachmentLanguageRegionSubtag,
+    outsideCodeSet: OTHER_PATH.attachmentLanguageOutsideCodeSet,
+  });
+  issues.push(...narrowed.issues);
+
   return resultFor(
     compact({
       _type: 'DV_MULTIMEDIA' as const,
@@ -223,16 +235,7 @@ export function attachmentToDvMultimedia(source: Attachment): MappingResult<DvMu
         code_string: source.contentType,
       },
       size,
-      language:
-        source.language === undefined
-          ? undefined
-          : {
-              _type: 'CODE_PHRASE' as const,
-              // Derived from `Attachment.language`'s own **required** binding to
-              // `all-languages`, not invented.
-              terminology_id: { value: 'urn:ietf:bcp:47' },
-              code_string: source.language,
-            },
+      language: narrowed.language,
       data: source.data,
       uri:
         source.url === undefined

@@ -1,0 +1,9 @@
+{
+  "value": "Blood pressure recorded at triage",
+  "extension": [
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/language",
+      "valueCode": "en-GB"
+    }
+  ]
+}
