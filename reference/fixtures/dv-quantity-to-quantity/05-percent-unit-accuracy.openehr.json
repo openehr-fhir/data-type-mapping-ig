@@ -1,0 +1,9 @@
+{
+  "_type": "DV_QUANTITY",
+  "magnitude": 45,
+  "units": "%",
+  "units_system": "http://unitsofmeasure.org",
+  "units_display_name": "%",
+  "accuracy": 2,
+  "accuracy_is_percent": false
+}

@@ -1,0 +1,16 @@
+{
+  "value": 45,
+  "unit": "%",
+  "system": "http://unitsofmeasure.org",
+  "code": "%",
+  "extension": [
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/quantity-accuracy",
+      "valueQuantity": {
+        "value": 2,
+        "system": "http://unitsofmeasure.org",
+        "code": "%"
+      }
+    }
+  ]
+}

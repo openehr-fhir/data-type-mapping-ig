@@ -174,10 +174,12 @@ guide asserts and is **Compatible, Substantive**.
 - **Every published extension emits the `value[x]` its definition declares.**
   `quantity-accuracy` is a `Quantity`, not a `decimal` — which is what lets an
   accuracy expressed as a percentage be carried at all, in UCUM `%`, so the
-  `accuracy_is_percent` drop is gone; `rendering-markdown` is a `markdown`;
-  `language` is a `code`. A new gate resolves every extension a worked example
-  carries against a declared table of `value[x]` types, cardinalities, and
-  contexts, and every worked example in this guide **is** one of those fixtures.
+  `accuracy_is_percent` drop is confined to the `%`-unit sub-case described
+  under *Review remediation, second pass* below; `rendering-markdown` is a
+  `markdown`; `language` is a `code`. A new gate resolves every extension a
+  worked example carries against a declared table of `value[x]` types,
+  cardinalities, and contexts, and every worked example in this guide **is** one
+  of those fixtures.
 - **Two extension uses are withdrawn, and the gaps are published instead.**
   `DV_PARSABLE.formalism` was mapped to the `mimeType` extension, whose context
   is `Questionnaire.item` and `ElementDefinition` and whose purpose is a
@@ -312,6 +314,17 @@ otherwise.
   or a text-only `CodeableConcept` with the mandatory defining code gone. A
   `time` element carrying extensions and no value, and a `data-absent-reason`
   `CodeableConcept` stating no code at all, are refused on the same ground.
+- **`accuracy_is_percent` is no longer inverted for a `%`-unit quantity.** The
+  flag is carried as the unit of the accuracy `Quantity`, which works until the
+  magnitude's own unit is `%` — a haematocrit of 45 % with an absolute accuracy
+  of ±2 percentage points read back as ±2 % *of* 45, which is ±0.9, and both
+  directions called it `lossless`. The extension has no second discriminator, so
+  the flag is now **left absent** rather than derived, the loss is named in both
+  directions as its own `unmapped` sub-case row, and the normative sentence on
+  `cross-cutting.html` that required `accuracy_is_percent` to be `false` "for the
+  value to be carried at all" — which the same page, the `DV_QUANTITY` table and
+  the converter all contradicted — is replaced by the rule that is actually
+  implemented.
 
 **Compatible, Non-Substantive**
 

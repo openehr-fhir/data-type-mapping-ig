@@ -303,7 +303,57 @@ const dvQuantityToQuantity = {
         'so `accuracy_is_percent` is carried too: an accuracy stated as a percentage takes ' +
         'UCUM `%` as the accuracy quantity\u2019s unit, and an absolute one takes the ' +
         'magnitude\u2019s own unit. Reading the extension back, `accuracy_is_percent` is ' +
-        '`true` exactly when the accuracy quantity\u2019s code is `%`.',
+        '`true` exactly when the accuracy quantity\u2019s code is `%` — **except** where ' +
+        'the magnitude\u2019s own unit is `%`, where the two cases are indistinguishable ' +
+        'and the flag is not carried at all. That sub-case is the next row.',
+    },
+    {
+      id: 'dv-quantity.accuracy-is-percent.percent-unit',
+      scope: 'datatype',
+      openehr: {
+        path: 'DV_QUANTITY.accuracy_is_percent[percent-unit]',
+        cardinality: '0..1',
+        type: 'Boolean',
+        kind: 'element',
+        cite: DV_AMOUNT,
+      },
+      fhir: [
+        {
+          path: 'Quantity.extension[quantity-accuracy][percent-unit]',
+          cardinality: '0..1',
+          type: 'Quantity',
+          kind: 'extension',
+          cite: ext('quantity-accuracy', 'FHIR Extensions — quantity-accuracy'),
+        },
+      ],
+      toFhir: {
+        fidelity: 'unmapped',
+        reason:
+          'The flag is not carried. The `quantity-accuracy` extension\u2019s **only** ' +
+          'discriminator is the unit of the accuracy `Quantity`, and where the ' +
+          'magnitude\u2019s own unit is already `%` that unit is what an absolute accuracy ' +
+          'takes *and* what a relative one takes. The accuracy magnitude is still emitted; ' +
+          'the flag beside it is not.',
+        owner: 'working-group',
+      },
+      toOpenehr: {
+        fidelity: 'unmapped',
+        reason:
+          'Nothing in the instance says whether the accuracy is absolute or relative, so ' +
+          '`accuracy_is_percent` is left **absent** rather than derived. Deriving it would ' +
+          'read \u00b12 percentage points on a 45 % value as \u00b12 % *of* 45 — which is ' +
+          '\u00b10.9, a different number.',
+        owner: 'working-group',
+      },
+      maturity: 'open',
+      note:
+        'A named sub-case of the `DV_QUANTITY.accuracy` row above, in the pattern the ' +
+        'guide already uses for `DV_QUANTITY.magnitude_status[~]` and ' +
+        '`CODE_PHRASE.code_string[whitespace]`. An SpO\u2082 or haematocrit of 45 % with an ' +
+        'absolute accuracy of \u00b12 percentage points is the ordinary clinical shape. ' +
+        'Resolving it needs a discriminator the extension does not have — a second ' +
+        'extension, or a `value[x]` that is not a `Quantity` — so the gap is published ' +
+        'rather than closed by a convention this guide would be inventing.',
     },
     {
       id: 'fhir:quantity.comparator.ad',

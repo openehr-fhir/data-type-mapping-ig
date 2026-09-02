@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import type { Issue, MappingResult } from '../src/result.ts';
+import type { Quantity } from '../src/types/fhir/quantity.ts';
 import { registered } from '../src/convert/index.ts';
 import {
   codeableConceptToDvCodedText,
@@ -13,6 +14,7 @@ import {
 } from '../src/convert/coded.ts';
 import {
   countToDvCount,
+  dvQuantityToQuantity,
   moneyToDvQuantity,
   quantityToDvQuantity,
   rangeToDvInterval,
@@ -372,6 +374,51 @@ test('exception 2: DV_STATE.is_terminal is inferred, and the openEHR-only gap is
     is_terminal: true,
   });
   assert.ok(outbound.issues.some((issue: Issue) => issue.path === 'DV_STATE.is_terminal'));
+});
+
+// ── the `%`-unit accuracy collision ──────────────────────────────────────────
+
+/**
+ * The round-trip matrix cannot see this on its own: a bracketed sub-case path
+ * holds no value to compare, so both halves are asserted directly, as the
+ * mandatory-attribute rule already is.
+ *
+ * `DV_QUANTITY.accuracy_is_percent` is carried as the **unit** of the accuracy
+ * `Quantity` — UCUM `%` when true, the magnitude's own unit when false. Where
+ * the magnitude's own unit is already `%` the two cases produce the identical
+ * instance, so the flag may not be derived back out of it.
+ */
+test('a %-unit accuracy reports the collision outbound and does not invent the flag inbound', () => {
+  const outbound = dvQuantityToQuantity({
+    _type: 'DV_QUANTITY',
+    magnitude: 45,
+    units: '%',
+    accuracy: 2,
+    accuracy_is_percent: false,
+  });
+  assert.equal(outbound.fidelity, 'lossy');
+  assert.deepEqual(
+    outbound.issues.map((issue: Issue) => issue.path),
+    ['DV_QUANTITY.accuracy_is_percent[percent-unit]'],
+  );
+  // The accuracy magnitude itself is still carried.
+  assert.equal(
+    outbound.value?.extension?.[0]?.valueQuantity?.value,
+    2,
+    'the accuracy magnitude is clinically useful and is still emitted',
+  );
+
+  const inbound = quantityToDvQuantity(outbound.value as Quantity);
+  assert.equal(inbound.fidelity, 'lossy');
+  assert.deepEqual(
+    inbound.issues.map((issue: Issue) => issue.path),
+    ['Quantity.extension[quantity-accuracy][percent-unit]'],
+  );
+  assert.equal(inbound.value?.accuracy, 2);
+  assert.ok(
+    inbound.value !== undefined && !('accuracy_is_percent' in inbound.value),
+    'accuracy_is_percent must be absent, not inverted: ±2 percentage points is not ±2 % of 45',
+  );
 });
 
 test('there is no third exception: every other substitution site refuses instead', () => {

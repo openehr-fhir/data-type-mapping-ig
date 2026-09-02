@@ -1,0 +1,4 @@
+{
+  "directions": ["toFhir"],
+  "reason": "A haematocrit of 45 % with an absolute accuracy of ±2 percentage points. The Quantity is produced faithfully, but the flag cannot come back: the quantity-accuracy extension's only discriminator is the unit of the accuracy Quantity, and here that unit is % whichever way the flag reads. accuracy_is_percent is therefore left absent rather than inverted, which is what the dv-quantity.accuracy-is-percent.percent-unit row publishes."
+}

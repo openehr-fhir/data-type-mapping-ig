@@ -76,7 +76,7 @@ regardless of the concrete subtype:
 |-|-|-|-|
 | `magnitude_status` | `DV_QUANTIFIED` | `Quantity.comparator`, or the per-type equivalent | `datatype` |
 | `accuracy` | `DV_AMOUNT` | The `quantity-accuracy` extension, whose `value[x]` is a `Quantity` | `datatype` |
-| `accuracy_is_percent` | `DV_AMOUNT` | The unit of that accuracy `Quantity` — UCUM `%` when true | `datatype` |
+| `accuracy_is_percent` | `DV_AMOUNT` | The unit of that accuracy `Quantity` — UCUM `%` when true, except where the magnitude's own unit is `%` | `datatype` |
 | `normal_range` | `DV_ORDERED` | `Observation.referenceRange` with `type` = `normal` | `archetype` |
 | `other_reference_ranges` | `DV_ORDERED` | `Observation.referenceRange` with `type` ≠ `normal` | `archetype` |
 | `normal_status` | `DV_ORDERED` | `Observation.interpretation` | `archetype` |
@@ -87,12 +87,20 @@ maps to an `Observation` in FHIR, and this guide marks those rows `archetype`
 scope rather than pretending they are data-type mappings.
 
 Two consequences follow. `accuracy` is rarely used in practice, and where it is,
-`accuracy_is_percent` SHALL be `false` for the value to be carried at all —
-the FHIR extension records an absolute maximum deviation, and a percentage has
-no home. And openEHR binds `normal_status` to its own `normal_statuses` code
-system with `required` strength, which is narrower than FHIR's `extensible`
-binding on `Observation.interpretation`; a change request to relax the openEHR
-binding is open.
+`accuracy_is_percent` is carried as the **unit of the accuracy `Quantity`**:
+UCUM `%` when the flag is `true`, and the magnitude's own unit when it is
+`false`. That rule has exactly one blind spot, and it is an ordinary clinical
+one — a magnitude whose *own* unit is already `%`, such as an SpO₂ or a
+haematocrit. Both readings then produce the identical instance, so a conversion
+**SHALL NOT** derive `accuracy_is_percent` from an incoming accuracy on a
+`%`-unit quantity, and **SHALL** leave the flag absent instead: reading ±2
+percentage points as ±2 % *of* 45 gives ±0.9, a different number stated as
+though it were the same one. The accuracy magnitude still carries; the flag
+does not, and the sub-case is published as a gap on
+[Quantities](mapping-quantity.html). And openEHR binds `normal_status` to its
+own `normal_statuses` code system with `required` strength, which is narrower
+than FHIR's `extensible` binding on `Observation.interpretation`; a change
+request to relax the openEHR binding is open.
 
 <a name="iso8601"></a>
 

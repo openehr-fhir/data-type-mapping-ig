@@ -46,6 +46,8 @@ const COMPARATORS = ['<', '<=', '>', '>='];
 /** Drop and unmapped paths, named once so the ledger and the code cannot drift. */
 export const PATH = {
   accuracyIsPercent: 'DV_QUANTITY.accuracy_is_percent',
+  accuracyIsPercentUnit: 'DV_QUANTITY.accuracy_is_percent[percent-unit]',
+  accuracyExtensionPercentUnit: 'Quantity.extension[quantity-accuracy][percent-unit]',
   approximateStatus: 'DV_QUANTITY.magnitude_status[~]',
   comparatorAd: 'Quantity.comparator[ad]',
   countSystem: 'Count.system',
@@ -144,7 +146,20 @@ export function dvQuantityToQuantity(source: DvQuantity): MappingResult<Quantity
   }
 
   if (source.accuracy !== undefined) {
+    // The accuracy **magnitude** round-trips whatever the flag does, so it is
+    // still emitted. What cannot be emitted is the flag: the extension's only
+    // discriminator is the unit of the accuracy `Quantity`, and where the
+    // magnitude's own unit is already `%` that discriminator says nothing.
     extensions.push(accuracyExtension(source));
+    if (source.units === '%') {
+      issues.push({
+        path: PATH.accuracyIsPercentUnit,
+        message:
+          'the magnitude\u2019s own unit is already %, so the accuracy quantity\u2019s unit ' +
+          '— the quantity-accuracy extension\u2019s only discriminator — cannot say whether ' +
+          'the accuracy is absolute or relative; the flag is not carried',
+      });
+    }
   }
 
   let comparator: string | undefined;
@@ -199,6 +214,21 @@ export function quantityToDvQuantity(source: Quantity): MappingResult<DvQuantity
   const accuracyQuantity = extensionValue(source, EXT.quantityAccuracy)?.valueQuantity;
   const accuracy = accuracyQuantity?.value;
 
+  // Where the parent quantity's own unit is `%`, an accuracy in `%` is
+  // ambiguous: it is what an absolute accuracy on a percentage takes *and* what
+  // a relative one takes. Deriving the flag would read ±2 percentage points as
+  // ±2 % of the magnitude, so it is left absent and the loss is reported.
+  const percentUnitAccuracy = accuracy !== undefined && source.code === '%';
+  if (percentUnitAccuracy) {
+    issues.push({
+      path: PATH.accuracyExtensionPercentUnit,
+      message:
+        'the quantity\u2019s own code is % and the accuracy is stated in % too, so nothing ' +
+        'in the instance says whether the accuracy is absolute or relative; ' +
+        'accuracy_is_percent is left absent rather than derived',
+    });
+  }
+
   const value: DvQuantity = compact({
     _type: 'DV_QUANTITY' as const,
     magnitude: source.value,
@@ -211,7 +241,10 @@ export function quantityToDvQuantity(source: Quantity): MappingResult<DvQuantity
         ? source.comparator
         : undefined,
     accuracy,
-    accuracy_is_percent: accuracy === undefined ? undefined : accuracyQuantity?.code === '%',
+    accuracy_is_percent:
+      accuracy === undefined || percentUnitAccuracy
+        ? undefined
+        : accuracyQuantity?.code === '%',
   });
 
   return resultFor(value, issues);
