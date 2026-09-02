@@ -123,8 +123,11 @@ export function splitTerminologyId(
  * rather than silently `lossless`, and the working group has explicitly refused
  * to decide what a missing `terminology_id` should become. `contract.test.ts`
  * pins it, so the exception list cannot grow unnoticed.
+ *
+ * Exported so `test/openehr-vocabulary.test.ts` can excuse this one identifier
+ * by importing it rather than restating the string; a restated literal drifts.
  */
-const UNKNOWN_TERMINOLOGY = 'unknown';
+export const UNKNOWN_TERMINOLOGY = 'unknown';
 
 export function codePhraseToCoding(source: CodePhrase): MappingResult<Coding> {
   // The FHIR `code` type forbids leading, trailing, and repeated internal

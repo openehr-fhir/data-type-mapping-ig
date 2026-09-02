@@ -128,9 +128,13 @@ npm --prefix reference test
 
 With both set, every `spec-local` citation in the ledger is resolved to a real
 **anchor** on a real page in the specification it claims to cite — not merely to
-a file. Without them, that one test skips and the rest of the suite runs
-unchanged, which is why **the publication gate is the form above**, expecting
-zero skipped tests, rather than the bare run.
+a file. The same configuration runs a second check: the openEHR vocabulary
+literals the converters write and the fixtures carry — code-set identifiers,
+`DV_TEXT.formatting` values, and the ISO 8601 lexical forms the guide flags as
+openEHR-accepted — are resolved against the published openEHR specification,
+which needs the openEHR mirror alone. Without the mirrors, those tests skip and
+the rest of the suite runs unchanged, which is why **the publication gate is the
+form above**, expecting zero skipped tests, rather than the bare run.
 
 #### What the tests actually prove
 

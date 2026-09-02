@@ -92,9 +92,17 @@ and re-run `render`. Hand-editing a region is a `render:check` failure.
 
 ## Local specification mirrors
 
+Two test files read the mirrors, and both skip silently without them.
+
 `test/cite-local.test.ts` resolves every `spec-local` citation to a file in a
 local mirror of the two specifications. It runs only when **both** environment
-variables are set, and skips otherwise:
+variables are set.
+
+`test/openehr-vocabulary.test.ts` checks the openEHR vocabulary literals the
+harness writes — code-set identifiers, `DV_TEXT.formatting` values, and the ISO
+8601 lexical forms flagged `openehr: true` — against the published openEHR
+specification. It needs **`OPENEHR_SPEC_DIR` alone**; nothing in it reads the
+FHIR mirror.
 
 ```powershell
 $env:OPENEHR_SPEC_DIR = 'C:\ai\support\openEHR'
@@ -105,11 +113,11 @@ npm --prefix reference test
 Citations are always written as **published URLs**. A machine-local path never
 appears in a citation.
 
-The check resolves each `spec-local` citation to a real **anchor** on the page
-it names, not merely to the file, so a citation that points at a heading which
-does not exist fails. Because it **skips silently** when the roots are unset,
-the bare `npm --prefix reference test` is not the publication gate: a release
-run uses the form above and expects **0 skipped**.
+The citation check resolves each `spec-local` citation to a real **anchor** on
+the page it names, not merely to the file, so a citation that points at a
+heading which does not exist fails. Because both files **skip silently** when
+the roots are unset, the bare `npm --prefix reference test` is not the
+publication gate: a release run uses the form above and expects **0 skipped**.
 
 ## What the tests prove
 

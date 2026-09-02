@@ -418,7 +418,37 @@ otherwise.
   does not define and therefore cannot anchor — is written down as data with a
   reason, on its own citation, rather than as a silent skip in a test.
 
+*Review remediation, third pass*
+
+Corrections made in response to a third review of the same release. Everything
+in this group is **Compatible, Substantive** unless the group it sits under says
+otherwise.
+- **openEHR vocabulary literals are now checked against openEHR.** Three of the
+  four Blockers in the third review were openEHR facts asserted *outside* the
+  ledger — a code-set identifier in a converter, a `formatting` value in the
+  type model, an ISO 8601 lexical form in a shared helper — where none of the
+  guide's citation or fidelity gates could reach them. Every such literal the
+  reference implementation writes or a fixture carries is now resolved against
+  the published openEHR specification: code-set identifiers against the *Support
+  Terminology* specification, `DV_TEXT.formatting` values against the Reference
+  Model section that enumerates them, and every lexical form the guide flags as
+  openEHR-accepted against a transcription of `valid_iso8601_date`,
+  `valid_iso8601_time` and `valid_iso8601_date_time` whose own licensing
+  sentences are asserted present in the specification. Each inventory is
+  **derived** — from the source tree, from the fixture tree, and from the tables
+  themselves — so a literal added tomorrow is checked without anyone maintaining
+  a list. The check runs when the openEHR specification mirror is configured,
+  and is part of the publication gate.
+
 **Compatible, Non-Substantive**
+
+*Review remediation, third pass*
+
+- **The reference implementation says which tests need the mirrors.** Both
+  `reference/README.md` and `reference-implementation.html` described citation
+  resolution as the single mirror-gated check. A second one now exists, and it
+  needs the openEHR mirror alone. No verdict, no conformance verb, and no
+  mapping changed.
 
 *Review remediation, second pass*
 
