@@ -359,6 +359,24 @@ otherwise.
   FHIR-sourced `Duration.value[ms]` row of its own, the conversion reports the
   rescale as a second named drop, and a millisecond fixture pair puts it under
   the round-trip matrix — it passed before only because no `ms` pair existed.
+- **Three published worked examples were asserted by a comparison that held
+  nothing.** `DV_TIME`'s inbound drop was declared as `time.value` — the whole
+  value — when what is actually lost is only sub-second precision beyond three
+  digits, so the pairing gate deleted the one field from both sides and compared
+  `{}` against `{}`. The drop path is narrowed to
+  `time.value[fractional-seconds]`, and the gate now **fails** a comparison that
+  empties both sides rather than passing it. The two `DV_TIME` pairs that are
+  genuinely one-directional — an offset the FHIR value cannot carry, and a
+  minute-precision completion that is not reversible — say so, which the vacuous
+  comparison had been hiding.
+- **The pairing coverage floor is a budget, and every pair is inside it.** One
+  asserted direction out of a hundred and twenty-two satisfied the old check.
+  Two assertions replace it: **every** fixture pair is asserted in at least one
+  direction unless its marker claims none, and at least seven tenths of all
+  pair-directions are asserted, with the measured ratio and both counts in the
+  failure message. A pair that claims no direction must now name the test that
+  pins the behaviour instead, so "asserted only to differ" is no longer the end
+  of the story.
 
 **Compatible, Non-Substantive**
 

@@ -30,7 +30,7 @@ import {
 
 /** Drop and unmapped paths, named once so the ledger and the code cannot drift. */
 export const TEMPORAL_PATH = {
-  timeValue: 'time.value',
+  timeValue: 'time.value[fractional-seconds]',
   temporalAccuracy: 'DV_DATE_TIME.accuracy',
   durationValue: 'DV_DURATION.value',
   durationCode: 'Duration.code',

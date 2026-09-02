@@ -1,0 +1,4 @@
+{
+  "directions": ["toFhir"],
+  "reason": "The openEHR side is stated to the minute and FHIR time requires seconds, so 14:30 is completed to 14:30:00. The completion is not reversible: nothing in the FHIR value records that the source stopped at minutes, so reading it back gives 14:30:00, not 14:30. The dv-time.value.minute-precision row declares the drop."
+}

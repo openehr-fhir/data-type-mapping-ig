@@ -136,7 +136,7 @@ const dvTimeToTime = {
         fidelity: 'lossy',
         drops: [
           {
-            path: 'time.value',
+            path: 'time.value[fractional-seconds]',
             reason:
               'FHIR permits up to **nine** fractional-second digits and openEHR restricts ' +
               'to **three**, so anything finer than a millisecond is truncated',
@@ -147,7 +147,9 @@ const dvTimeToTime = {
       note:
         'FHIR `time` also requires seconds, so an openEHR `14:30` is completed to ' +
         '`14:30:00`. That sub-case is a **named drop** in its own right and is stated on ' +
-        'the row below, not folded into this one.',
+        'the row below, not folded into this one. What this row drops inbound is **only ' +
+        'the sub-second precision beyond three digits**, not the value: the time of day ' +
+        'itself carries in both directions.',
     },
     {
       id: 'dv-time.value.minute-precision',

@@ -38,6 +38,12 @@ const FIXTURES = fileURLToPath(new URL('../fixtures/', import.meta.url));
 interface Pairing {
   readonly directions: readonly Direction[];
   readonly reason: string;
+  /**
+   * The test that pins the behaviour instead, required when `directions` is
+   * empty. A pair no direction asserts is otherwise asserted only to *differ*,
+   * which pins nothing about **what** differs.
+   */
+  readonly covered_by?: string;
 }
 
 const BOTH: readonly Direction[] = ['toFhir', 'toOpenehr'];
@@ -146,9 +152,30 @@ function comparable(value: unknown, dropped: readonly string[]): unknown {
   return copy;
 }
 
+/**
+ * True when a comparison has had everything but the `_type` discriminator
+ * deleted, so asserting it says nothing at all.
+ *
+ * This is the failure mode a per-direction drop set makes possible: declare a
+ * **whole value** as dropped — `time.value` rather than
+ * `time.value[fractional-seconds]` — and `comparable()` empties both sides.
+ * The assertion still passes, and it compares nothing.
+ */
+function vacuous(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  const keys = Object.keys(value);
+  return keys.length === 0 || (keys.length === 1 && keys[0] === '_type');
+}
+
 // ── the gate ─────────────────────────────────────────────────────────────────
 
 let asserted = 0;
+
+/** Every `<mapping>/<stem>` the gate sees, and how many directions it asserts. */
+const assertedByPair = new Map<string, number>();
+
+/** The pairs whose marker claims no direction at all, and the marker itself. */
+const noDirectionPairs = new Map<string, Pairing>();
 
 for (const mapping of testableMappings()) {
   const dropped: Readonly<Record<Direction, readonly string[]>> = {
@@ -159,6 +186,9 @@ for (const mapping of testableMappings()) {
   for (const stem of fixturePairs(mapping.id)) {
     const pairing = readPairing(mapping.id, stem);
     const claimed = pairing?.directions ?? BOTH;
+    const label = `${mapping.id}/${stem}`;
+    assertedByPair.set(label, 0);
+    if (pairing !== undefined && claimed.length === 0) noDirectionPairs.set(label, pairing);
 
     test(`${mapping.id}/${stem}: the two files are a pair`, () => {
       if (pairing !== undefined) {
@@ -190,6 +220,13 @@ for (const mapping of testableMappings()) {
         const equal = JSON.stringify(left) === JSON.stringify(right);
 
         if (claimed.includes(direction)) {
+          assert.ok(
+            !(vacuous(left) && vacuous(right)),
+            `${mapping.id}/${stem} ${direction}: the declared drops empty both sides, so ` +
+              'this assertion compares nothing. Narrow the drop path to the sub-case that ' +
+              'is actually lost, or drop the claim and assert the lexical rule in ' +
+              'iso8601.test.ts instead',
+          );
           assert.deepEqual(
             left,
             right,
@@ -197,6 +234,7 @@ for (const mapping of testableMappings()) {
               'partner, modulo the drops the ledger declares',
           );
           asserted += 1;
+          assertedByPair.set(label, (assertedByPair.get(label) ?? 0) + 1);
         } else {
           assert.ok(
             !equal,
@@ -210,14 +248,63 @@ for (const mapping of testableMappings()) {
   }
 }
 
-test('the pairing gate covers every fixture pair', () => {
+test('every fixture pair is asserted in at least one direction', () => {
+  // A single global ratio is satisfiable by neglect: it says nothing about any
+  // individual pair. The only pairs exempt are those whose marker claims **no**
+  // direction, and the next test makes those name where they are pinned instead.
+  const unasserted = [...assertedByPair.entries()]
+    .filter(([label, count]) => count === 0 && !noDirectionPairs.has(label))
+    .map(([label]) => label)
+    .sort();
+  assert.deepEqual(
+    unasserted,
+    [],
+    'these published pairs assert nothing in either direction; either the converter ' +
+      `produces one side from the other, or the marker must say it does not: ${unasserted.join(', ')}`,
+  );
+});
+
+test('a pair no direction asserts names the test that covers it', () => {
+  const problems: string[] = [];
+  for (const [label, pairing] of noDirectionPairs) {
+    const covered = pairing.covered_by;
+    if (typeof covered !== 'string' || covered.trim() === '') {
+      problems.push(`${label}: no 'covered_by'`);
+      continue;
+    }
+    if (!covered.startsWith('test/')) {
+      problems.push(`${label}: 'covered_by' must name a path under reference/test/, got '${covered}'`);
+      continue;
+    }
+    const path = fileURLToPath(new URL(`../${covered}`, import.meta.url));
+    if (!existsSync(path)) problems.push(`${label}: 'covered_by' names '${covered}', which does not exist`);
+  }
+  assert.deepEqual(
+    problems,
+    [],
+    'a pair asserted only to *differ* pins nothing about what differs, so it must say ' +
+      `where the behaviour is pinned instead:\n${problems.join('\n')}`,
+  );
+});
+
+test('the pairing gate asserts at least seven tenths of every pair-direction', () => {
   const pairs = testableMappings().reduce(
     (total, mapping) => total + fixturePairs(mapping.id).length,
     0,
   );
   assert.ok(pairs > 0, 'no fixture pairs — the gate is inert');
+
+  // A budget, not a target. Every one-directional marker spends from it, so a
+  // reviewer can see how much headroom is left before the harness stops saying
+  // much. Seven tenths rather than three quarters because the honest
+  // one-directional facts this guide publishes land the real ratio close to it,
+  // and a budget a correct change trips is a budget that gets lowered.
+  const directions = pairs * 2;
+  const ratio = asserted / directions;
   assert.ok(
-    asserted > 0,
-    'no direction was asserted — every pair cannot be one-directional',
+    ratio >= 0.7,
+    `only ${asserted} of ${directions} pair-directions are asserted (${ratio.toFixed(3)}), ` +
+      `across ${pairs} pairs and ${noDirectionPairs.size} pairs claiming no direction; ` +
+      'the floor is 0.7',
   );
 });

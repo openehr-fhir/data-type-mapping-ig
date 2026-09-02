@@ -1,0 +1,4 @@
+{
+  "directions": ["toFhir"],
+  "reason": "The openEHR side carries a +01:00 offset and FHIR time has no home for one — the timezone extension is a code required-bound to IANA zone names, which an offset is not. The time of day is produced faithfully; reading the FHIR value back gives a DV_TIME with no offset, so the inbound direction is not a pair. The dv-time.timezone row declares the drop."
+}
