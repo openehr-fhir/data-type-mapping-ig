@@ -551,3 +551,186 @@ test('the type model makes the ledger invariants compile errors', () => {
     ].length === 7,
   );
 });
+
+
+// ── inherited attributes: one class, one behaviour, everywhere it is inherited ─
+
+/**
+ * An openEHR attribute inherited from an ancestor class behaves the same way in
+ * every heir, so every heir has to **state** it, and state it the same way.
+ *
+ * `H18` survived two remediations because both fixed named sites. `2a6770a`
+ * retargeted six `magnitude_status` citations and left the verdict; `a699db5`
+ * split `normal_status` out for `DV_ORDINAL` and `DV_SCALE` on exactly the
+ * ground that a folded note "asserted that `normal_status` follows the
+ * `DV_QUANTITY` pattern while carrying a verdict that pattern does not have" —
+ * and did not visit `DV_COUNT`, which still did. These three assertions gate the
+ * **class** of defect instead: they are derived from the ledger, so they find
+ * the sites rather than being told them.
+ *
+ * A row carries an inherited attribute when the class prefix of its openEHR path
+ * differs from the class its own citation names. The citation is the authority,
+ * because `a699db5`'s companion rule already forces every row naming one
+ * attribute to cite the class that declares it.
+ *
+ * **One refinement, and it is a correctness fix rather than an exception.** Some
+ * rows cite the class of the attribute's *type* — `DV_TEXT.language` is a
+ * `CODE_PHRASE` and cites `#_code_phrase_class` — and a type is not an ancestor.
+ * Those rows are excluded by comparing the cited class with the row's own
+ * declared `type`, which is data the row already carries. No list is written
+ * down anywhere in this gate.
+ */
+
+const CLASS_ANCHOR = /#_(.+)_class(?:$|\?|#)/;
+
+/** The class an endpoint's citation names, when it names one. */
+function citedClass(endpoint: Endpoint): string | undefined {
+  const match = CLASS_ANCHOR.exec(endpoint.cite.url);
+  return match?.[1] === undefined ? undefined : match[1].toUpperCase();
+}
+
+/** One row that states an attribute inherited from an ancestor class. */
+interface InheritedRow {
+  readonly mapping: string;
+  readonly row: Row;
+  /** The class that declares the attribute. */
+  readonly declaringClass: string;
+  /** The attribute leaf this row states. */
+  readonly leaf: string;
+  /** Every leaf this row covers: its own, plus the siblings it declares. */
+  readonly covers: readonly string[];
+}
+
+function inheritedRows(): readonly InheritedRow[] {
+  const out: InheritedRow[] = [];
+  for (const mapping of ledger()) {
+    for (const row of mapping.rows) {
+      if (isNoCounterpart(row.openehr)) continue;
+      const endpoint = row.openehr;
+      const dot = endpoint.path.indexOf('.');
+      if (dot < 0) continue;
+      const pathClass = endpoint.path.slice(0, dot);
+      const leaf = endpoint.path.slice(dot + 1);
+      // A bracketed sub-case names a value class of an attribute, not an
+      // attribute; its parent row is the one that states the attribute.
+      if (leaf === '' || /[[\]]/.test(leaf)) continue;
+      const declaringClass = citedClass(endpoint);
+      if (declaringClass === undefined || declaringClass === pathClass) continue;
+      // The citation names the attribute's own type, not a declaring ancestor.
+      if (endpoint.type !== undefined && endpoint.type.toUpperCase() === declaringClass) continue;
+      out.push({
+        mapping: mapping.id,
+        row,
+        declaringClass,
+        leaf,
+        covers: [leaf, ...(endpoint.alsoCovers ?? [])],
+      });
+    }
+  }
+  return out;
+}
+
+/** Every leaf any row states for a declaring class. */
+function declaredLeaves(rows: readonly InheritedRow[]): ReadonlySet<string> {
+  const leaves = new Set<string>();
+  for (const entry of rows) for (const leaf of entry.covers) leaves.add(leaf);
+  return leaves;
+}
+
+function byDeclaringClass(): ReadonlyMap<string, readonly InheritedRow[]> {
+  const grouped = new Map<string, InheritedRow[]>();
+  for (const entry of inheritedRows()) {
+    grouped.set(entry.declaringClass, [...(grouped.get(entry.declaringClass) ?? []), entry]);
+  }
+  return grouped;
+}
+
+test('every heir of a class states every attribute that class declares', () => {
+  const problems: string[] = [];
+  for (const [declaringClass, rows] of byDeclaringClass()) {
+    const declared = declaredLeaves(rows);
+    const mappings = new Set(rows.map((entry) => entry.mapping));
+    for (const mapping of mappings) {
+      const covered = new Set(
+        rows.filter((entry) => entry.mapping === mapping).flatMap((entry) => entry.covers),
+      );
+      for (const leaf of declared) {
+        if (covered.has(leaf)) continue;
+        problems.push(
+          `${mapping}: states some of ${declaringClass} but not ${declaringClass}.${leaf}`,
+        );
+      }
+    }
+  }
+  assert.ok(byDeclaringClass().size > 0, 'no inherited attribute was found — the gate is inert');
+  assert.deepEqual(
+    problems.sort(),
+    [],
+    'an inherited attribute either has a row of its own or is declared covered by a ' +
+      `sibling endpoint's alsoCovers:\n${problems.sort().join('\n')}`,
+  );
+});
+
+test('one inherited attribute carries one verdict pair, or says why it does not', () => {
+  const problems: string[] = [];
+  for (const [declaringClass, rows] of byDeclaringClass()) {
+    for (const leaf of declaredLeaves(rows)) {
+      const covering = rows.filter((entry) => entry.covers.includes(leaf));
+      const pairs = new Map<string, string[]>();
+      for (const entry of covering) {
+        if (entry.row.divergence !== undefined) continue;
+        const key = `${entry.row.toFhir.fidelity}/${entry.row.toOpenehr.fidelity}`;
+        pairs.set(key, [...(pairs.get(key) ?? []), `${entry.mapping}/${entry.row.id}`]);
+      }
+      if (pairs.size <= 1) continue;
+      const detail = [...pairs.entries()]
+        .map(([pair, ids]) => `    ${pair} — ${ids.join(', ')}`)
+        .join('\n');
+      problems.push(`  ${declaringClass}.${leaf} carries ${pairs.size} verdict pairs:\n${detail}`);
+    }
+  }
+  assert.deepEqual(
+    problems,
+    [],
+    'an inherited attribute behaves the same way in every heir; a row that genuinely ' +
+      `diverges records a reason in 'divergence':\n${problems.join('\n')}`,
+  );
+});
+
+test('a divergence reason is a reason, not an empty field', () => {
+  const silent = ledger()
+    .flatMap((mapping) => mapping.rows.map((row) => ({ mapping: mapping.id, row })))
+    .filter(({ row }) => row.divergence !== undefined && row.divergence.trim() === '')
+    .map(({ mapping, row }) => `${mapping}/${row.id}`);
+  assert.deepEqual(silent, [], `divergence with no reason: ${silent.join(', ')}`);
+});
+
+test('a row does not name an inherited attribute its own mapping leaves uncovered', () => {
+  const problems: string[] = [];
+  for (const [declaringClass, rows] of byDeclaringClass()) {
+    const declared = declaredLeaves(rows);
+    for (const entry of rows) {
+      const note = entry.row.note;
+      if (note === undefined) continue;
+      const covered = new Set(
+        rows.filter((other) => other.mapping === entry.mapping).flatMap((other) => other.covers),
+      );
+      for (const leaf of declared) {
+        if (covered.has(leaf)) continue;
+        // A membership test over the ledger's own leaves, with word boundaries
+        // so a leaf cannot match inside a longer identifier.
+        if (!new RegExp(`\\b${leaf}\\b`).test(note)) continue;
+        problems.push(
+          `${entry.mapping}/${entry.row.id}: the note names ${declaringClass}.${leaf}, ` +
+            'which this mapping does not cover',
+        );
+      }
+    }
+  }
+  assert.deepEqual(
+    problems.sort(),
+    [],
+    'a coverage claim that lives only in prose is a claim nothing checks:\n' +
+      problems.sort().join('\n'),
+  );
+});

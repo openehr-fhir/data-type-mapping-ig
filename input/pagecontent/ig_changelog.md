@@ -510,6 +510,22 @@ otherwise.
   `SHALL NOT` above it is unchanged — the behaviour was made to obey the verb
   rather than the verb softened. The list and the substituting sites in code are
   now asserted to be the **same set**, so neither can grow without the other.
+- **Every `DV_ORDERED` heir states `normal_status`, and the rule is checked
+  rather than remembered.** `DV_COUNT`'s inherited-attribute row was
+  `lossless`/`lossless` while its note asserted that `normal_status` "follows
+  the same pattern as `DV_QUANTITY`" — a pattern that is `lossless` outbound and
+  **`lossy`** inbound, because openEHR's `required` binding to `normal_statuses`
+  is narrower than FHIR's `extensible` binding on `Observation.interpretation`.
+  It is the last of four types to be corrected, and it is corrected the same
+  way: `normal_status` is a row of its own, carrying that drop, its own
+  `Observation.interpretation` citation, and the `open` maturity the three
+  siblings already carry. Two further claims that lived only in prose are now
+  data: a reference-range row **declares** the sibling attribute it also covers,
+  and a row whose verdicts genuinely differ from its siblings' **records why**.
+  Three checks derived from the ledger enforce the class of rule rather than the
+  four sites: every heir of a class states every attribute the class declares;
+  one inherited attribute carries one verdict pair unless a reason is recorded;
+  and no row names in prose an attribute its own mapping leaves uncovered.
 
 **Compatible, Non-Substantive**
 

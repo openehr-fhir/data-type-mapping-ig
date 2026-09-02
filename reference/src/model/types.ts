@@ -133,6 +133,19 @@ export interface Endpoint {
   readonly kind: 'element' | 'extension' | 'resource-element';
   /** The scenario in which *this* endpoint is the target, when there are several. */
   readonly when?: string;
+  /**
+   * The **sibling attribute leaves this one endpoint genuinely covers**, under
+   * the same verdict.
+   *
+   * `DV_ORDERED.normal_range` and `DV_ORDERED.other_reference_ranges` share one
+   * `Observation.referenceRange` home and one verdict, so one row states both.
+   * Until this field existed that was said only in prose, and prose is not
+   * something `ledger.test.ts`'s inherited-attribute gate can read: a row that
+   * *claimed* to cover a sibling and a row that silently omitted it were
+   * indistinguishable. Naming the coverage as data is what makes "every heir of
+   * a class states every attribute the class declares" checkable.
+   */
+  readonly alsoCovers?: readonly string[];
   readonly cite: Cite;
 }
 
@@ -172,6 +185,21 @@ export interface Row {
   readonly delegates?: readonly string[];
   readonly toFhir: Verdict;
   readonly toOpenehr: Verdict;
+  /**
+   * Why this row's verdicts differ from those of its siblings — the other rows
+   * mapping the **same inherited attribute** of the same declaring class.
+   *
+   * An inherited attribute normally behaves the same way wherever it is
+   * inherited, so `ledger.test.ts` requires the `(toFhir, toOpenehr)` pair to be
+   * identical across every row covering one `(class, attribute)`. A genuine
+   * divergence exists — `SimpleQuantity` forbids `comparator`, so
+   * `magnitude_status` has nothing to carry there — and it is recorded **here**,
+   * as a required reason, so the check accepts it on the record rather than by
+   * silence. That is the whole point: an omission and a decision looked the same
+   * before this field existed, which is how one type kept a verdict its siblings
+   * had already corrected across three review passes.
+   */
+  readonly divergence?: string;
   readonly maturity: Maturity;
   readonly note?: string;
 }
