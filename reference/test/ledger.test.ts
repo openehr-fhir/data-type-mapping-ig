@@ -9,6 +9,8 @@ import type {
   Row,
   Verdict,
 } from '../src/model/types.ts';
+import { isNoCounterpart } from '../src/model/types.ts';
+import { ledger } from '../src/model/load.ts';
 import { FHIR_NO_COUNTERPART_ID, validateLedger } from '../src/model/validate.ts';
 
 /**
@@ -391,6 +393,62 @@ test('a non-https citation is rejected', () => {
       }),
     ],
     'must be https',
+  );
+});
+
+// ── One attribute, one declaring class ───────────────────────────────────────
+
+/**
+ * An openEHR attribute is declared on exactly **one** class, so every row that
+ * names the same attribute has to cite the same one.
+ *
+ * The key is the **full** openEHR endpoint path with any `[qualifier]`
+ * stripped, so `DV_QUANTITY.magnitude_status[~]` and
+ * `DV_QUANTITY.magnitude_status` collapse to one key. It is deliberately *not*
+ * the bare attribute suffix: measured over this ledger, twelve suffixes collide
+ * and eleven of those collisions are legitimate — `value` alone has sixteen
+ * distinct declaring classes — so a suffix-keyed rule would need a large
+ * exception map and would stop being a gate. Keyed on the full path it needs no
+ * exception map at all, which is the property that makes it worth having.
+ *
+ * Scoped to `data_types.html` citations: an attribute cited to another
+ * specification page is naming a different kind of fact.
+ */
+const RM_DATA_TYPES_PAGE =
+  'https://specifications.openehr.org/releases/RM/latest/data_types.html';
+
+test('an openEHR attribute is cited to one declaring class, everywhere it appears', () => {
+  const byPath = new Map<string, Map<string, string[]>>();
+
+  for (const entry of ledger()) {
+    for (const row of entry.rows) {
+      if (isNoCounterpart(row.openehr)) continue;
+      const { url } = row.openehr.cite;
+      if (!url.startsWith(RM_DATA_TYPES_PAGE)) continue;
+
+      const key = row.openehr.path.replace(/\[[^\]]*\]/g, '');
+      const anchor = url.slice(RM_DATA_TYPES_PAGE.length) || '(no fragment)';
+      const anchors = byPath.get(key) ?? new Map<string, string[]>();
+      anchors.set(anchor, [...(anchors.get(anchor) ?? []), `${entry.id}/${row.id}`]);
+      byPath.set(key, anchors);
+    }
+  }
+
+  const collisions: string[] = [];
+  for (const [path, anchors] of byPath) {
+    if (anchors.size <= 1) continue;
+    const detail = [...anchors.entries()]
+      .map(([anchor, rows]) => `    ${anchor} — ${rows.join(', ')}`)
+      .join('\n');
+    collisions.push(`  ${path} is cited to ${anchors.size} different classes:\n${detail}`);
+  }
+
+  assert.ok(byPath.size > 0, 'no openEHR endpoint was inspected — the gate is inert');
+  assert.deepEqual(
+    collisions,
+    [],
+    'every row naming the same openEHR attribute must cite the class that declares ' +
+      `it:\n${collisions.join('\n')}`,
   );
 });
 

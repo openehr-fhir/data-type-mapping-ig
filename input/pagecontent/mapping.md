@@ -37,8 +37,8 @@ pages are the normative statement.
 | [DV_INTERVAL<T>](mapping-quantity.html) | `Range \| Period \| Quantity` | `lossy` | `lossy` | `settled` | `datatype` |
 | [DV_QUANTITY](mapping-quantity.html) | `Money` | `lossy` | `lossy` | `open` | `datatype` |
 | [DV_QUANTITY](mapping-quantity.html) | `SimpleQuantity` | `lossy` | `lossy` | `settled` | `datatype` |
-| [DV_ORDINAL](mapping-quantity.html) | `Observation.component` | `lossless` | `lossless` | `settled` | `archetype` |
-| [DV_SCALE](mapping-quantity.html) | `Observation.component` | `lossless` | `lossless` | `settled` | `archetype` |
+| [DV_ORDINAL](mapping-quantity.html) | `Observation.component` | `lossless` | `lossy` | `open` | `archetype` |
+| [DV_SCALE](mapping-quantity.html) | `Observation.component` | `lossless` | `lossy` | `open` | `archetype` |
 | [CODE_PHRASE](mapping-coded.html) | `Coding` | `lossy` | `lossy` | `open` | `datatype` |
 | [DV_CODED_TEXT](mapping-coded.html) | `CodeableConcept \| Coding` | `lossy` | `lossy` | `open` | `datatype` |
 | [TERM_MAPPING](mapping-coded.html) | `CodeableConcept.coding` | `lossy` | `lossy` | `open` | `datatype` |

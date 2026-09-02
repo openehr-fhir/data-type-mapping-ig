@@ -388,6 +388,24 @@ otherwise.
   with a fixture that emits every path it declares. The same rule is tightened
   in the other direction at the same time: containment is segment-aware, so
   `Coding.versionable` no longer passes as a descendant of `Coding.version`.
+- **`magnitude_status` is cited to the class that declares it, everywhere.**
+  Four rows still pointed at `#_dv_quantity_class`; RM § 6.2.8 lists
+  `DV_QUANTITY`'s declared attributes as `magnitude`, `precision`, `units`,
+  `units_system` and `units_display_name`, and `magnitude_status` is declared on
+  § 6.2.6 `DV_QUANTIFIED`. Correcting the four instances is not the fix — the
+  property is now machine-checked: every row naming the same openEHR attribute
+  must cite the same declaring class, keyed on the full attribute path so the
+  rule needs no exception list.
+- **`DV_ORDINAL` and `DV_SCALE` publish the `normal_status` consequence they
+  claimed.** Both types' inherited-attribute rows asserted that `normal_status`
+  "follows the same pattern as `DV_QUANTITY`" while carrying a verdict that
+  pattern does not have: `DV_QUANTITY.normal_status` is `lossless` outbound and
+  **`lossy`** inbound, because openEHR's `required` binding to `normal_statuses`
+  is narrower than FHIR's `extensible` binding on `Observation.interpretation`.
+  `normal_status` is now a row of its own for each type, carrying that drop, and
+  both published aggregates change accordingly. `normal_range` and
+  `other_reference_ranges` stay folded together: they share one FHIR home and
+  one verdict.
 
 **Compatible, Non-Substantive**
 

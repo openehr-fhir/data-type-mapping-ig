@@ -248,7 +248,7 @@ const dvQuantityToQuantity = {
         cardinality: '0..1',
         type: 'String',
         kind: 'element',
-        cite: DV_QUANTITY,
+        cite: DV_QUANTIFIED,
       },
       fhir: {
         kind: 'none',
@@ -1211,7 +1211,7 @@ const dvQuantityToSimpleQuantity = {
         cardinality: '0..1',
         type: 'String',
         kind: 'element',
-        cite: DV_QUANTITY,
+        cite: DV_QUANTIFIED,
       },
       fhir: {
         kind: 'none',
@@ -1343,13 +1343,51 @@ const dvOrdinalToObservationComponent = {
       toOpenehr: { fidelity: 'lossless' },
       maturity: 'settled',
       note:
-        '`archetype` scope. `DV_ORDINAL` inherits `normal_range`, ' +
-        '`other_reference_ranges`, and `normal_status` from `DV_ORDERED` like every other ' +
-        'ordered value, and they follow the same pattern as `DV_QUANTITY`: the ranges ' +
-        'become `Observation.referenceRange` entries and `normal_status` becomes ' +
-        '`Observation.interpretation`. Without this row the aggregate would read ' +
-        '`lossless` while a `DV_ORDINAL` carrying a `normal_range` had nowhere stated to ' +
-        'put it.',
+        '`archetype` scope. `DV_ORDINAL` inherits `normal_range` and ' +
+        '`other_reference_ranges` from `DV_ORDERED` like every other ordered value, and ' +
+        'both share one `Observation.referenceRange` home and one verdict, which is why ' +
+        'they are stated together here. `normal_status` is **not** folded in with them: ' +
+        'its FHIR home and its verdict are different, and it has a row of its own below. ' +
+        'Without this row the aggregate would read `lossless` while a `DV_ORDINAL` ' +
+        'carrying a `normal_range` had nowhere stated to put it.',
+    },
+    {
+      id: 'dv-ordinal.normal_status',
+      scope: 'archetype',
+      openehr: {
+        path: 'DV_ORDINAL.normal_status',
+        cardinality: '0..1',
+        type: 'CODE_PHRASE',
+        kind: 'element',
+        cite: DV_ORDERED,
+      },
+      fhir: [
+        {
+          path: 'Observation.interpretation',
+          cardinality: '0..*',
+          kind: 'resource-element',
+          cite: obs('Observation.interpretation', 'FHIR R5 — Observation.interpretation'),
+        },
+      ],
+      toFhir: { fidelity: 'lossless' },
+      toOpenehr: {
+        fidelity: 'lossy',
+        drops: [
+          {
+            path: 'Observation.interpretation',
+            reason:
+              'openEHR binds `normal_status` to its `normal_statuses` code system with ' +
+              '`required` strength, so an interpretation coded outside that set cannot be ' +
+              'carried; a change request to relax the binding to `extensible` is open',
+          },
+        ],
+      },
+      maturity: 'open',
+      note:
+        '`archetype` scope. Inherited from `DV_ORDERED` — § 6.2.1 is where `normal_status` ' +
+        'is declared — and it follows the `DV_QUANTITY` pattern **including that ' +
+        'pattern\u2019s inbound loss**, which is why it is a row of its own rather than a ' +
+        'sentence on the reference-range row.',
     },
   ],
 } satisfies Mapping;
@@ -1441,13 +1479,51 @@ const dvScaleToObservationComponent = {
       toOpenehr: { fidelity: 'lossless' },
       maturity: 'settled',
       note:
-        '`archetype` scope. `DV_SCALE` inherits `normal_range`, `other_reference_ranges`, ' +
-        'and `normal_status` from `DV_ORDERED` like every other ordered value, and they ' +
-        'follow the same pattern as `DV_QUANTITY`: the ranges become ' +
-        '`Observation.referenceRange` entries and `normal_status` becomes ' +
-        '`Observation.interpretation`. Without this row the aggregate would read ' +
-        '`lossless` while a `DV_SCALE` carrying a `normal_range` had nowhere stated to ' +
-        'put it.',
+        '`archetype` scope. `DV_SCALE` inherits `normal_range` and ' +
+        '`other_reference_ranges` from `DV_ORDERED` like every other ordered value, and ' +
+        'both share one `Observation.referenceRange` home and one verdict, which is why ' +
+        'they are stated together here. `normal_status` is **not** folded in with them: ' +
+        'its FHIR home and its verdict are different, and it has a row of its own below. ' +
+        'Without this row the aggregate would read `lossless` while a `DV_SCALE` carrying ' +
+        'a `normal_range` had nowhere stated to put it.',
+    },
+    {
+      id: 'dv-scale.normal_status',
+      scope: 'archetype',
+      openehr: {
+        path: 'DV_SCALE.normal_status',
+        cardinality: '0..1',
+        type: 'CODE_PHRASE',
+        kind: 'element',
+        cite: DV_ORDERED,
+      },
+      fhir: [
+        {
+          path: 'Observation.interpretation',
+          cardinality: '0..*',
+          kind: 'resource-element',
+          cite: obs('Observation.interpretation', 'FHIR R5 — Observation.interpretation'),
+        },
+      ],
+      toFhir: { fidelity: 'lossless' },
+      toOpenehr: {
+        fidelity: 'lossy',
+        drops: [
+          {
+            path: 'Observation.interpretation',
+            reason:
+              'openEHR binds `normal_status` to its `normal_statuses` code system with ' +
+              '`required` strength, so an interpretation coded outside that set cannot be ' +
+              'carried; a change request to relax the binding to `extensible` is open',
+          },
+        ],
+      },
+      maturity: 'open',
+      note:
+        '`archetype` scope. Inherited from `DV_ORDERED` — § 6.2.1 is where `normal_status` ' +
+        'is declared — and it follows the `DV_QUANTITY` pattern **including that ' +
+        'pattern\u2019s inbound loss**, which is why it is a row of its own rather than a ' +
+        'sentence on the reference-range row.',
     },
   ],
 } satisfies Mapping;
