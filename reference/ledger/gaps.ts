@@ -54,6 +54,26 @@ const RM_INVENTORY: Cite = {
   verification: 'spec-local',
 };
 
+/**
+ * RM § 5.1.7, where the `DV_TEXT.formatting` enumeration is published **and**
+ * HTML is rejected as a formatting approach on the record.
+ *
+ * A gap the Reference Model states a position on cites that position, not the
+ * inventory page: the inventory is what a type openEHR simply does not have can
+ * cite, and this one openEHR has considered and declined.
+ */
+const RM_TEXT_FORMATTING: Cite = {
+  url: `${RM}#_formatting_and_hyperlinking`,
+  label: 'openEHR RM — § 5.1.7 Formatting and Hyperlinking',
+  verification: 'spec-local',
+};
+
+const EXT_PACK = 'https://hl7.org/fhir/extensions/StructureDefinition';
+
+function ext(name: string, label: string): Cite {
+  return { url: `${EXT_PACK}-${name}.html`, label, verification: 'extension-unverified' };
+}
+
 function r5(anchor: string, label: string): Cite {
   return { url: `${R5}#${anchor}`, label, verification: 'spec-local' };
 }
@@ -77,6 +97,22 @@ interface NoCounterpartEntry {
    * cited instead of an anchor that does not exist.
    */
   readonly cite?: Cite;
+  /**
+   * The FHIR path, when it is not the bare type name. An **extension** is a
+   * feature rather than a type, and names the element it sits on.
+   */
+  readonly path?: string;
+  /** `extension` for an extension entry; `element` otherwise. */
+  readonly kind?: 'element' | 'extension';
+  /**
+   * The openEHR-side citation, when the reason is a **stated** position in the
+   * Reference Model rather than the absence of one. The default is the RM data
+   * types inventory, which is what a type openEHR simply does not have can cite.
+   */
+  readonly openehrCite?: Cite;
+  /** Overrides for the two templated verdict reasons, where they do not fit. */
+  readonly toFhirReason?: string;
+  readonly toOpenehrReason?: string;
   readonly reason: string;
 }
 
@@ -159,6 +195,32 @@ const FHIR_ONLY: readonly NoCounterpartEntry[] = [
       'structurally, through the `EVENT` and `HISTORY` classes and their offsets, not as ' +
       'a data type.',
   },
+  {
+    type: 'rendering-xhtml',
+    anchor: 'rendering-xhtml',
+    path: 'Element.extension[rendering-xhtml]',
+    kind: 'extension',
+    cite: ext('rendering-xhtml', 'FHIR Extensions — rendering-xhtml'),
+    openehrCite: RM_TEXT_FORMATTING,
+    reason:
+      'FHIR can attach an XHTML rendering of an element\u2019s value through the ' +
+      '`rendering-xhtml` extension. openEHR has **no `DV_TEXT.formatting` value for it**: ' +
+      'RM § 5.1.7 enumerates the set exhaustively — `Void`, `"markdown"`, `"plain"`, ' +
+      '`"plain_no_newlines"`, and a legacy deprecated CSS string — and rejects HTML as a ' +
+      'formatting approach explicitly, concluding that rendering is done by a ' +
+      'markdown-to-HTML converter and that "this is the approach taken by this ' +
+      'specification". XHTML support on the openEHR side is **pending a Reference Model ' +
+      'change request**.',
+    toFhirReason:
+      'Nothing produces one. No `DV_TEXT.formatting` value states XHTML rendering, so this ' +
+      'guide emits no `rendering-xhtml` and recommends none.',
+    toOpenehrReason:
+      'A received `string` carrying the extension keeps its text — `DV_TEXT.value` converts ' +
+      'faithfully — and the rendering instruction alone is dropped and reported. The ' +
+      'per-attribute row is `dv-text.formatting.xhtml` on ' +
+      '[Textual Data](mapping-textual.html); this inventory entry is the same gap seen ' +
+      'from the FHIR side. It closes when the pending Reference Model change request lands.',
+  },
 ];
 
 const fhirTypesWithNoOpenehrCounterpart = {
@@ -173,12 +235,16 @@ const fhirTypesWithNoOpenehrCounterpart = {
   rows: FHIR_ONLY.map((entry) => ({
     id: `fhir:${entry.type.toLowerCase()}`,
     scope: 'datatype' as const,
-    openehr: { kind: 'none' as const, reason: entry.reason, cite: RM_INVENTORY },
+    openehr: {
+      kind: 'none' as const,
+      reason: entry.reason,
+      cite: entry.openehrCite ?? RM_INVENTORY,
+    },
     fhir: [
       {
-        path: entry.type,
+        path: entry.path ?? entry.type,
         cardinality: '0..1',
-        kind: 'element' as const,
+        kind: entry.kind ?? ('element' as const),
         cite:
           entry.cite ??
           (entry.page === undefined
@@ -188,15 +254,18 @@ const fhirTypesWithNoOpenehrCounterpart = {
     ] as const,
     toFhir: {
       fidelity: 'unmapped' as const,
-      reason: `Nothing in the openEHR data types produces a \`${entry.type}\`.`,
+      reason:
+        entry.toFhirReason ??
+        `Nothing in the openEHR data types produces a \`${entry.type}\`.`,
       owner: 'openehr-modelling' as const,
     },
     toOpenehr: {
       fidelity: 'unmapped' as const,
       reason:
+        entry.toOpenehrReason ??
         `An incoming \`${entry.type}\` has no openEHR **data type** to land in. Where an ` +
-        'equivalent exists it is an archetype or an RM class, and mapping it is out of ' +
-        'scope for this pass. **Not investigated further.**',
+          'equivalent exists it is an archetype or an RM class, and mapping it is out of ' +
+          'scope for this pass. **Not investigated further.**',
       owner: 'openehr-modelling' as const,
     },
     maturity: 'open' as const,

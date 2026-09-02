@@ -472,6 +472,29 @@ otherwise.
   the omission is reported. BCP 47 strictly contains ISO 639-1, so both
   `toOpenehr` verdicts move from `lossless` to `lossy`, and the two published
   worked examples are corrected.
+- **`formatting: html` is not a Reference Model value, so the guide stops
+  publishing one.** The type model declared `html` among "the `formatting`
+  values the Reference Model defines", the converter wrote it at `lossless`, and
+  the guide published a `SHOULD` recommending a `rendering-xhtml` target — in
+  the same note that admitted XHTML support was pending a Reference Model change
+  request. RM § 5.1.7 enumerates `DV_TEXT.formatting` exhaustively — `Void`,
+  `"markdown"`, `"plain"`, `"plain_no_newlines"`, and a legacy deprecated CSS
+  string — and rejects HTML as a formatting approach explicitly. `html` is
+  removed from the enumeration, nothing emits `rendering-xhtml`, and the
+  recommendation is **withdrawn** rather than softened. What remains is stated
+  as what it is: a FHIR feature openEHR has no counterpart for, published as its
+  own row with both citations and a fidelity verdict in each direction, and in
+  the FHIR-features gap inventory, pending the change request. A received
+  `string` carrying the extension still converts — the text is carried and the
+  rendering instruction is a **named drop** — so nothing that maps faithfully is
+  refused.
+- **Every extension the guide claims to publish is now backed by an instance.**
+  `extension-types.ts` defines `published` as "some fixture in this guide
+  carries an instance of it", and nothing checked it: one entry claimed a
+  `value[x]`, a cardinality and a context that no instance had ever exercised.
+  The correspondence is now asserted in **both** directions and derived from the
+  fixture tree, so neither a claim without an instance nor an instance without a
+  claim can be introduced silently.
 
 **Compatible, Non-Substantive**
 

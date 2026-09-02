@@ -16,10 +16,15 @@
  * still wrong, but it is wrong in **one** place instead of in six fixtures and
  * four pages.
  *
- * `published: false` marks an extension this guide **names but does not emit**:
+ * `published: false` marks an extension this guide **names but does not carry**:
  * a candidate recorded in the prose, or one the guide considered and withdrew.
  * Nothing in `reference/fixtures/` carries one, and the table therefore records
- * no `value[x]` claim for it.
+ * no `value[x]` claim for it. The flag is about **fixture presence**, which is
+ * what makes it checkable — `extensions.test.ts` asserts the correspondence in
+ * both directions, derived from the fixture tree rather than from a list.
+ * Whether the guide *emits* an extension is a separate fact, and one entry
+ * differs: `rendering-xhtml` is received and reported, never emitted, and its
+ * note says so.
  */
 
 import type { Cite } from './types.ts';
@@ -50,8 +55,7 @@ export interface ExtensionType {
    */
   readonly contexts?: readonly string[];
   /** True when some fixture in this guide carries an instance of it. */
-  readonly published: boolean;
-  readonly cite: Cite;
+  readonly published: boolean;  readonly cite: Cite;
   readonly note?: string;
 }
 
@@ -102,8 +106,12 @@ export const EXTENSION_TYPES: readonly ExtensionType[] = [
     published: true,
     cite: ext('rendering-xhtml', 'FHIR Extensions — rendering-xhtml'),
     note:
-      'Emitted by the reference implementation when `DV_TEXT.formatting` is `html`; no ' +
-      'fixture in this guide exercises that branch yet.',
+      'A **received** `string` may carry it, and this guide reports that ' +
+      '`DV_TEXT.formatting` has no value to record an XHTML rendering: RM § 5.1.7 ' +
+      'enumerates the set exhaustively and rejects HTML as a formatting approach. Nothing ' +
+      'in this guide **emits** one, and no target is recommended; the gap is published as ' +
+      '`dv-text.formatting.xhtml` and in the FHIR-features inventory, pending a Reference ' +
+      'Model change request.',
   },
   {
     name: 'language',

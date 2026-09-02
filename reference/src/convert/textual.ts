@@ -19,6 +19,7 @@ export const TEXTUAL_PATH = {
   hyperlink: 'DV_TEXT.hyperlink',
   mappings: 'DV_TEXT.mappings',
   stringValueAbsent: 'string.value[absent]',
+  renderingXhtml: 'string.extension[rendering-xhtml]',
   languageTerminology: 'DV_TEXT.language.terminology_id',
   languageRegionSubtag: 'string.extension[language][region-subtag]',
   languageOutsideCodeSet: 'string.extension[language][outside-code-set]',
@@ -41,10 +42,16 @@ function findExtension(
   return element.extension?.find((e) => e.url === url);
 }
 
-/** The `formatting` values that change what FHIR does, and how they are carried. */
+/**
+ * The `formatting` values that change what FHIR does, and how they are carried.
+ *
+ * Only `markdown`. RM § 5.1.7 enumerates `formatting` exhaustively and **has no
+ * `html` value**, so there is no openEHR input that selects `rendering-xhtml`
+ * and the guide emits none. XHTML on the openEHR side awaits a Reference Model
+ * change request; until it lands, it is published as a gap.
+ */
 const RENDERING: Readonly<Record<string, { readonly url: string; readonly markdown: boolean }>> = {
   [TEXT_FORMATTING.markdown]: { url: TEXT_EXT.renderingMarkdown, markdown: true },
-  [TEXT_FORMATTING.html]: { url: TEXT_EXT.renderingXhtml, markdown: false },
 };
 
 export function dvTextToString(source: DvText): MappingResult<FhirStringElement> {
@@ -57,15 +64,12 @@ export function dvTextToString(source: DvText): MappingResult<FhirStringElement>
       issues.push({
         path: TEXTUAL_PATH.formatting,
         message:
-          'the distinction between plain and plain_no_newlines has no FHIR representation; ' +
-          'only markdown and html change what FHIR does',
+          'the distinction between plain and plain_no_newlines has no FHIR representation, ' +
+          'and neither does the legacy CSS string; only markdown changes what FHIR does',
       });
     } else if (rendering.markdown) {
       // `rendering-markdown` declares `value[x]: markdown`.
       extensions.push({ url: rendering.url, valueMarkdown: source.value });
-    } else {
-      // `rendering-xhtml` declares `value[x]: string`.
-      extensions.push({ url: rendering.url, valueString: source.value });
     }
   }
 
@@ -145,9 +149,26 @@ export function stringToDvText(source: FhirStringElement): MappingResult<DvText>
   const formatting =
     findExtension(source, TEXT_EXT.renderingMarkdown) !== undefined
       ? TEXT_FORMATTING.markdown
-      : findExtension(source, TEXT_EXT.renderingXhtml) !== undefined
-        ? TEXT_FORMATTING.html
-        : undefined;
+      : undefined;
+
+  // `rendering-xhtml` has **no** openEHR home: RM § 5.1.7 enumerates
+  // `formatting` exhaustively and rejects HTML as a formatting approach, so
+  // there is no value to write. `DV_TEXT.value` converts faithfully, and
+  // refusing the whole conversion would discard text that maps perfectly well,
+  // so the extension is a named drop rather than a refusal.
+  const renderingXhtml: readonly Issue[] =
+    findExtension(source, TEXT_EXT.renderingXhtml) === undefined
+      ? []
+      : [
+          {
+            path: TEXTUAL_PATH.renderingXhtml,
+            message:
+              'DV_TEXT.formatting has no value for XHTML rendering \u2014 the Reference ' +
+              'Model enumerates the set exhaustively and rejects HTML as a formatting ' +
+              'approach \u2014 so the rendering instruction is not carried. XHTML support ' +
+              'on the openEHR side is pending a Reference Model change request',
+          },
+        ];
 
   return resultFor(
     compact({
@@ -156,7 +177,7 @@ export function stringToDvText(source: FhirStringElement): MappingResult<DvText>
       formatting,
       language,
     }),
-    [...narrowed.issues],
+    [...renderingXhtml, ...narrowed.issues],
   );
 }
 

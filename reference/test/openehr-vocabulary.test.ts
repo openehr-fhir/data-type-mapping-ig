@@ -40,36 +40,12 @@ const SPEC_URL = {
 const SRC = fileURLToPath(new URL('../src/', import.meta.url));
 const FIXTURES = fileURLToPath(new URL('../fixtures/', import.meta.url));
 
-// ── the ratchet ──────────────────────────────────────────────────────────────
+// ── the checks' shared shape ─────────────────────────────────────────────────
 
-/**
- * The violations this gate finds on the day it lands, one entry per check.
- *
- * The gate is **red on arrival** — it exists because three published Blockers
- * were live when it was written — so it lands with a closing list rather than
- * with the fixes it is meant to protect. The assertion is an **equality**, not
- * a containment: an entry that is fixed without being removed fails exactly as
- * loudly as a new violation, so the list can only ever shrink deliberately.
- *
- * **This mechanism is deleted by the phase that empties it, and must never be
- * extended.** A new violation is a defect to fix, not an entry to add.
- */
-const KNOWN_VIOLATIONS: readonly string[] = [
-  // B8 — `html` is not a `DV_TEXT.formatting` value; RM § 5.1.7 enumerates the
-  // set exhaustively and rejects HTML explicitly. Removed by Phase 38, which
-  // also deletes this constant.
-  'formatting: html',
-];
-
-/** One entry per check, or none when the check is clean. */
+/** Every offender a check found, as one message naming them all. */
 function emit(label: string, offenders: readonly string[]): readonly string[] {
   if (offenders.length === 0) return [];
   return [`${label}: ${[...offenders].sort().join(', ')}`];
-}
-
-/** The subset of the ratchet a given check owns. */
-function knownFor(label: string): readonly string[] {
-  return KNOWN_VIOLATIONS.filter((entry) => entry.startsWith(`${label}: `));
 }
 
 // ── mirror access ────────────────────────────────────────────────────────────
@@ -305,7 +281,7 @@ test('every openEHR code-set identifier the harness writes is published by openE
 
   assert.deepEqual(
     codeSetViolations(),
-    knownFor('code-set'),
+    [],
     `code-set identifiers openEHR does not publish, from ${inventory.join(', ')}`,
   );
 });
@@ -324,7 +300,7 @@ test('every DV_TEXT.formatting value the harness writes is enumerated by the RM'
 
   assert.deepEqual(
     formattingViolations(),
-    knownFor('formatting'),
+    [],
     `TEXT_FORMATTING values absent from RM \u00a7 5.1.7, from ${Object.values(
       TEXT_FORMATTING,
     ).join(', ')}`,
@@ -350,27 +326,7 @@ test('every ISO 8601 form flagged openehr: true is accepted by the openEHR gramm
 
   assert.deepEqual(
     iso8601Violations(),
-    knownFor('iso8601'),
+    [],
     'openEHR examples rejected by valid_iso8601_date / _time / _date_time',
-  );
-});
-
-test('the known-violation ratchet holds exactly the entries not yet remediated', (t) => {
-  if (OPENEHR_ROOT === undefined) {
-    t.skip(SKIP_MESSAGE);
-    return;
-  }
-
-  const observed = [
-    ...codeSetViolations(),
-    ...formattingViolations(),
-    ...iso8601Violations(),
-  ].sort();
-
-  assert.deepEqual(
-    observed,
-    [...KNOWN_VIOLATIONS].sort(),
-    'KNOWN_VIOLATIONS is an equality, not a floor: a fixed violation must be removed from ' +
-      'it in the same commit, and a new one must be fixed rather than added',
   );
 });

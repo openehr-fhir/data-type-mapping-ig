@@ -213,8 +213,41 @@ test('every extension this guide publishes declares its type, cardinality, and c
   assert.deepEqual(problems, [], problems.join('\n'));
 });
 
-test('the two withdrawn extensions are recorded as withdrawn, with the reason', () => {
-  for (const name of ['mimeType', 'timezone']) {
+test('the published flag and the fixture tree agree, in both directions', () => {
+  // `published` is defined as "some fixture in this guide carries an instance of
+  // it". Until this assertion existed, nothing checked that definition, and one
+  // entry claimed a `value[x]` no instance had ever exercised. Both sides are
+  // **derived** — iterate the table, walk the fixture tree — so no list has to
+  // be kept in step with anything.
+  const carried = new Set(
+    publishedExtensions()
+      .filter((found) => found.url.startsWith(EXTENSION_URL_PREFIX))
+      .map((found) => found.url.slice(EXTENSION_URL_PREFIX.length)),
+  );
+
+  const unbacked = EXTENSION_TYPES.filter((e) => e.published && !carried.has(e.name)).map(
+    (e) => e.name,
+  );
+  const undeclared = EXTENSION_TYPES.filter((e) => !e.published && carried.has(e.name)).map(
+    (e) => e.name,
+  );
+
+  assert.ok(carried.size > 0, 'no fixture carries any extension — the gate is inert');
+  assert.deepEqual(
+    unbacked,
+    [],
+    'these entries claim a value[x], a cardinality and a context that no published ' +
+      `instance exercises: ${unbacked.join(', ')}`,
+  );
+  assert.deepEqual(
+    undeclared,
+    [],
+    'these entries are recorded as not carried by this guide, and a fixture carries one: ' +
+      `${undeclared.join(', ')}`,
+  );
+});
+
+test('the two withdrawn extensions are recorded as withdrawn, with the reason', () => {  for (const name of ['mimeType', 'timezone']) {
     const entry = EXTENSION_TYPES.find((e) => e.name === name);
     assert.ok(entry, `${name} must stay in the table so the reason survives`);
     assert.equal(entry.published, false, `${name} must not be published by this guide`);

@@ -1,0 +1,9 @@
+{
+  "value": "Allergy: penicillin",
+  "extension": [
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/rendering-xhtml",
+      "valueString": "<p><b>Allergy:</b> penicillin</p>"
+    }
+  ]
+}

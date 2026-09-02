@@ -26,6 +26,10 @@ function ext(name: string, label: string): Cite {
 
 const DV_TEXT = rm('_dv_text_class', 'openEHR RM — DV_TEXT');
 const TEXT_FORMATTING = rm('_text_formatting', 'openEHR RM — text formatting');
+const TEXT_FORMATTING_SECTION = rm(
+  '_formatting_and_hyperlinking',
+  'openEHR RM — § 5.1.7 Formatting and Hyperlinking',
+);
 const FHIR_STRING = r5('string', 'FHIR R5 — string');
 const FHIR_MARKDOWN = r5('markdown', 'FHIR R5 — markdown');
 const CODE_PHRASE = rm('_code_phrase_class', 'openEHR RM — CODE_PHRASE');
@@ -124,9 +128,10 @@ const dvTextToString = {
           {
             path: 'DV_TEXT.formatting',
             reason:
-              'the distinction between `plain` and `plain_no_newlines` has no FHIR ' +
-              'representation; only `markdown` and `html` change what FHIR does, by ' +
-              'selecting a different target type or a rendering extension',
+              '`markdown` is carried, by the `rendering-markdown` extension or by choosing ' +
+              'a `markdown` target. What is dropped is the distinction between `plain` and ' +
+              '`plain_no_newlines` — FHIR has no element recording it — and the legacy ' +
+              'deprecated CSS string, which has no FHIR representation either',
           },
         ],
       },
@@ -134,11 +139,67 @@ const dvTextToString = {
       maturity: 'open',
       note:
         'Where `formatting` is `markdown`, the FHIR target SHOULD be a `markdown` element, ' +
-        'or a `string` carrying the `rendering-markdown` extension. Where it is `html`, the ' +
-        'target SHOULD be an `xhtml` element or a `string` carrying `rendering-xhtml`. ' +
-        'Where a FHIR `string` carries one of those extensions on the way back, the ' +
-        'corresponding `formatting` value is set. XHTML support on the openEHR side is ' +
-        'pending a Reference Model change request.',
+        'or a `string` carrying the `rendering-markdown` extension, and a FHIR `string` ' +
+        'carrying that extension on the way back sets `formatting` to `markdown`. ' +
+        '**There is no `html` formatting value.** RM § 5.1.7 enumerates `formatting` ' +
+        'exhaustively — `Void`, `"markdown"`, `"plain"`, `"plain_no_newlines"`, and a ' +
+        'legacy deprecated CSS string — and rejects HTML as a formatting approach ' +
+        'explicitly, so this guide recommends no XHTML target and emits none. XHTML ' +
+        'support on the openEHR side is **pending a Reference Model change request**; ' +
+        'until it lands the guide publishes it as a gap, on the row below and in the ' +
+        '[FHIR features with no openEHR counterpart](gaps.html) inventory.',
+    },
+    {
+      id: 'dv-text.formatting.xhtml',
+      scope: 'datatype',
+      openehr: {
+        kind: 'none',
+        reason:
+          'RM § 5.1.7 enumerates `DV_TEXT.formatting` exhaustively and **has no value for ' +
+          'XHTML rendering**. The same section rejects the approach on the record — *"to ' +
+          'use the output format, usually HTML … is also problematic"*, **Deprecated** — ' +
+          'and concludes that conversion to rendering form "is assumed to be done by an ' +
+          'industry-standard markdown-to-HTML or other such converter. **This is the ' +
+          'approach taken by this specification.**" XHTML support is pending a Reference ' +
+          'Model change request.',
+        cite: TEXT_FORMATTING_SECTION,
+      },
+      fhir: [
+        {
+          path: 'string.extension[rendering-xhtml]',
+          cardinality: '0..1',
+          kind: 'extension',
+          cite: ext('rendering-xhtml', 'FHIR Extensions — rendering-xhtml'),
+        },
+      ],
+      toFhir: {
+        fidelity: 'unmapped',
+        reason:
+          'Nothing produces one. No `DV_TEXT.formatting` value states XHTML rendering, so ' +
+          'this guide emits no `rendering-xhtml` and recommends none.',
+        owner: 'openehr-modelling',
+      },
+      toOpenehr: {
+        fidelity: 'lossy',
+        drops: [
+          {
+            path: 'string.extension[rendering-xhtml]',
+            reason:
+              'a received `string` may state XHTML rendering and `DV_TEXT.formatting` has ' +
+              'no value to record it, so the rendering instruction is not carried. ' +
+              '`DV_TEXT.value` converts faithfully, so the text is kept and the ' +
+              'instruction alone is the drop — refusing the whole conversion would ' +
+              'discard content that maps perfectly well',
+          },
+        ],
+      },
+      maturity: 'open',
+      note:
+        'This is the sub-case that the `formatting` row above deliberately does not fold ' +
+        'in: it has **no openEHR endpoint at all**, so it carries its own verdicts and its ' +
+        'own citations rather than borrowing the parent row\u2019s. It closes when the ' +
+        'Reference Model change request adding XHTML support lands, at which point this ' +
+        'becomes an ordinary `formatting` value.',
     },
     {
       id: 'dv-text.language',
