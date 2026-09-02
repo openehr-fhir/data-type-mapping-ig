@@ -62,9 +62,6 @@ const KNOWN_VIOLATIONS: readonly string[] = [
   // set exhaustively and rejects HTML explicitly. Removed by Phase 38, which
   // also deletes this constant.
   'formatting: html',
-  // B5 — openEHR's compact *time* carries no `T` designator; `valid_iso8601_time`
-  // publishes `hhmmss`, `hhmm` and `hh`. Removed by Phase 36.
-  'iso8601: T1430, T143000, T143000+0100',
 ];
 
 /** One entry per check, or none when the check is clean. */

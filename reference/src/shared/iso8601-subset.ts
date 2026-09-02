@@ -82,11 +82,14 @@ export const ISO8601_FORMS: readonly Iso8601Form[] = [
   },
   {
     kind: 'time',
-    example: 'T143000',
-    description: 'Full time, compact form with the `T` designator',
+    example: '143000',
+    description: 'Full time, compact form',
     openehr: true,
     fhir: false,
-    action: 'SHALL be expanded to `14:30:00`; FHIR `time` carries no `T` prefix.',
+    action:
+      'SHALL be expanded to `14:30:00`. openEHR writes a compact time as `hhmmss`, with ' +
+      'no `T` designator — `T` separates the date from the time in a *date-time* and ' +
+      'nowhere else — and FHIR `time` accepts only the extended form.',
   },
   {
     kind: 'time',
@@ -100,7 +103,7 @@ export const ISO8601_FORMS: readonly Iso8601Form[] = [
   },
   {
     kind: 'time',
-    example: 'T1430',
+    example: '1430',
     description: 'Compact time, hours and minutes only',
     openehr: true,
     fhir: false,
@@ -108,6 +111,17 @@ export const ISO8601_FORMS: readonly Iso8601Form[] = [
       'SHALL be expanded to `14:30` and then completed to `14:30:00`. Neither the compact ' +
       'form nor a seconds-less time is a FHIR `time`, and the completion adds a precision ' +
       'the source did not state, so it is a **named drop**.',
+  },
+  {
+    kind: 'time',
+    example: '14',
+    description: 'Hours only, compact form',
+    openehr: true,
+    fhir: false,
+    action:
+      'SHALL be completed to `14:00:00`. `valid_iso8601_time` publishes `hh` as a partial ' +
+      'form and FHIR `time` requires both minutes and seconds, so the completion adds two ' +
+      'levels of precision the source did not state and is a **named drop** of its own.',
   },
   {
     kind: 'time',
@@ -142,7 +156,7 @@ export const ISO8601_FORMS: readonly Iso8601Form[] = [
   },
   {
     kind: 'time',
-    example: 'T143000+0100',
+    example: '143000+0100',
     description: 'Compact time with a compact UTC offset',
     openehr: true,
     fhir: false,
@@ -150,6 +164,17 @@ export const ISO8601_FORMS: readonly Iso8601Form[] = [
       'SHALL be expanded to `14:30:00+01:00` before the offset is separated from the ' +
       'time; FHIR accepts neither the compact time nor the compact offset, and then has ' +
       'no home for the offset at all.',
+  },
+  {
+    kind: 'time',
+    example: '143000+01',
+    description: 'Compact time with an hours-only UTC offset',
+    openehr: true,
+    fhir: false,
+    action:
+      '`valid_iso8601_time` writes the compact offset as `\u00b1hh[mm]`, so the minutes ' +
+      'are optional. The value SHALL be expanded to `14:30:00+01:00` before the offset is ' +
+      'separated; the offset then has no home on a FHIR `time` and is a **named drop**.',
   },
   {
     kind: 'dateTime',
@@ -200,6 +225,30 @@ export const ISO8601_FORMS: readonly Iso8601Form[] = [
       'offset, which FHIR requires once hours and minutes are present and which a ' +
       'data-type conversion never invents, so nothing is produced from it.',
   },
+  {
+    kind: 'dateTime',
+    example: '2026-03-01T14',
+    description: 'Date and time to the hour only',
+    openehr: true,
+    fhir: false,
+    action:
+      '`valid_iso8601_date_time` publishes `YYYY-MM-DDThh` as a partial form. FHIR ' +
+      'requires seconds once a time is present, so the value SHALL be completed to ' +
+      '`2026-03-01T14:00:00` and that completion is a **named drop**. The completed value ' +
+      'states hours and minutes and no UTC offset, which FHIR also requires and which a ' +
+      'data-type conversion never invents, so nothing is produced from it.',
+  },
+  {
+    kind: 'dateTime',
+    example: '20260301T14',
+    description: 'Compact date and time to the hour only',
+    openehr: true,
+    fhir: false,
+    action:
+      'SHALL be expanded to `2026-03-01T14` and then completed to `2026-03-01T14:00:00`, ' +
+      'which is a **named drop**. As with the extended form, the completed value states ' +
+      'no UTC offset and nothing is produced from it.',
+  },
 ];
 
 /** Forms both standards accept unchanged. */
@@ -212,35 +261,24 @@ export function divergentForms(): readonly Iso8601Form[] {
   return ISO8601_FORMS.filter((f) => f.openehr !== f.fhir);
 }
 
-/** `+0100` → `+01:00`. An already-extended or absent offset is returned unchanged. */
+/**
+ * Normalise a compact UTC offset to the extended form FHIR uses.
+ *
+ * `valid_iso8601_time` writes the compact offset as `±hh[mm]`, so both `+0100`
+ * and `+01` are openEHR-legal and neither is a FHIR offset. An already-extended
+ * or absent offset is returned unchanged.
+ *
+ * **Only ever applied to a time**, or to the time half of a date-time. A bare
+ * date ends in `-DD`, which is indistinguishable from an hours-only offset, so
+ * `expandCompact` dispatches on the temporal kind before this is reached.
+ */
 function expandCompactOffset(value: string): string {
-  return value.replace(/([+-])(\d{2})(\d{2})$/, '$1$2:$3');
+  const withMinutes = value.replace(/([+-])(\d{2})(\d{2})$/, '$1$2:$3');
+  return withMinutes.replace(/([+-])(\d{2})$/, '$1$2:00');
 }
 
-/**
- * Expand an openEHR compact date, time, or date-time into the FHIR extended form.
- *
- * The time groups accept `hhmm` as well as `hhmmss`, because openEHR permits a
- * compact minute-precision time and `completeSeconds` — which requires the
- * extended `hh:mm` — is what supplies the seconds afterwards. **Hour-only
- * compact (`T14`) is deliberately out of scope:** `ISO8601_FORMS` has no
- * hour-only row, and expanding one here would implement a rule the guide does
- * not publish.
- */
-export function expandCompact(input: string): string {
-  const value = expandCompactOffset(input);
-  const dateTime = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})?(.*)$/.exec(value);
-  if (dateTime !== null) {
-    const [, y, mo, d, h, mi, s, rest] = dateTime as unknown as (string | undefined)[];
-    const seconds = s === undefined ? '' : `:${s}`;
-    return `${y}-${mo}-${d}T${h}:${mi}${seconds}${rest ?? ''}`;
-  }
-  const time = /^T(\d{2})(\d{2})(\d{2})?(.*)$/.exec(value);
-  if (time !== null) {
-    const [, h, mi, s, rest] = time as unknown as (string | undefined)[];
-    const seconds = s === undefined ? '' : `:${s}`;
-    return `${h}:${mi}${seconds}${rest ?? ''}`;
-  }
+/** `20260301` → `2026-03-01`, `202603` → `2026-03`; anything else is unchanged. */
+function expandCompactDate(value: string): string {
   const fullDate = /^(\d{4})(\d{2})(\d{2})$/.exec(value);
   if (fullDate !== null) {
     const [, y, mo, d] = fullDate as unknown as string[];
@@ -255,23 +293,81 @@ export function expandCompact(input: string): string {
 }
 
 /**
- * Complete a minute-precision time or date-time to the seconds FHIR requires.
+ * `143000` → `14:30:00`, `1430` → `14:30`, `14` → `14`, with the offset
+ * expanded first so `143000+01` becomes `14:30:00+01:00`.
+ *
+ * An already-extended time contains `:` where a compact one has a digit, so the
+ * leading-digits match simply stops after the hours and the value is returned
+ * unchanged.
+ */
+function expandCompactTime(value: string): string {
+  const expanded = expandCompactOffset(value);
+  const compact = /^(\d{2})(\d{2})?(\d{2})?([.,]\d+)?(.*)$/.exec(expanded);
+  if (compact === null) return expanded;
+  const [, h, mi, s, fraction, rest] = compact as unknown as (string | undefined)[];
+  if (h === undefined) return expanded;
+  const minutes = mi === undefined ? '' : `:${mi}`;
+  const seconds = s === undefined ? '' : `:${s}`;
+  return `${h}${minutes}${seconds}${fraction ?? ''}${rest ?? ''}`;
+}
+
+/**
+ * Expand an openEHR compact date, time, or date-time into the FHIR extended form.
+ *
+ * **The temporal kind is a parameter, not a guess.** openEHR's compact forms are
+ * genuinely ambiguous out of context: `143000` and `202603` are the same six
+ * digits, and `1430` and `2026` the same four. `valid_iso8601_time` puts no `T`
+ * designator on a standalone time — `T` separates the date from the time in
+ * `valid_iso8601_date_time` and nowhere else — so there is nothing in the
+ * lexical form to dispatch on. Every caller already knows which openEHR type it
+ * holds, and passes it.
+ *
+ * Hour-only forms are **in** scope: `valid_iso8601_time` publishes `hh` and
+ * `valid_iso8601_date_time` publishes `YYYY-MM-DDThh` and `YYYYMMDDThh`. They
+ * are expanded here and completed by `completeSeconds`, which names the added
+ * precision as a drop of its own.
+ */
+export function expandCompact(input: string, kind: TemporalKind): string {
+  if (kind === 'date') return expandCompactDate(input);
+  if (kind === 'time') return expandCompactTime(input);
+
+  const separator = input.indexOf('T');
+  // A `DV_DATE_TIME` may state precision above the time — `2026`, `2026-03`,
+  // `20260301` — in which case there is no time half to expand.
+  if (separator < 0) return expandCompactDate(input);
+  return `${expandCompactDate(input.slice(0, separator))}T${expandCompactTime(
+    input.slice(separator + 1),
+  )}`;
+}
+
+/** Which precision a completion supplied, or `none` when nothing was completed. */
+export type SecondsCompletion = 'none' | 'minute' | 'hour';
+
+/**
+ * Complete a minute- or hour-precision time or date-time to the seconds FHIR
+ * requires.
  *
  * The FHIR R5 `time` regex makes seconds mandatory, and `dateTime` makes them
- * mandatory once a time is present. openEHR permits both without. Completion is
- * therefore **not** a truncation of partial precision — it is the one place the
- * guide's "truncate, never pad" rule cannot apply, because there is no shorter
- * FHIR form to truncate to. The caller reports the added precision as a named
- * drop; nothing else is invented, and in particular no UTC offset is supplied.
+ * mandatory once a time is present. openEHR permits `hh:mm` and `hh` in both.
+ * Completion is therefore **not** a truncation of partial precision — it is the
+ * one place the guide's "truncate, never pad" rule cannot apply, because there
+ * is no shorter FHIR form to truncate to. The caller reports the added
+ * precision as a named drop, and `completed` says **which** drop: an hour-only
+ * source loses two levels of precision, not one, and the two are separate rows.
+ * Nothing else is invented, and in particular no UTC offset is supplied.
  */
 export function completeSeconds(value: string): {
   readonly value: string;
-  readonly completed: boolean;
+  readonly completed: SecondsCompletion;
 } {
-  const match = /^(\d{4}-\d{2}-\d{2}T)?(\d{2}:\d{2})(Z|[+-]\d{2}:\d{2})?$/.exec(value);
-  if (match === null) return { value, completed: false };
-  const [, date, hourMinute, zone] = match as unknown as (string | undefined)[];
-  return { value: `${date ?? ''}${hourMinute ?? ''}:00${zone ?? ''}`, completed: true };
+  const match = /^(\d{4}-\d{2}-\d{2}T)?(\d{2})(:\d{2})?(Z|[+-]\d{2}:\d{2})?$/.exec(value);
+  if (match === null) return { value, completed: 'none' };
+  const [, date, hour, minute, zone] = match as unknown as (string | undefined)[];
+  if (hour === undefined) return { value, completed: 'none' };
+  return {
+    value: `${date ?? ''}${hour}${minute ?? ':00'}:00${zone ?? ''}`,
+    completed: minute === undefined ? 'hour' : 'minute',
+  };
 }
 
 /** Truncate fractional seconds to the three digits openEHR permits. */export function truncateFractionalSeconds(value: string): {
@@ -293,8 +389,13 @@ export function completeSeconds(value: string): {
  * populated"* (`datatypes.html`). The offset has to come from the source or
  * from the enclosing template, and a data-type conversion sees neither, so the
  * caller refuses rather than inventing `Z`.
+ *
+ * Both halves are deliberately wider than the extended forms: openEHR states a
+ * partial date-time as `…Thh` as well as `…Thh:mm`, and writes a compact offset
+ * as `±hh` as well as `±hhmm`, so a narrower test would read a stated offset as
+ * absent and an hour-only time as no time at all.
  */
 export function hasTimeWithoutOffset(value: string): boolean {
-  if (!/T\d{2}:\d{2}/.test(value)) return false;
-  return !/(Z|[+-]\d{2}:\d{2})$/.test(value);
+  if (!/T\d{2}/.test(value)) return false;
+  return !/(Z|[+-]\d{2}(:?\d{2})?)$/.test(value);
 }

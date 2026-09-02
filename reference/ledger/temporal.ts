@@ -37,6 +37,10 @@ const DV_DATE_TIME = rm('_dv_date_time_class', 'openEHR RM — DV_DATE_TIME');
 const DV_DURATION = rm('_dv_duration_class', 'openEHR RM — DV_DURATION');
 const DV_TEMPORAL = rm('_dv_temporal_class', 'openEHR RM — DV_TEMPORAL');
 const ISO_TYPES = base('_time_types', 'openEHR BASE — ISO 8601 time types');
+const ISO_TIME_DEFINITIONS = base(
+  '_time_definitions_class',
+  'openEHR BASE — Time_Definitions (valid_iso8601_time, valid_iso8601_date_time)',
+);
 const ISO_DURATION_TYPE = base('_iso8601_duration_class', 'openEHR BASE — Iso8601_duration');
 const FHIR_DATE = r5('date', 'FHIR R5 — date');
 const FHIR_TIME = r5('time', 'FHIR R5 — time');
@@ -195,6 +199,52 @@ const dvTimeToTime = {
         'claim for every value that already states seconds.',
     },
     {
+      id: 'dv-time.value.hour-precision',
+      scope: 'datatype',
+      openehr: {
+        path: 'DV_TIME.value[hour-precision]',
+        cardinality: '1..1',
+        type: 'Iso8601_time',
+        kind: 'element',
+        cite: ISO_TIME_DEFINITIONS,
+      },
+      fhir: {
+        kind: 'none',
+        reason:
+          'The FHIR R5 `time` regex makes **both** minutes and seconds mandatory, so no ' +
+          'FHIR lexical form records a time stated only to the hour. The value is ' +
+          'completed to `:00:00`, and the fact that the source stopped at the hour has ' +
+          'nowhere to live.',
+        cite: FHIR_TIME,
+      },
+      toFhir: {
+        fidelity: 'lossy',
+        drops: [
+          {
+            path: 'DV_TIME.value[hour-precision]',
+            reason:
+              '`valid_iso8601_time` publishes `hh` as a partial form, so an openEHR `14` ' +
+              'is a conformant `DV_TIME`. It is completed to `14:00:00`, so the FHIR ' +
+              'value states **two** levels of precision the source did not — the minute ' +
+              'and the second. As with minute precision, FHIR offers no shorter `time` ' +
+              'form to truncate to',
+          },
+        ],
+      },
+      toOpenehr: {
+        fidelity: 'unmapped',
+        reason:
+          'Nothing arrives to map back: a completed `14:00:00` is indistinguishable from ' +
+          'one the source stated in full.',
+      },
+      maturity: 'settled',
+      note:
+        'Hour precision is a **second** completion sub-case, not the minute one restated. ' +
+        'The row above adds seconds to `14:30`; this row adds minutes *and* seconds to ' +
+        '`14`, and the two drops are reported at different paths so a reader can tell how ' +
+        'much precision the FHIR value claims that the source did not.',
+    },
+    {
       id: 'dv-time.timezone',
       scope: 'datatype',
       openehr: {
@@ -339,6 +389,54 @@ const dvDateTimeToDateTime = {
         'Partial precision *above* the time — `2026`, `2026-03`, `2026-03-01` — is a ' +
         'different case entirely and is carried by truncation, losslessly, on the row ' +
         'above. Only the minute-without-seconds form has no FHIR representation.',
+    },
+    {
+      id: 'dv-date-time.value.hour-precision',
+      scope: 'datatype',
+      openehr: {
+        path: 'DV_DATE_TIME.value[hour-precision]',
+        cardinality: '1..1',
+        type: 'Iso8601_date_time',
+        kind: 'element',
+        cite: ISO_TIME_DEFINITIONS,
+      },
+      fhir: {
+        kind: 'none',
+        reason:
+          'The FHIR R5 `dateTime` regex makes **both** minutes and seconds mandatory once ' +
+          'a time is present, so no FHIR lexical form records a date-time stated only to ' +
+          'the hour. The value is completed to `:00:00`, and the fact that the source ' +
+          'stopped at the hour has nowhere to live.',
+        cite: FHIR_DATETIME,
+      },
+      toFhir: {
+        fidelity: 'lossy',
+        drops: [
+          {
+            path: 'DV_DATE_TIME.value[hour-precision]',
+            reason:
+              '`valid_iso8601_date_time` publishes `YYYY-MM-DDThh` and `YYYYMMDDThh` as ' +
+              'partial forms, so an openEHR `2026-03-01T14` is conformant. It is ' +
+              'completed to `2026-03-01T14:00:00`, so the FHIR value states **two** ' +
+              'levels of precision the source did not. FHIR additionally requires a UTC ' +
+              'offset alongside a time: that offset SHALL come from the source or its ' +
+              'context and is **never invented** by a data-type conversion, so a source ' +
+              'stating neither an offset nor the minutes produces nothing at all',
+          },
+        ],
+      },
+      toOpenehr: {
+        fidelity: 'unmapped',
+        reason:
+          'Nothing arrives to map back: a completed `…T14:00:00` is indistinguishable ' +
+          'from one the source stated in full.',
+      },
+      maturity: 'settled',
+      note:
+        'The drop is reported even when the offset rule then refuses the whole value, so ' +
+        'a reader is told both things that are wrong with `2026-03-01T14` rather than ' +
+        'only the first. Where the source *does* carry an offset, the completion happens ' +
+        'and a `dateTime` is produced, exactly as for minute precision above.',
     },
     {
       id: 'dv-date-time.value.no-offset',

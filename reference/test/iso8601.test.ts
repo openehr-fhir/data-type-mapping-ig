@@ -140,17 +140,17 @@ test('the subset table records real divergence in both directions', () => {
 });
 
 test('compact openEHR forms expand to the FHIR extended form', () => {
-  assert.equal(expandCompact('20260301'), '2026-03-01');
-  assert.equal(expandCompact('202603'), '2026-03');
-  assert.equal(expandCompact('T143000'), '14:30:00');
-  assert.equal(expandCompact('20260301T143000Z'), '2026-03-01T14:30:00Z');
-  assert.equal(expandCompact('2026-03-01'), '2026-03-01', 'an extended value is unchanged');
-  assert.equal(expandCompact('2026'), '2026', 'a year is unchanged');
+  assert.equal(expandCompact('20260301', 'date'), '2026-03-01');
+  assert.equal(expandCompact('202603', 'date'), '2026-03');
+  assert.equal(expandCompact('143000', 'time'), '14:30:00');
+  assert.equal(expandCompact('20260301T143000Z', 'dateTime'), '2026-03-01T14:30:00Z');
+  assert.equal(expandCompact('2026-03-01', 'date'), '2026-03-01', 'an extended value is unchanged');
+  assert.equal(expandCompact('2026', 'date'), '2026', 'a year is unchanged');
 });
 
 test('partial dates are truncated, never padded', () => {
-  assert.equal(expandCompact('202604'), '2026-04');
-  assert.notEqual(expandCompact('202604'), '2026-04-01');
+  assert.equal(expandCompact('202604', 'date'), '2026-04');
+  assert.notEqual(expandCompact('202604', 'date'), '2026-04-01');
 });
 
 test('fractional seconds truncate to the three digits openEHR permits', () => {
@@ -177,36 +177,77 @@ test('every form the table marks as needing action says what the action is', () 
   }
 });
 
-test('minute precision is completed, and nothing else is', () => {
-  assert.deepEqual(completeSeconds('14:30'), { value: '14:30:00', completed: true });
-  assert.deepEqual(completeSeconds('14:30+01:00'), { value: '14:30:00+01:00', completed: true });
+test('minute and hour precision are completed, and nothing else is', () => {
+  assert.deepEqual(completeSeconds('14:30'), { value: '14:30:00', completed: 'minute' });
+  assert.deepEqual(completeSeconds('14:30+01:00'), {
+    value: '14:30:00+01:00',
+    completed: 'minute',
+  });
   assert.deepEqual(completeSeconds('2026-03-01T14:30'), {
     value: '2026-03-01T14:30:00',
-    completed: true,
+    completed: 'minute',
   });
-  assert.deepEqual(completeSeconds('14:30:00'), { value: '14:30:00', completed: false });
+
+  // openEHR's hour-only partial forms: `hh` and `YYYY-MM-DDThh`. Two levels of
+  // precision are added, so the completion is reported at its own path.
+  assert.deepEqual(completeSeconds('14'), { value: '14:00:00', completed: 'hour' });
+  assert.deepEqual(completeSeconds('2026-03-01T14'), {
+    value: '2026-03-01T14:00:00',
+    completed: 'hour',
+  });
+  assert.deepEqual(completeSeconds('14+01:00'), { value: '14:00:00+01:00', completed: 'hour' });
+
+  assert.deepEqual(completeSeconds('14:30:00'), { value: '14:30:00', completed: 'none' });
   assert.deepEqual(completeSeconds('2026-03-01T14:30:00Z'), {
     value: '2026-03-01T14:30:00Z',
-    completed: false,
+    completed: 'none',
   });
-  assert.deepEqual(completeSeconds('2026-03-01'), { value: '2026-03-01', completed: false });
-  assert.deepEqual(completeSeconds('2026-03'), { value: '2026-03', completed: false });
+  assert.deepEqual(completeSeconds('2026-03-01'), { value: '2026-03-01', completed: 'none' });
+  assert.deepEqual(completeSeconds('2026-03'), { value: '2026-03', completed: 'none' });
+  // A bare year is four digits, not an hour: completing it would invent a date.
+  assert.deepEqual(completeSeconds('2026'), { value: '2026', completed: 'none' });
 });
 
 test('a compact UTC offset is expanded before the offset is separated', () => {
-  assert.equal(expandCompact('T143000+0100'), '14:30:00+01:00');
-  assert.equal(expandCompact('20260301T143000-0500'), '2026-03-01T14:30:00-05:00');
-  assert.equal(expandCompact('14:30:00+01:00'), '14:30:00+01:00', 'an extended offset is unchanged');
-  assert.equal(expandCompact('2026-03-01'), '2026-03-01', 'a bare date is untouched');
+  assert.equal(expandCompact('143000+0100', 'time'), '14:30:00+01:00');
+  assert.equal(expandCompact('20260301T143000-0500', 'dateTime'), '2026-03-01T14:30:00-05:00');
+  // `valid_iso8601_time` writes the compact offset as `±hh[mm]`, so the minutes
+  // are optional and the hours-only form is openEHR-legal.
+  assert.equal(expandCompact('143000+01', 'time'), '14:30:00+01:00');
+  assert.equal(
+    expandCompact('14:30:00+01:00', 'time'),
+    '14:30:00+01:00',
+    'an extended offset is unchanged',
+  );
+  assert.equal(expandCompact('2026-03-01', 'date'), '2026-03-01', 'a bare date is untouched');
+  // The hours-only offset rule must not read a compact date's day, or a bare
+  // year, as an offset.
+  assert.equal(expandCompact('20260301', 'date'), '2026-03-01');
+  assert.equal(expandCompact('2026', 'date'), '2026');
+  assert.equal(expandCompact('2026-03-01', 'dateTime'), '2026-03-01');
 });
 
-test('compact minute-precision forms expand, and hour-only compact does not', () => {
-  assert.equal(expandCompact('T1430'), '14:30');
-  assert.equal(expandCompact('20260301T1430'), '2026-03-01T14:30');
-  assert.equal(expandCompact('T1430+0100'), '14:30+01:00');
-  // `ISO8601_FORMS` has no hour-only row, so expanding one would implement a
-  // rule the guide does not publish.
-  assert.equal(expandCompact('T14'), 'T14', 'hour-only compact is out of scope');
+test('compact times expand at every precision openEHR publishes', () => {
+  // `valid_iso8601_time` publishes `hhmmss` (compact), `hhmm or hh` (compact),
+  // and puts **no `T` designator** on a standalone time.
+  assert.equal(expandCompact('143000', 'time'), '14:30:00');
+  assert.equal(expandCompact('1430', 'time'), '14:30');
+  assert.equal(expandCompact('14', 'time'), '14');
+  assert.equal(expandCompact('143000.123', 'time'), '14:30:00.123');
+  assert.equal(expandCompact('20260301T1430', 'dateTime'), '2026-03-01T14:30');
+  assert.equal(expandCompact('20260301T14', 'dateTime'), '2026-03-01T14');
+  assert.equal(expandCompact('2026-03-01T14', 'dateTime'), '2026-03-01T14');
+
+  // The regression this signature exists to prevent: six compact digits are a
+  // time or a year-and-month depending on the type they came from, and nothing
+  // in the lexical form says which.
+  assert.notEqual(
+    expandCompact('143000', 'time'),
+    '1430-00',
+    'a compact time must never be read as a year-month',
+  );
+  assert.equal(expandCompact('202603', 'date'), '2026-03');
+  assert.equal(expandCompact('1430', 'date'), '1430', 'four digits are a year when the kind is date');
 });
 
 test('a dateTime stating a time and no offset is refused, not padded with Z', () => {
@@ -252,13 +293,15 @@ const EXPECTED: Readonly<
   '202603': { out: '2026-03', issues: [] },
   '2026': { out: '2026', issues: [] },
   '14:30:00': { out: '14:30:00', issues: [] },
-  T143000: { out: '14:30:00', issues: [] },
+  '143000': { out: '14:30:00', issues: [] },
   '14:30': { out: '14:30:00', issues: ['DV_TIME.value[minute-precision]'] },
-  T1430: { out: '14:30:00', issues: ['DV_TIME.value[minute-precision]'] },
+  '1430': { out: '14:30:00', issues: ['DV_TIME.value[minute-precision]'] },
+  '14': { out: '14:00:00', issues: ['DV_TIME.value[hour-precision]'] },
   '14:30:00.123': { out: '14:30:00.123', issues: [] },
   '14:30:00.123456789': { out: '14:30:00.123', issues: ['time.value[fractional-seconds]'] },
   '14:30:00+01:00': { out: '14:30:00', issues: ['DV_TIME.value[timezone]'] },
-  'T143000+0100': { out: '14:30:00', issues: ['DV_TIME.value[timezone]'] },
+  '143000+0100': { out: '14:30:00', issues: ['DV_TIME.value[timezone]'] },
+  '143000+01': { out: '14:30:00', issues: ['DV_TIME.value[timezone]'] },
   '2026-03-01T14:30:00Z': { out: '2026-03-01T14:30:00Z', issues: [] },
   '20260301T143000Z': { out: '2026-03-01T14:30:00Z', issues: [] },
   '2026-03-01T14:30:00+01:00': { out: '2026-03-01T14:30:00+01:00', issues: [] },
@@ -272,6 +315,14 @@ const EXPECTED: Readonly<
   '20260301T1430': {
     out: '',
     issues: ['DV_DATE_TIME.value[no-offset]', 'DV_DATE_TIME.value[minute-precision]'],
+  },
+  '2026-03-01T14': {
+    out: '',
+    issues: ['DV_DATE_TIME.value[no-offset]', 'DV_DATE_TIME.value[hour-precision]'],
+  },
+  '20260301T14': {
+    out: '',
+    issues: ['DV_DATE_TIME.value[no-offset]', 'DV_DATE_TIME.value[hour-precision]'],
   },
 };
 

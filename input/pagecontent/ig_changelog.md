@@ -439,6 +439,23 @@ otherwise.
   themselves — so a literal added tomorrow is checked without anyone maintaining
   a list. The check runs when the openEHR specification mirror is configured,
   and is part of the publication gate.
+- **openEHR's compact time is published as openEHR writes it, and the hour-only
+  forms are published at all.** The ISO 8601 subset table carried `T143000`,
+  `T1430` and `T143000+0100` as forms openEHR accepts, under a `SHALL`.
+  `valid_iso8601_time` puts **no `T` designator** on a standalone time — `T`
+  separates the date from the time in `valid_iso8601_date_time` and nowhere
+  else — so the three forms openEHR does publish, `143000`, `1430` and
+  `143000+0100`, had no row, no rule and no test, and a conformant `143000` was
+  read as the year-and-month `1430-00` and published as a FHIR `time` at
+  `lossless`. The three rows are retitled to the forms openEHR publishes, the
+  compact `±hh` offset gains a row of its own, and the expansion helper now
+  takes the temporal kind explicitly rather than guessing from digit count —
+  `143000` and `202603` are the same six digits, and no lexical rule can tell
+  them apart. The hour-only partial forms `hh`, `YYYY-MM-DDThh` and
+  `YYYYMMDDThh`, which `valid_iso8601_time` and `valid_iso8601_date_time` both
+  publish, are new rows with new drops: `DV_TIME.value[hour-precision]` and
+  `DV_DATE_TIME.value[hour-precision]`, each naming the two levels of precision
+  the FHIR value claims that the source did not state.
 
 **Compatible, Non-Substantive**
 

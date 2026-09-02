@@ -35,7 +35,9 @@ export const TEMPORAL_PATH = {
   durationValue: 'DV_DURATION.value',
   durationCode: 'Duration.code',
   timeMinutePrecision: 'DV_TIME.value[minute-precision]',
+  timeHourPrecision: 'DV_TIME.value[hour-precision]',
   dateTimeMinutePrecision: 'DV_DATE_TIME.value[minute-precision]',
+  dateTimeHourPrecision: 'DV_DATE_TIME.value[hour-precision]',
   dateTimeNoOffset: 'DV_DATE_TIME.value[no-offset]',
   durationValueAbsent: 'Duration.value[absent]',
   durationCodeAbsent: 'Duration.code[absent]',
@@ -51,6 +53,14 @@ const COMPLETED_SECONDS =
   'is the one case the guide\u2019s "truncate, never pad" rule cannot cover, because ' +
   'FHIR has no shorter form to truncate to';
 
+/** The same rule at the hour, where **two** levels of precision are added. */
+const COMPLETED_HOUR =
+  'the source stated hour precision \u2014 a partial form `valid_iso8601_time` and ' +
+  '`valid_iso8601_date_time` both publish \u2014 and the FHIR lexical form requires ' +
+  'minutes and seconds, so `:00:00` is added and the FHIR value claims two levels of ' +
+  'precision the source did not state. As with minute precision, FHIR has no shorter ' +
+  'form to truncate to';
+
 function compact<T extends object>(value: T): T {
   const out: Record<string, unknown> = {};
   for (const [key, v] of Object.entries(value)) {
@@ -64,7 +74,7 @@ function compact<T extends object>(value: T): T {
 // ── DV_DATE ↔ date ───────────────────────────────────────────────────────────
 
 export function dvDateToDate(source: DvDate): MappingResult<FhirDate> {
-  return resultFor(expandCompact(source.value), []);
+  return resultFor(expandCompact(source.value, 'date'), []);
 }
 
 export function dateToDvDate(source: FhirDate): MappingResult<DvDate> {
@@ -87,9 +97,11 @@ function splitOffset(value: string): { readonly time: string; readonly offset?: 
 
 export function dvTimeToTime(source: DvTime): MappingResult<FhirTimeElement> {
   const issues: Issue[] = [];
-  const completed = completeSeconds(expandCompact(source.value));
-  if (completed.completed) {
+  const completed = completeSeconds(expandCompact(source.value, 'time'));
+  if (completed.completed === 'minute') {
     issues.push({ path: TEMPORAL_PATH.timeMinutePrecision, message: COMPLETED_SECONDS });
+  } else if (completed.completed === 'hour') {
+    issues.push({ path: TEMPORAL_PATH.timeHourPrecision, message: COMPLETED_HOUR });
   }
 
   const { time, offset } = splitOffset(completed.value);
@@ -159,9 +171,11 @@ export function dvDateTimeToDateTime(source: DvDateTime): MappingResult<FhirDate
     });
   }
 
-  const completed = completeSeconds(expandCompact(source.value));
-  if (completed.completed) {
+  const completed = completeSeconds(expandCompact(source.value, 'dateTime'));
+  if (completed.completed === 'minute') {
     issues.push({ path: TEMPORAL_PATH.dateTimeMinutePrecision, message: COMPLETED_SECONDS });
+  } else if (completed.completed === 'hour') {
+    issues.push({ path: TEMPORAL_PATH.dateTimeHourPrecision, message: COMPLETED_HOUR });
   }
 
   // R5 requires a `dateTime` carrying hours and minutes to state a UTC offset.

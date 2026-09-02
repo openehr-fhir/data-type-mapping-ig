@@ -1,0 +1,5 @@
+{
+  "directions": [],
+  "reason": "This pair records a refusal rather than a conversion. The openEHR side is stated to the hour - a partial form valid_iso8601_date_time publishes as YYYY-MM-DDThh - so it is completed to 2026-03-01T14:00:00 and then refused, because R5 requires a UTC offset once hours and minutes are present and a data-type conversion never invents one. Nothing is produced from it; the FHIR side carries the offset the source does not, and reading it back gives a different DV_DATE_TIME. The dv-date-time.value.hour-precision row declares the completion drop and the dv-date-time.value.no-offset row states the refusal.",
+  "covered_by": "test/iso8601.test.ts"
+}

@@ -1,0 +1,4 @@
+{
+  "directions": ["toFhir"],
+  "reason": "The openEHR side is stated to the hour - a partial form valid_iso8601_time publishes as hh - and FHIR time requires both minutes and seconds, so 14 is completed to 14:00:00. The completion is not reversible: nothing in the FHIR value records that the source stopped at the hour, so reading it back gives 14:00:00, not 14. The dv-time.value.hour-precision row declares the drop."
+}
