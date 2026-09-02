@@ -406,8 +406,33 @@ otherwise.
   both published aggregates change accordingly. `normal_range` and
   `other_reference_ranges` stay folded together: they share one FHIR home and
   one verdict.
+- **"Every citation resolves to a real anchor" is now a rule rather than a
+  claim.** Six `spec-local` citations sitting on real endpoints named a page and
+  no anchor, and one FHIR R5 core citation resolved against nothing at all — the
+  sentence asserting otherwise was false in two ways at once. The ledger now
+  rejects a `spec-local` endpoint citation with no fragment; the five
+  `NULL_FLAVOUR` rows cite `#_null_flavours`, which the openEHR Support
+  Terminology page has published all along; and the `QuestionnaireResponse`
+  citation names an element anchor and is resolved against the mirror like every
+  other R5 core page. The single honest exception — `RelativeTime`, which R5
+  does not define and therefore cannot anchor — is written down as data with a
+  reason, on its own citation, rather than as a silent skip in a test.
 
 **Compatible, Non-Substantive**
+
+*Review remediation, second pass*
+
+- **The third gap inventory now says what it holds.** It was headed "FHIR types
+  with no openEHR counterpart" and described twice as holding *whole* data
+  types, while sixteen of its twenty-seven entries are elements or named
+  sub-cases. It is now "FHIR **features** with no openEHR counterpart", and the
+  prose says plainly that a feature is a whole type, an element, or a named
+  sub-case. No row, verdict, owner, mapping id, or region id changed.
+- **`mapping.md`'s round-trip claim carries the scoping rules.** The guide's
+  most-read page still said "a `lossless` claim is one that round-trips in a
+  test" without them. It now refers to the single canonical statement on
+  `conventions.html` rather than repeating it, so there is one place to keep
+  true.
 
 - **The guide now says exactly what is machine-checked.** `conventions.html`
   and `reference-implementation.html` stated an unqualified claim — every

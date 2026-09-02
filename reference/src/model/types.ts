@@ -80,6 +80,19 @@ export interface Cite {
   readonly url: string;
   readonly label: string;
   readonly verification: Verification;
+  /**
+   * Why this citation carries **no fragment**, for the one case where the
+   * specification offers no anchor to point at.
+   *
+   * The guide claims that every `spec-local` citation on a real endpoint
+   * resolves to a real *anchor*, not merely to a real page. That claim needs
+   * one honest exception — R5 defines no `RelativeTime`, so there is nothing to
+   * anchor to — and it is written **here, in data, with a reason**, rather than
+   * as a silent `continue` in a test. `validate.ts` requires the reason to be
+   * non-empty, and rejects the field on a citation that *does* carry a
+   * fragment.
+   */
+  readonly anchorless?: string;
 }
 
 /** One named piece of information a `lossy` direction does not carry. */

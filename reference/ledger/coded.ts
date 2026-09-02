@@ -41,8 +41,8 @@ const DV_CODED_TEXT = rm('_dv_coded_text_class', 'openEHR RM — DV_CODED_TEXT')
 const CODING = r5('Coding', 'FHIR R5 — Coding');
 const CODEABLE_CONCEPT = r5('CodeableConcept', 'FHIR R5 — CodeableConcept');
 const OPENEHR_TERMINOLOGY: Cite = {
-  url: `${TERM}`,
-  label: 'openEHR — Support Terminology',
+  url: `${TERM}#_null_flavours`,
+  label: 'openEHR — Support Terminology, null flavours',
   verification: 'spec-local',
 };
 const OPENEHR_SUPPORT_IM: Cite = {

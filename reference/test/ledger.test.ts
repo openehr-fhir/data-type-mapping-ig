@@ -396,6 +396,60 @@ test('a non-https citation is rejected', () => {
   );
 });
 
+test('a spec-local endpoint citation with no anchor is rejected', () => {
+  rejects(
+    [
+      mapping({
+        rows: [
+          {
+            ...GOOD_ROW,
+            fhir: [{ ...FHIR_ENDPOINT, cite: { ...FHIR_CITE, url: R5_DATATYPES } }],
+          },
+        ],
+      }),
+    ],
+    'must resolve to an anchor, not merely to a page',
+  );
+});
+
+test('an anchorless endpoint citation is accepted only with a written reason', () => {
+  const row: Row = {
+    ...GOOD_ROW,
+    fhir: [
+      {
+        ...FHIR_ENDPOINT,
+        cite: {
+          ...FHIR_CITE,
+          url: R5_DATATYPES,
+          anchorless: 'R5 defines no such type, so there is no anchor to point at.',
+        },
+      },
+    ],
+  };
+  assert.deepEqual(validateLedger([mapping({ rows: [row] })]), []);
+});
+
+test('an anchorless reason on a citation that does have an anchor is rejected', () => {
+  rejects(
+    [
+      mapping({
+        rows: [
+          {
+            ...GOOD_ROW,
+            fhir: [
+              {
+                ...FHIR_ENDPOINT,
+                cite: { ...FHIR_CITE, anchorless: 'there is an anchor, though' },
+              },
+            ],
+          },
+        ],
+      }),
+    ],
+    "carries a fragment and an 'anchorless' reason",
+  );
+});
+
 // ── One attribute, one declaring class ───────────────────────────────────────
 
 /**

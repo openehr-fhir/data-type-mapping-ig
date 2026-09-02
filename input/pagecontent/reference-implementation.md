@@ -82,8 +82,14 @@ so it is stated here rather than published as a ledger row.
 Citations to the FHIR **extension pack** cannot be verified against a local
 mirror of the R5 specification, because that mirror contains no extension
 definitions. Those citations are taken on the working group's authority, and are
-marked as such. Citations to openEHR RM pages and to FHIR R5 core pages **are**
-resolved and verified.
+marked as such. Citations to openEHR RM pages and to FHIR R5 core pages are held
+to two separate rules. A citation sitting on a **real endpoint** SHALL name an
+anchor rather than a bare page, with one written-down exception where the
+specification offers no anchor at all; that rule is part of the ledger's own
+validation and runs on every build. Resolving those anchors against a local copy
+of the specification is a **second** check, and it runs only when
+`OPENEHR_SPEC_DIR` and `FHIR_R5_DIR` are configured — it is part of the release
+gate and skips silently otherwise.
 
 #### The commands
 

@@ -66,7 +66,7 @@ pages are the normative statement.
 
 ### What is not mapped
 [Gaps](gaps.html) publishes the four inventories of things that do not map:
-openEHR → FHIR, FHIR → openEHR, FHIR types with no openEHR counterpart, and
+openEHR → FHIR, FHIR → openEHR, FHIR features with no openEHR counterpart, and
 types the working group has not yet discussed.
 
 [Open Items](open-items.html) publishes reviewer coverage and the register of
@@ -77,8 +77,11 @@ unresolved actions, with an owner for each.
 The tables on the category pages are generated from a single machine-checked
 mapping ledger, and the worked examples are the fixtures the
 [reference implementation](reference-implementation.html) is tested against. A
-`lossless` claim is one that round-trips in a test; a `lossy` claim is one whose
-dropped fields are exactly the fields the converter reports.
+`lossless` claim is one that round-trips in a test, within the two scoping rules
+[Conventions](conventions.html#what-is-checked) states — `archetype`-scope rows
+and rows whose source side has no counterpart are outside the harness — and a
+`lossy` claim is one whose dropped fields are exactly the fields the converter
+reports.
 
 Reviewing a change to a table therefore means reviewing the ledger, not the
 markdown. The markdown churn is a consequence, not the change itself.

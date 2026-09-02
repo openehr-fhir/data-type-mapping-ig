@@ -102,6 +102,11 @@ export const SPEC_MIRRORS: readonly MirrorEntry[] = [
     root: 'fhir',
     file: 'narrative.html',
   },
+  {
+    prefix: 'https://hl7.org/fhir/R5/questionnaireresponse.html',
+    root: 'fhir',
+    file: 'questionnaireresponse.html',
+  },
 ];
 
 /** The entry that resolves `url`, or `undefined` if the table does not know it. */

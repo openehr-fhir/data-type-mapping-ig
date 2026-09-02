@@ -59,6 +59,8 @@ reverse direction, with a reason — not as "not applicable". An `unmapped`
 verdict on a row that is not yet settled SHALL name an owner, so that every open
 gap has somebody it belongs to.
 
+<a name="what-is-checked"></a>
+
 These are not editorial claims. Each is a machine-checked property of the
 [reference implementation](reference-implementation.html) — with two scoping
 rules that are part of the claim rather than exceptions to it:
@@ -77,7 +79,9 @@ rules that are part of the claim rather than exceptions to it:
 
 Every fixture pair is additionally asserted to be a pair — each side producible
 from the other, modulo the drops the ledger declares — and a pair that holds in
-one direction only says so, with a reason, in a marker beside it.
+one direction only says so, with a reason, in a marker beside it. A pair that
+holds in **neither** direction names the test that pins the behaviour instead,
+because a comparison asserted only to *differ* pins nothing about what differs.
 
 <a name="mandatory-attributes"></a>
 
@@ -172,10 +176,16 @@ mirrors its tests resolve citations against hold the openEHR Reference Model and
 the FHIR R5 **core** specification, and neither contains extension definitions.
 A dagger therefore means *"this citation is taken on the working group's
 authority"*. Citations to openEHR RM pages and to FHIR R5 core pages carry no
-dagger, and each is resolved — to a real **anchor** on a real page, not merely
-to the page — before the guide is published. That check is **conditional on the
-mirrors being configured**: it is part of the release gate, and it skips
-silently for a contributor who has not set them up.
+dagger. Where such a citation sits on a **real endpoint** — a field, an
+extension, or a resource element — it SHALL name a real **anchor** on the page,
+not merely the page; that rule is enforced whenever the guide is built. Its one
+exception is written down as data with a reason: `RelativeTime` is cited to the
+R5 data-type inventory page precisely because R5 defines no such type and there
+is no anchor to point at. Separately, and **conditionally on the specification
+mirrors being configured**, each of those anchors is resolved against a local
+copy of the specification before the guide is published: that check is part of
+the release gate, and it skips silently for a contributor who has not set the
+mirrors up.
 
 Citations to [terminology.hl7.org](https://terminology.hl7.org) and to
 [jira.hl7.org](https://jira.hl7.org) are likewise verified as well-formed and

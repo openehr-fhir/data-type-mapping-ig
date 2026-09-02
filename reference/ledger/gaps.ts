@@ -29,6 +29,24 @@ const R5_INVENTORY: Cite = {
   verification: 'spec-local',
 };
 
+/**
+ * The R5 data-type inventory page, bound **separately** for `RelativeTime`.
+ *
+ * `R5_INVENTORY` is shared by both inventories' `sources` and by five
+ * `not-discussed` rows' `NoCounterpart` sides; setting `anchorless` there would
+ * silently widen the exemption to all of them. `RelativeTime` is the one
+ * endpoint that genuinely has no anchor, so it gets its own binding.
+ */
+const R5_INVENTORY_NO_ANCHOR: Cite = {
+  url: R5,
+  label: 'FHIR R5 — Data Types (inventory)',
+  verification: 'spec-local',
+  anchorless:
+    'R5 defines no `RelativeTime`, so the data-type inventory page carries no anchor to ' +
+    'point at; the type is an R6-era addition and the citation is to the page that ' +
+    'demonstrably does not list it.',
+};
+
 /** The openEHR Data Types **inventory** page, cited by every no-counterpart row. */
 const RM_INVENTORY: Cite = {
   url: RM,
@@ -132,7 +150,7 @@ const FHIR_ONLY: readonly NoCounterpartEntry[] = [
   {
     type: 'RelativeTime',
     anchor: 'RelativeTime',
-    cite: R5_INVENTORY,
+    cite: R5_INVENTORY_NO_ANCHOR,
     reason:
       'An **R6-era** type expressing a time relative to an event rather than on a ' +
       'calendar; R5 does not define it, so the citation is to the R5 data-type inventory ' +
@@ -148,7 +166,7 @@ const fhirTypesWithNoOpenehrCounterpart = {
   category: 'gaps',
   openehrType: '(none)',
   fhirType: 'Address, HumanName, ContactPoint, and others',
-  title: 'FHIR types with no openEHR counterpart',
+  title: 'FHIR features with no openEHR counterpart',
   scope: 'datatype',
   sources: [RM_INVENTORY, R5_INVENTORY],
   review: NOT_REVIEWED,

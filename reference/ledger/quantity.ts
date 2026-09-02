@@ -1276,9 +1276,9 @@ const dvOrdinalToObservationComponent = {
           kind: 'resource-element',
           when: 'the ordinal is an answer to a questionnaire item',
           cite: {
-            url: 'https://hl7.org/fhir/R5/questionnaireresponse.html',
+            url: 'https://hl7.org/fhir/R5/questionnaireresponse.html#QuestionnaireResponse.item.answer',
             label: 'FHIR R5 — QuestionnaireResponse.item.answer',
-            verification: 'spec-remote',
+            verification: 'spec-local',
           },
         },
       ],

@@ -203,6 +203,48 @@ function checkVerdict(
   }
 }
 
+/**
+ * A `spec-local` citation **on an endpoint** resolves to a real anchor, not
+ * merely to a real page.
+ *
+ * `conventions.html` and `reference-implementation.html` say so, and this is
+ * what makes the sentence true rather than aspirational.
+ * `test/cite-local.test.ts` checks the anchor *exists* in the mirror, but skips
+ * a fragment-less citation silently and only runs when both mirror roots are
+ * configured; this rule always runs, and the one honest exception has to be
+ * written down as `anchorless` with a reason.
+ *
+ * Deliberately scoped to endpoints. A `NoCounterpart` side cites an
+ * **inventory** page — "this standard has no such thing" — and an inventory
+ * page is exactly where there is no element-level anchor to point at.
+ */
+function checkEndpointCite(cite: Cite, where: string, out: string[]): void {
+  const hash = cite.url.indexOf('#');
+  const fragment = hash < 0 ? '' : cite.url.slice(hash + 1);
+
+  if (fragment !== '') {
+    if (cite.anchorless !== undefined) {
+      out.push(
+        `${where}: cite carries a fragment and an 'anchorless' reason; the exemption is ` +
+          `for citations that have no anchor to point at: ${cite.url}`,
+      );
+    }
+    return;
+  }
+
+  if (cite.verification !== 'spec-local') return;
+
+  if (cite.anchorless === undefined) {
+    out.push(
+      `${where}: a spec-local citation on an endpoint must resolve to an anchor, not ` +
+        `merely to a page; add the fragment, or state in 'anchorless' why the ` +
+        `specification offers none: ${cite.url}`,
+    );
+    return;
+  }
+  nonEmpty(cite.anchorless, `${where} cite.anchorless`, out);
+}
+
 function checkRow(
   row: Row,
   where: string,
@@ -265,6 +307,13 @@ function checkRow(
   }
 
   for (const cite of citesOf(row)) checkCite(cite, where, out);
+
+  if (!isNoCounterpart(row.openehr)) checkEndpointCite(row.openehr.cite, `${where} openehr`, out);
+  if (!isNoCounterpart(row.fhir)) {
+    for (const endpoint of row.fhir) {
+      checkEndpointCite(endpoint.cite, `${where} fhir '${endpoint.path}'`, out);
+    }
+  }
 
   checkVerdict(row.toFhir, row, `${where} → FHIR`, byMappingId, out);
   checkVerdict(row.toOpenehr, row, `${where} → openEHR`, byMappingId, out);
