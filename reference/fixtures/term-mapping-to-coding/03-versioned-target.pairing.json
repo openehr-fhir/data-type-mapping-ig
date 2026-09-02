@@ -1,0 +1,4 @@
+{
+  "directions": ["toOpenehr"],
+  "reason": "No TERM_MAPPING produces a Coding.version, because openEHR has no separate version field. The inbound direction holds and reports the delegated CODE_PHRASE ↔ Coding drop, which the term-mapping.target row now declares."
+}

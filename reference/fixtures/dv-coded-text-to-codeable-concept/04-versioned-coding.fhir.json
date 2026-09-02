@@ -1,0 +1,12 @@
+{
+  "coding": [
+    {
+      "system": "http://loinc.org",
+      "version": "2.77",
+      "code": "718-7",
+      "display": "Hemoglobin [Mass/volume] in Blood",
+      "userSelected": true
+    }
+  ],
+  "text": "Hemoglobin"
+}

@@ -1,0 +1,4 @@
+{
+  "directions": ["toOpenehr"],
+  "reason": "No DV_STATE produces a Coding.version or a userSelected flag, and DV_STATE.is_terminal has no FHIR home at all, so the outbound direction is not a pair. The inbound direction holds and reports both drops the dv-state.value row delegates to DV_CODED_TEXT ↔ CodeableConcept, and through it to CODE_PHRASE ↔ Coding."
+}

@@ -377,6 +377,17 @@ otherwise.
   failure message. A pair that claims no direction must now name the test that
   pins the behaviour instead, so "asserted only to differ" is no longer the end
   of the story.
+- **The three composing mappings declare the drops they delegate.** A conversion
+  that calls another conversion carries the inner drops forward, so
+  `DV_CODED_TEXT ↔ CodeableConcept`, `TERM_MAPPING ↔ Coding` and
+  `DV_STATE ↔ CodeableConcept` all report a `Coding.version` their tables did
+  not declare — which `conventions.html` promises a `lossy` row never does. The
+  containment rule now admits a **declared** delegated endpoint: a row names the
+  mapping ids its converter composes, and only those mappings' endpoints widen
+  its anchor set. All three rows move from `lossless` to `lossy` inbound, each
+  with a fixture that emits every path it declares. The same rule is tightened
+  in the other direction at the same time: containment is segment-aware, so
+  `Coding.versionable` no longer passes as a descendant of `Coding.version`.
 
 **Compatible, Non-Substantive**
 

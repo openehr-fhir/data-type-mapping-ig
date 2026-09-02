@@ -145,6 +145,18 @@ export interface Row {
   readonly openehr: Endpoint | NoCounterpart;
   /** A non-empty tuple: scenario-dependent, polymorphic, and one-to-many targets. */
   readonly fhir: readonly [Endpoint, ...Endpoint[]] | NoCounterpart;
+  /**
+   * The **mapping ids** whose converters this row's converter composes.
+   *
+   * A composed converter carries the inner result's issues forward, so the
+   * outer row genuinely drops something that lives under an endpoint of the
+   * *inner* mapping — `Coding.version` beneath
+   * `DV_CODED_TEXT.defining_code ↔ CodeableConcept.coding`. Naming the
+   * delegation as **data** lets `validate.ts` widen the drop-containment anchor
+   * set to exactly those endpoints, rather than the rule being relaxed for
+   * everyone or the drop going undeclared.
+   */
+  readonly delegates?: readonly string[];
   readonly toFhir: Verdict;
   readonly toOpenehr: Verdict;
   readonly maturity: Maturity;

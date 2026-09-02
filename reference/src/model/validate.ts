@@ -121,26 +121,63 @@ function checkCite(cite: Cite, where: string, out: string[]): void {
   }
 }
 
-/** Every path a row's drops may legitimately be prefixed by. */
-function anchorPaths(row: Row): readonly string[] {
+/**
+ * Every path a row's drops may legitimately be prefixed by: the row's own
+ * endpoint paths, plus — transitively — the endpoint paths of every row of
+ * every mapping the row `delegates` to.
+ *
+ * The delegated half exists because a composed converter carries its inner
+ * result's issues forward. `DV_CODED_TEXT ↔ CodeableConcept` really does drop
+ * `Coding.version`, and `Coding.version` is prefixed by none of that row's own
+ * endpoints. Widening the anchor set **by declaration** keeps the rule strict
+ * for every row that does not delegate, instead of relaxing it for all of them.
+ */
+function anchorPaths(row: Row, byMappingId: ReadonlyMap<string, Mapping>): readonly string[] {
   const anchors: string[] = [];
   if (!isNoCounterpart(row.openehr)) anchors.push(row.openehr.path);
   for (const endpoint of endpointsOf(row.fhir)) anchors.push(endpoint.path);
+
+  const seen = new Set<string>();
+  const queue = [...(row.delegates ?? [])];
+  while (queue.length > 0) {
+    const id = queue.shift() as string;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const delegate = byMappingId.get(id);
+    if (delegate === undefined) continue;
+    for (const inner of delegate.rows) {
+      if (!isNoCounterpart(inner.openehr)) anchors.push(inner.openehr.path);
+      for (const endpoint of endpointsOf(inner.fhir)) anchors.push(endpoint.path);
+      for (const next of inner.delegates ?? []) queue.push(next);
+    }
+  }
   return anchors;
+}
+
+/**
+ * True when `path` names the anchor itself or something **beneath** it.
+ *
+ * A bare `startsWith` makes a sibling look like a descendant: `Coding.versionable`
+ * would pass against `Coding.version`. The test is segment-aware, which matters
+ * more once the anchor set is widened by `delegates`.
+ */
+function isUnderAnchor(path: string, anchor: string): boolean {
+  return path === anchor || path.startsWith(`${anchor}.`) || path.startsWith(`${anchor}[`);
 }
 
 function checkVerdict(
   verdict: Verdict,
   row: Row,
   where: string,
+  byMappingId: ReadonlyMap<string, Mapping>,
   out: string[],
 ): void {
   if (verdict.fidelity === 'lossy') {
-    const anchors = anchorPaths(row);
+    const anchors = anchorPaths(row, byMappingId);
     for (const drop of verdict.drops) {
       nonEmpty(drop.path, `${where} drop.path`, out);
       nonEmpty(drop.reason, `${where} drop.reason`, out);
-      if (!anchors.some((anchor) => drop.path.startsWith(anchor))) {
+      if (!anchors.some((anchor) => isUnderAnchor(drop.path, anchor))) {
         out.push(
           `${where}: drop path '${drop.path}' is not prefixed by any of the row's ` +
             `own endpoint paths (${anchors.join(', ') || 'none'})`,
@@ -166,10 +203,24 @@ function checkVerdict(
   }
 }
 
-function checkRow(row: Row, where: string, out: string[]): void {
+function checkRow(
+  row: Row,
+  where: string,
+  byMappingId: ReadonlyMap<string, Mapping>,
+  out: string[],
+): void {
   nonEmpty(row.id, `${where} id`, out);
   if (row.id.trim() !== '' && /\s/.test(row.id)) {
     out.push(`${where}: row id must not contain whitespace: '${row.id}'`);
+  }
+
+  // A `delegates` entry naming no mapping is a typo, and a typo would silently
+  // narrow the anchor set rather than widening it — the drop it was written to
+  // admit would then be rejected for the wrong reason, or admitted for one.
+  for (const id of row.delegates ?? []) {
+    if (!byMappingId.has(id)) {
+      out.push(`${where}: delegates to '${id}', which is not a mapping in this ledger`);
+    }
   }
 
   // The `archetype`-scope exemption's own stated justification is that the
@@ -215,8 +266,8 @@ function checkRow(row: Row, where: string, out: string[]): void {
 
   for (const cite of citesOf(row)) checkCite(cite, where, out);
 
-  checkVerdict(row.toFhir, row, `${where} → FHIR`, out);
-  checkVerdict(row.toOpenehr, row, `${where} → openEHR`, out);
+  checkVerdict(row.toFhir, row, `${where} → FHIR`, byMappingId, out);
+  checkVerdict(row.toOpenehr, row, `${where} → openEHR`, byMappingId, out);
 }
 
 /**
@@ -228,6 +279,13 @@ export function validateLedger(mappings: readonly Mapping[]): string[] {
   const out: string[] = [];
   const seenMappingIds = new Set<string>();
   const seenRowIds = new Map<string, string>();
+
+  // Built once and threaded down, because `delegates` resolves a mapping id to
+  // that mapping's endpoint paths.
+  const byMappingId = new Map<string, Mapping>();
+  for (const mapping of mappings) {
+    if (!byMappingId.has(mapping.id)) byMappingId.set(mapping.id, mapping);
+  }
 
   // A FHIR type this guide **maps** may not also be published as having no
   // openEHR counterpart at all: the guide would be answering the same question
@@ -283,7 +341,7 @@ export function validateLedger(mappings: readonly Mapping[]): string[] {
         out.push(`${rowWhere}: duplicate row id, already used by mapping '${previous}'`);
       }
       seenRowIds.set(row.id, mapping.id);
-      checkRow(row, rowWhere, out);
+      checkRow(row, rowWhere, byMappingId, out);
     }
   }
 

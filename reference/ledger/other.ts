@@ -648,7 +648,27 @@ const dvStateToCodeableConcept = {
         },
       ],
       toFhir: { fidelity: 'lossless' },
-      toOpenehr: { fidelity: 'lossless' },
+      toOpenehr: {
+        fidelity: 'lossy',
+        drops: [
+          {
+            path: 'Coding.version',
+            reason:
+              'openEHR has no separate version field and no format for combining system ' +
+              'and version into `terminology_id` has been chosen, so the version is not ' +
+              'carried — this conversion delegates to `DV_CODED_TEXT ↔ CodeableConcept`, ' +
+              'and through it to `CODE_PHRASE ↔ Coding`, and carries both mappings\u2019 ' +
+              'drops forward',
+          },
+          {
+            path: 'CodeableConcept.coding.userSelected',
+            reason:
+              'openEHR has no field marking which coding a user chose; the flag is ' +
+              'consumed to select the inner `defining_code` and is not carried any further',
+          },
+        ],
+      },
+      delegates: ['dv-coded-text-to-codeable-concept'],
       maturity: 'open',
       note:
         'The state **name** maps as an ordinary `DV_CODED_TEXT`; see ' +

@@ -377,8 +377,17 @@ const dvCodedTextToCodeableConcept = {
               'openEHR has no field marking which coding a user chose; the flag is consumed ' +
               'to select `defining_code` and is not carried any further',
           },
+          {
+            path: 'Coding.version',
+            reason:
+              'openEHR has no separate version field and no format for combining system ' +
+              'and version into `terminology_id` has been chosen, so the version is not ' +
+              'carried — this conversion delegates to `CODE_PHRASE ↔ Coding` and carries ' +
+              'that mapping\u2019s drop forward rather than swallowing it',
+          },
         ],
       },
+      delegates: ['code-phrase-to-coding'],
       maturity: 'settled',
       note:
         'When several codings are present, `defining_code` is chosen in this order: the ' +
@@ -471,7 +480,20 @@ const termMappingToCoding = {
         },
       ],
       toFhir: { fidelity: 'lossless' },
-      toOpenehr: { fidelity: 'lossless' },
+      toOpenehr: {
+        fidelity: 'lossy',
+        drops: [
+          {
+            path: 'Coding.version',
+            reason:
+              'openEHR has no separate version field and no format for combining system ' +
+              'and version into `terminology_id` has been chosen, so the version is not ' +
+              'carried — this conversion delegates to `CODE_PHRASE ↔ Coding` and carries ' +
+              'that mapping\u2019s drop forward rather than swallowing it',
+          },
+        ],
+      },
+      delegates: ['code-phrase-to-coding'],
       maturity: 'settled',
       note:
         'The mapped term itself, carried exactly as `CODE_PHRASE ↔ Coding` describes.' +

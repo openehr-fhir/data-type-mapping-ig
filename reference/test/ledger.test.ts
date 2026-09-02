@@ -282,6 +282,65 @@ test('an orphan drop path is rejected', () => {
   );
 });
 
+test('a delegates entry naming no mapping is rejected', () => {
+  rejects(
+    [mapping({ rows: [{ ...GOOD_ROW, delegates: ['no-such-mapping'] }] })],
+    "delegates to 'no-such-mapping'",
+  );
+});
+
+test('a drop that only string-prefixes an anchor is rejected', () => {
+  // `Coding.versionable` is a sibling of `Coding.version`, not a descendant. A
+  // bare `startsWith` admits it, which matters more now that `delegates` widens
+  // the anchor set.
+  rejects(
+    [
+      mapping({
+        rows: [
+          {
+            ...GOOD_ROW,
+            fhir: [{ ...FHIR_ENDPOINT, path: 'Coding.version' }],
+            toFhir: {
+              fidelity: 'lossy',
+              drops: [{ path: 'Coding.versionable', reason: 'a sibling, not a descendant' }],
+            },
+          },
+        ],
+      }),
+    ],
+    "is not prefixed by any of the row's",
+  );
+});
+
+test('a delegated drop is admitted by the delegate mapping own endpoints', () => {
+  const inner = mapping({
+    id: 'code-phrase-to-coding',
+    openehrType: 'CODE_PHRASE',
+    fhirType: 'Coding',
+    rows: [
+      {
+        ...GOOD_ROW,
+        id: 'code-phrase.terminology_id',
+        openehr: { ...OPENEHR_ENDPOINT, path: 'CODE_PHRASE.terminology_id' },
+        fhir: [{ ...FHIR_ENDPOINT, path: 'Coding.version' }],
+      },
+    ],
+  });
+  const outer = mapping({
+    rows: [
+      {
+        ...GOOD_ROW,
+        delegates: ['code-phrase-to-coding'],
+        toOpenehr: {
+          fidelity: 'lossy',
+          drops: [{ path: 'Coding.version', reason: 'carried forward from the inner mapping' }],
+        },
+      },
+    ],
+  });
+  assert.deepEqual(validateLedger([outer, inner]), []);
+});
+
 test('a row with no counterpart on either side is rejected', () => {
   rejects(
     [

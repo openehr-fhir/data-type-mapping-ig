@@ -1,0 +1,4 @@
+{
+  "directions": ["toOpenehr"],
+  "reason": "No openEHR value produces a Coding.version: openEHR has no separate version field, and no format for folding system and version into terminology_id has been chosen. The inbound direction holds and reports both delegated drops — the version and the userSelected flag — which is what the dv-coded-text.defining_code row now declares."
+}
