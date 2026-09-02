@@ -2,10 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import type { Issue, MappingResult } from '../src/result.ts';
+import { registered } from '../src/convert/index.ts';
 import {
   codeableConceptToDvCodedText,
   codingToCodePhrase,
   codingToTermMapping,
+  dataAbsentReasonToNullFlavour,
   dvCodedTextToCodeableConcept,
   termMappingToCoding,
 } from '../src/convert/coded.ts';
@@ -14,6 +16,7 @@ import {
   moneyToDvQuantity,
   quantityToDvQuantity,
   rangeToDvInterval,
+  ratioToDvProportion,
   simpleQuantityToDvQuantity,
 } from '../src/convert/quantity.ts';
 import {
@@ -23,6 +26,7 @@ import {
   stringToDvParsable,
 } from '../src/convert/other.ts';
 import { stringToDvText } from '../src/convert/textual.ts';
+import { durationToDvDuration, timeToDvTime } from '../src/convert/temporal.ts';
 import {
   identifierToDvIdentifier,
   referenceToLink,
@@ -178,7 +182,106 @@ const MANDATORY: readonly {
       'CodeableReference',
     ],
   },
+  {
+    converter: 'ratioToDvProportion',
+    mapping: 'dv-proportion-to-ratio',
+    why: 'DV_PROPORTION.type is 1..1 and no Ratio carries a kind discriminator at all',
+    run: () => ratioToDvProportion({ numerator: { value: 5 }, denominator: { value: 100 } }),
+    paths: [
+      'Ratio.numerator.value',
+      'Ratio.denominator.value',
+      'Ratio.numerator.extension[quantity-precision]',
+    ],
+  },
+  {
+    converter: 'durationToDvDuration',
+    mapping: 'dv-duration-to-duration',
+    why: 'DV_DURATION.value carries its unit inside the lexical form, so a code-less Duration names no unit to write',
+    run: () => durationToDvDuration({ value: 6 }),
+    paths: ['Duration.code[absent]'],
+  },
+  {
+    converter: 'timeToDvTime',
+    mapping: 'dv-time-to-time',
+    why: 'DV_TIME.value is 1..1 while a FHIR time element may carry extensions and no value',
+    run: () => timeToDvTime({}),
+    paths: ['time.value[absent]'],
+  },
+  {
+    converter: 'dataAbsentReasonToNullFlavour',
+    mapping: 'null-flavour-to-data-absent-reason',
+    why: 'the null flavour\u2019s defining_code is 1..1 and a CodeableConcept may state no code at all',
+    run: () => dataAbsentReasonToNullFlavour({ text: 'no reason given' }),
+    paths: ['CodeableConcept.coding[absent]', 'Element.extension[iso21090-nullFlavor]'],
+  },
+  {
+    converter: 'termMappingToCoding',
+    mapping: 'term-mapping-to-coding',
+    why: 'TERM_MAPPING.target has no valid FHIR Coding form, so no Coding is produced (toFhir)',
+    run: () =>
+      termMappingToCoding({
+        _type: 'TERM_MAPPING',
+        match: '=',
+        target: {
+          _type: 'CODE_PHRASE',
+          terminology_id: { value: 'http://snomed.info/sct' },
+          code_string: ' 73211009 ',
+        },
+      }),
+    paths: ['TERM_MAPPING.match', 'CODE_PHRASE.code_string[whitespace]'],
+  },
+  {
+    converter: 'dvCodedTextToCodeableConcept',
+    mapping: 'dv-coded-text-to-codeable-concept',
+    why: 'an unconvertible defining_code would leave a text-only CodeableConcept, which the reverse direction refuses (toFhir)',
+    run: () =>
+      dvCodedTextToCodeableConcept({
+        _type: 'DV_CODED_TEXT',
+        value: 'Anemia',
+        defining_code: {
+          _type: 'CODE_PHRASE',
+          terminology_id: { value: 'http://snomed.info/sct' },
+          code_string: ' 73211009 ',
+        },
+      }),
+    paths: ['DV_CODED_TEXT.defining_code', 'CODE_PHRASE.code_string[whitespace]'],
+  },
 ];
+
+/**
+ * The registered mappings the mandatory-attribute rule **cannot** reach, and
+ * why each one is out of its reach.
+ *
+ * The criterion is a single, checkable one: the FHIR side of these mappings is
+ * a **bare JSON primitive** — a boolean, a number, or a string — so there is no
+ * element that can be present while its value is absent, and therefore no
+ * absent source for a mandatory openEHR attribute to be invented from. Every
+ * other registered mapping takes a FHIR *object* with optional members and is
+ * covered above.
+ *
+ * Together with `MANDATORY` this accounts for the whole registry, and the
+ * assertion below derives that from `registered()` rather than restating a
+ * count. Registering a converter without either covering it or writing down why
+ * the rule cannot reach it now fails, which is what the count assertion this
+ * replaced could not do: it caught deletion and never omission.
+ */
+const NO_MANDATORY_GAP: Readonly<Record<string, string>> = {
+  'dv-boolean-to-boolean':
+    'the FHIR side is a bare JSON boolean, so DV_BOOLEAN.value always has a source',
+  'integer-to-integer':
+    'the FHIR side is a bare JSON number, so the RM Integer always has a source',
+  'integer64-to-integer64':
+    'the FHIR side is the bare JSON string R5 serialises integer64 as; the one refusal ' +
+    'this mapping has is the 32-bit overflow, which is a range fact rather than an absent ' +
+    'mandatory attribute',
+  'real-to-decimal':
+    'the FHIR side is a bare JSON number, so the RM Real always has a source',
+  'dv-uri-to-uri': 'the FHIR side is a bare JSON string, so DV_URI.value always has a source',
+  'dv-date-to-date':
+    'the FHIR side is a bare JSON string, so DV_DATE.value always has a source',
+  'dv-date-time-to-date-time':
+    'the FHIR side is a bare JSON string, so DV_DATE_TIME.value always has a source',
+};
 
 for (const example of MANDATORY) {
   test(`${example.converter}: no invented mandatory attribute — ${example.why}`, () => {
@@ -202,9 +305,35 @@ for (const example of MANDATORY) {
 }
 
 test('the mandatory-attribute rule covers every converter that can meet it', () => {
-  // A guard against the list above silently falling behind the converters: the
-  // count is stated here so that adding a case is a deliberate edit.
-  assert.equal(MANDATORY.length, 15);
+  const covered = new Set(MANDATORY.map((example) => example.mapping));
+  const excused = new Set(Object.keys(NO_MANDATORY_GAP));
+  const accounted = new Set([...covered, ...excused]);
+  const registeredIds = new Set(registered().keys());
+
+  const uncovered = [...registeredIds].filter((id) => !accounted.has(id)).sort();
+  const stale = [...accounted].filter((id) => !registeredIds.has(id)).sort();
+
+  assert.deepEqual(
+    { uncovered, stale },
+    { uncovered: [], stale: [] },
+    'registered but uncovered: ' +
+      `${uncovered.join(', ') || '(none)'}; covered but not registered: ` +
+      `${stale.join(', ') || '(none)'}`,
+  );
+
+  const both = [...covered].filter((id) => excused.has(id)).sort();
+  assert.deepEqual(
+    both,
+    [],
+    `a mapping cannot be both covered and excused: ${both.join(', ')}`,
+  );
+});
+
+test('every opt-out states a reason', () => {
+  const silent = Object.entries(NO_MANDATORY_GAP)
+    .filter(([, why]) => why.trim().length === 0)
+    .map(([id]) => id);
+  assert.deepEqual(silent, [], `opt-outs with no reason: ${silent.join(', ')}`);
 });
 
 // ── the two recorded exceptions ──────────────────────────────────────────────

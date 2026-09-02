@@ -285,6 +285,34 @@ guide asserts and is **Compatible, Substantive**.
   the sub-case is its own `unmapped` row with an owner, and the guide emits
   nothing rather than an instance a validator rejects.
 
+*Review remediation, second pass*
+
+Corrections made in response to a second review of the same release. Everything
+in this group is **Compatible, Substantive** unless the group it sits under says
+otherwise.
+- **The mandatory-attribute rule is now closed over every converter.** The
+  contract test derives its coverage from the converter registry itself rather
+  than from a hand-written list, so registering a converter without either
+  holding it to the rule or writing down why the rule cannot reach it fails the
+  build. Seven mappings are excused on one stated criterion — their FHIR side is
+  a bare JSON primitive, which has no present-but-value-less form — and every
+  other registered mapping is covered.
+- **A `Ratio` no longer becomes a `DV_PROPORTION`.** `DV_PROPORTION.numerator`,
+  `.denominator`, and `.type` are all mandatory, and FHIR carries no kind
+  discriminator at all; the guide already published `DV_PROPORTION.type` as
+  `unmapped` inbound on the ground that reading the kind off the denominator is
+  an inference rather than a carried value. The conversion now refuses instead
+  of performing that inference and substituting `0` for an absent numerator, so
+  the numerator, denominator and precision rows are `unmapped` inbound too and
+  `DV_PROPORTION ↔ Ratio` is published as the one-directional mapping it is.
+- **Three more conversions refuse where their mirror already did.** A
+  `TERM_MAPPING` whose target has no valid FHIR `code` form, a `DV_CODED_TEXT`
+  whose `defining_code` has none, and the `DV_STATE` that composes it now
+  produce nothing and say why, instead of returning a value-less `lossy` result
+  or a text-only `CodeableConcept` with the mandatory defining code gone. A
+  `time` element carrying extensions and no value, and a `data-absent-reason`
+  `CodeableConcept` stating no code at all, are refused on the same ground.
+
 **Compatible, Non-Substantive**
 
 - **The guide now says exactly what is machine-checked.** `conventions.html`

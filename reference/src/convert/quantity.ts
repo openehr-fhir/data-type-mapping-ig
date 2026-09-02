@@ -21,7 +21,6 @@
 import { register } from '../registry.ts';
 import { issuesOf, resultFor, unmapped, type Issue, type MappingResult } from '../result.ts';
 import {
-  PROPORTION_KIND,
   type DvCount,
   type DvIntervalQuantity,
   type DvProportion,
@@ -53,6 +52,9 @@ export const PATH = {
   countCode: 'Count.code',
   proportionType: 'DV_PROPORTION.type',
   ratioUnits: 'Ratio.numerator.code',
+  ratioNumeratorValue: 'Ratio.numerator.value',
+  ratioDenominatorValue: 'Ratio.denominator.value',
+  ratioNumeratorPrecision: 'Ratio.numerator.extension[quantity-precision]',
   lowerIncluded: 'DV_INTERVAL.lower_included',
   upperIncluded: 'DV_INTERVAL.upper_included',
   simpleMagnitudeStatus: 'DV_QUANTITY.magnitude_status',
@@ -322,23 +324,30 @@ export function ratioToDvProportion(source: Ratio): MappingResult<DvProportion> 
     });
   }
 
-  const denominator = source.denominator?.value ?? 1;
-  const kind =
-    denominator === 1
-      ? PROPORTION_KIND.pk_unitary
-      : denominator === 100
-        ? PROPORTION_KIND.pk_percent
-        : PROPORTION_KIND.pk_ratio;
+  // `DV_PROPORTION` declares `numerator` and `denominator` as `Real [1..1]` and
+  // `type` as `PROPORTION_KIND [1..1]`, while `Ratio.numerator` and
+  // `.denominator` are `0..1` and FHIR carries **no** kind discriminator at all.
+  // `dv-proportion.type` already publishes the inbound direction as `unmapped`
+  // on the stated ground that reading the kind off the denominator "is an
+  // inference, not a carried value", so this converter may not perform it — and
+  // with a mandatory attribute that nothing can source, **no `Ratio` produces a
+  // `DV_PROPORTION` at all**. The paths named are FHIR-side, because those are
+  // the source paths of this direction; `DV_PROPORTION.type`'s FHIR side is
+  // `NoCounterpart` and contributes nothing here.
+  const unsourceable = (endpoint: string): string =>
+    `DV_PROPORTION.type is mandatory (1..1) and no Ratio carries a kind discriminator; ` +
+    `inferring it from the denominator is an inference rather than a carried value, so ` +
+    `nothing at ${endpoint} is produced`;
 
-  const value: DvProportion = compact({
-    _type: 'DV_PROPORTION' as const,
-    numerator: source.numerator?.value ?? 0,
-    denominator,
-    type: kind,
-    precision: extensionValue(source.numerator, EXT.quantityPrecision)?.valueInteger,
-  });
-
-  return resultFor(value, issues);
+  return unmapped([
+    { path: PATH.ratioNumeratorValue, message: unsourceable('DV_PROPORTION.numerator') },
+    { path: PATH.ratioDenominatorValue, message: unsourceable('DV_PROPORTION.denominator') },
+    {
+      path: PATH.ratioNumeratorPrecision,
+      message: unsourceable('DV_PROPORTION.precision'),
+    },
+    ...issues,
+  ]);
 }
 
 register<DvProportion, Ratio>('dv-proportion-to-ratio', {

@@ -272,16 +272,20 @@ register<DvParsable, FhirStringElement>('dv-parsable-to-string', {
 // ── DV_STATE ↔ CodeableConcept ───────────────────────────────────────────────
 
 export function dvStateToCodeableConcept(source: DvState): MappingResult<CodeableConcept> {
+  const own: Issue = {
+    path: OTHER_PATH.isTerminal,
+    message:
+      'FHIR has no data type for a state-machine value and no element carries a terminal ' +
+      'flag; carrying it would require an extension, and none is invented here',
+  };
   const concept = dvCodedTextToCodeableConcept(source.value);
-  return resultFor(concept.value as CodeableConcept, [
-    {
-      path: OTHER_PATH.isTerminal,
-      message:
-        'FHIR has no data type for a state-machine value and no element carries a terminal ' +
-        'flag; carrying it would require an extension, and none is invented here',
-    },
-    ...issuesOf(concept),
-  ]);
+  // `DV_STATE.value` is a `DV_CODED_TEXT`, so a refusal inside it is a refusal
+  // here: the composition inherits the mandatory-attribute rule rather than
+  // publishing a `CodeableConcept` the inner converter declined to build.
+  if (concept.value === undefined) {
+    return unmapped([own, ...issuesOf(concept)]);
+  }
+  return resultFor(concept.value, [own, ...issuesOf(concept)]);
 }
 
 export function codeableConceptToDvState(source: CodeableConcept): MappingResult<DvState> {

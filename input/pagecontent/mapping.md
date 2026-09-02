@@ -33,7 +33,7 @@ pages are the normative statement.
 |-|-|-|-|-|-|
 | [DV_QUANTITY](mapping-quantity.html) | `Quantity` | `lossy` | `lossy` | `open` | `datatype` |
 | [DV_COUNT](mapping-quantity.html) | `Count` | `lossy` | `lossy` | `settled` | `datatype` |
-| [DV_PROPORTION](mapping-quantity.html) | `Ratio` | `lossy` | `lossy` | `open` | `datatype` |
+| [DV_PROPORTION](mapping-quantity.html) | `Ratio` | `lossy` | `unmapped` | `open` | `datatype` |
 | [DV_INTERVAL<T>](mapping-quantity.html) | `Range \| Period \| Quantity` | `lossy` | `lossy` | `settled` | `datatype` |
 | [DV_QUANTITY](mapping-quantity.html) | `Money` | `lossy` | `lossy` | `open` | `datatype` |
 | [DV_QUANTITY](mapping-quantity.html) | `SimpleQuantity` | `lossy` | `lossy` | `settled` | `datatype` |

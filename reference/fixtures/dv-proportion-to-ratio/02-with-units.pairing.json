@@ -1,4 +1,5 @@
 {
-  "directions": ["toOpenehr"],
-  "reason": "DV_PROPORTION carries bare decimals and no units, so no DV_PROPORTION can produce a Ratio whose numerator and denominator carry a system and a code. The fixture demonstrates the inbound case; the fhir:ratio.units row says so."
+  "directions": [],
+  "reason": "Neither direction holds, and the two reasons are different. Outbound, DV_PROPORTION carries bare decimals and no units, so no DV_PROPORTION produces a Ratio whose numerator and denominator carry a system and a code — the fhir:ratio.units row says so. Inbound, DV_PROPORTION.type is mandatory and no Ratio carries a kind discriminator, so ratioToDvProportion produces nothing at all.",
+  "covered_by": "test/contract.test.ts"
 }

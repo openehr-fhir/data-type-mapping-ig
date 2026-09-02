@@ -1,0 +1,4 @@
+{
+  "directions": ["toFhir"],
+  "reason": "A DV_PROPORTION produces this Ratio exactly. The reverse does not hold: DV_PROPORTION.type is mandatory (1..1) and no Ratio carries a kind discriminator, so ratioToDvProportion refuses rather than inferring pk_percent from a denominator of 100 — the inference the dv-proportion.type row already publishes as unmapped."
+}

@@ -38,6 +38,7 @@ export const TEMPORAL_PATH = {
   durationValueAbsent: 'Duration.value[absent]',
   durationCodeAbsent: 'Duration.code[absent]',
   timeOffset: 'DV_TIME.value[timezone]',
+  timeValueAbsent: 'time.value[absent]',
   durationMultiComponent: 'DV_DURATION.value[multi-component]',
 } as const;
 
@@ -106,9 +107,24 @@ export function dvTimeToTime(source: DvTime): MappingResult<FhirTimeElement> {
 }
 
 export function timeToDvTime(source: FhirTimeElement): MappingResult<DvTime> {
+  // `DV_TIME.value` is mandatory (1..1) while a FHIR primitive element may carry
+  // extensions and no value at all. The empty string is not a time, so nothing
+  // is produced rather than an invalid `DV_TIME` reported `lossless` —
+  // `stringToDvText` refuses the same shape on the same ground.
+  if (source.value === undefined) {
+    return unmapped([
+      {
+        path: TEMPORAL_PATH.timeValueAbsent,
+        message:
+          'DV_TIME.value is mandatory (1..1) and this time element carries no value, only ' +
+          'extensions; the mandatory-attribute rule forbids inventing one, so nothing is ' +
+          'produced',
+      },
+    ]);
+  }
+
   const issues: Issue[] = [];
-  const raw = source.value ?? '';
-  const { value, truncated } = truncateFractionalSeconds(raw);
+  const { value, truncated } = truncateFractionalSeconds(source.value);
 
   if (truncated) {
     issues.push({

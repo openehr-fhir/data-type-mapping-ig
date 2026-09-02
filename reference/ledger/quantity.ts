@@ -620,7 +620,15 @@ const dvProportionToRatio = {
         },
       ],
       toFhir: { fidelity: 'lossless' },
-      toOpenehr: { fidelity: 'lossless' },
+      toOpenehr: {
+        fidelity: 'unmapped',
+        reason:
+          'Nothing is produced. `DV_PROPORTION.type` is mandatory and no `Ratio` carries a ' +
+          'kind discriminator, so no `Ratio` becomes a `DV_PROPORTION` at all and the ' +
+          'numerator has nothing to land in. The value itself would carry across; it does ' +
+          'not carry across on its own.',
+        owner: 'FHIR-56001',
+      },
       maturity: 'settled',
       note: 'FHIR carries the numerator as a `Quantity`; openEHR carries a bare decimal.',
     },
@@ -644,7 +652,14 @@ const dvProportionToRatio = {
         },
       ],
       toFhir: { fidelity: 'lossless' },
-      toOpenehr: { fidelity: 'lossless' },
+      toOpenehr: {
+        fidelity: 'unmapped',
+        reason:
+          'Nothing is produced, for the same reason as the numerator: `DV_PROPORTION.type` ' +
+          'is mandatory and unsourceable from a `Ratio`, so the denominator has nothing to ' +
+          'land in.',
+        owner: 'FHIR-56001',
+      },
       maturity: 'settled',
       note:
         '`pk_unitary` fixes the denominator to `1` and `pk_percent` fixes it to `100`; ' +
@@ -688,7 +703,11 @@ const dvProportionToRatio = {
       maturity: 'open',
       note:
         'The desire is to use the standard `rendered-value` extension; the group found ' +
-        'nothing on `Ratio` for fraction display and concluded an extension may be needed.',
+        'nothing on `Ratio` for fraction display and concluded an extension may be needed. ' +
+        'The reference implementation **refuses rather than infers**: because the kind is ' +
+        'mandatory and unsourceable, `ratioToDvProportion` produces no `DV_PROPORTION` at ' +
+        'all, which is why the numerator, denominator and precision rows are `unmapped` ' +
+        'inbound too.',
     },
     {
       id: 'dv-proportion.precision',
@@ -710,7 +729,14 @@ const dvProportionToRatio = {
         },
       ],
       toFhir: { fidelity: 'lossless' },
-      toOpenehr: { fidelity: 'lossless' },
+      toOpenehr: {
+        fidelity: 'unmapped',
+        reason:
+          'Nothing is produced. `DV_PROPORTION.type` is mandatory and unsourceable from a ' +
+          '`Ratio`, so no `DV_PROPORTION` is produced and the precision extension has ' +
+          'nothing to land in.',
+        owner: 'FHIR-56001',
+      },
       maturity: 'open',
       note:
         'openEHR carries one precision for the whole proportion; FHIR would carry one per ' +

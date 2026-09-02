@@ -45,6 +45,8 @@ export const CODED_PATH = {
   codingCodeAbsent: 'Coding.code[absent]',
   codeableConceptCodingAbsent: 'CodeableConcept.coding[absent]',
   codeableConceptCoding: 'CodeableConcept.coding',
+  definingCode: 'DV_CODED_TEXT.defining_code',
+  mappingsTarget: 'DV_CODED_TEXT.mappings.target',
   elementNullFlavour: 'ELEMENT.null_flavour',
   iso21090NullFlavor: 'Element.extension[iso21090-nullFlavor]',
   codeStringWhitespace: 'CODE_PHRASE.code_string[whitespace]',
@@ -225,14 +227,46 @@ export function dvCodedTextToCodeableConcept(
     }
   }
 
-  const converted = [
-    codePhraseToCoding(source.defining_code),
-    ...mappings.map((m) => codePhraseToCoding(m.target)),
-  ];
+  const definingResult = codePhraseToCoding(source.defining_code);
+  const mappedResults = mappings.map((m) => codePhraseToCoding(m.target));
+  const converted = [definingResult, ...mappedResults];
 
-  const coding: Coding[] = [];
-  for (const result of converted) {
-    if (result.value !== undefined) coding.push(result.value);
+  // `DV_CODED_TEXT.defining_code` is mandatory (1..1). A defining code with no
+  // valid FHIR `Coding` form would leave a text-only `CodeableConcept` — which
+  // is exactly the input `codeableConceptToDvCodedText` refuses in the other
+  // direction, so both directions refuse the same clinical fact rather than one
+  // refusing and the other silently degrading.
+  if (definingResult.value === undefined) {
+    return unmapped([
+      {
+        path: CODED_PATH.definingCode,
+        message:
+          'the defining code has no valid FHIR Coding form, and a CodeableConcept carrying ' +
+          'only text has lost the mandatory DV_CODED_TEXT.defining_code, so nothing is ' +
+          'produced',
+      },
+      ...issues,
+      ...issuesOf(...converted),
+    ]);
+  }
+
+  const coding: Coding[] = [definingResult.value];
+  for (const result of mappedResults) {
+    // `TERM_MAPPING.target` is mandatory too, so an unconvertible mapped target
+    // stops the conversion rather than being dropped from the array in silence.
+    if (result.value === undefined) {
+      return unmapped([
+        {
+          path: CODED_PATH.mappingsTarget,
+          message:
+            'a mapped term has no valid FHIR Coding form; discarding it would publish a ' +
+            'CodeableConcept the source does not state, so nothing is produced',
+        },
+        ...issues,
+        ...issuesOf(...converted),
+      ]);
+    }
+    coding.push(result.value);
   }
 
   return resultFor(compact({ coding, text: source.value }), [
@@ -323,14 +357,13 @@ register<DvCodedText, CodeableConcept>('dv-coded-text-to-codeable-concept', {
 // ── TERM_MAPPING ↔ Coding ────────────────────────────────────────────────────
 
 export function termMappingToCoding(source: TermMapping): MappingResult<Coding> {
-  const issues: Issue[] = [
-    {
-      path: CODED_PATH.termMappingMatch,
-      message:
-        'Coding has no element expressing the degree of equivalence between two terms; ' +
-        'FHIR carries that relationship in a ConceptMap, not in the instance',
-    },
-  ];
+  const matchIssue: Issue = {
+    path: CODED_PATH.termMappingMatch,
+    message:
+      'Coding has no element expressing the degree of equivalence between two terms; ' +
+      'FHIR carries that relationship in a ConceptMap, not in the instance',
+  };
+  const issues: Issue[] = [];
 
   if (source.purpose !== undefined) {
     issues.push({
@@ -343,7 +376,16 @@ export function termMappingToCoding(source: TermMapping): MappingResult<Coding> 
   }
 
   const target = codePhraseToCoding(source.target);
-  return resultFor(target.value as Coding, [...issues, ...issuesOf(target)]);
+  // `TERM_MAPPING.target` is mandatory (1..1) and the CODE_PHRASE has no valid
+  // FHIR `Coding` form, so nothing is produced. Casting the absent value
+  // through `resultFor` would return a `lossy` result with no value, which the
+  // `MappingResult` contract forbids — `codingToTermMapping` already refuses
+  // the mirror-image input.
+  if (target.value === undefined) {
+    return unmapped([matchIssue, ...issues, ...issuesOf(target)]);
+  }
+
+  return resultFor(target.value, [matchIssue, ...issues, ...issuesOf(target)]);
 }
 
 export function codingToTermMapping(source: Coding): MappingResult<TermMapping> {
@@ -448,16 +490,34 @@ export function nullFlavourToDataAbsentReason(
 export function dataAbsentReasonToNullFlavour(
   source: CodeableConcept,
 ): MappingResult<NullFlavour> {
-  const issues: Issue[] = [
-    {
-      path: CODED_PATH.iso21090NullFlavor,
-      message:
-        'an incoming v3 NullFlavor extension is not consumed here: this converter reads ' +
-        'data-absent-reason, and the v3 hierarchy is deeper than openEHR\u2019s, so NI, ' +
-        'INV and their children collapse onto 271 and UNK and its children onto 253',
-    },
-  ];
-  const code = source.coding?.[0]?.code ?? 'unknown';
+  const nullFlavorExtension: Issue = {
+    path: CODED_PATH.iso21090NullFlavor,
+    message:
+      'an incoming v3 NullFlavor extension is not consumed here: this converter reads ' +
+      'data-absent-reason, and the v3 hierarchy is deeper than openEHR\u2019s, so NI, ' +
+      'INV and their children collapse onto 271 and UNK and its children onto 253',
+  };
+
+  // The openEHR null flavour is a `DV_CODED_TEXT` whose `defining_code` is
+  // mandatory (1..1) while `CodeableConcept.coding` is `0..*`. Collapsing a
+  // *stated* data-absent-reason code onto its nearest openEHR ancestor is a
+  // terminology fact; manufacturing 253 out of a CodeableConcept that states no
+  // code at all is the invention the mandatory-attribute rule forbids.
+  const code = source.coding?.[0]?.code;
+  if (code === undefined) {
+    return unmapped([
+      {
+        path: CODED_PATH.codeableConceptCodingAbsent,
+        message:
+          'the null flavour\u2019s defining_code is mandatory (1..1) and this ' +
+          'CodeableConcept states no code; the mandatory-attribute rule forbids inventing ' +
+          'one, so nothing is produced',
+      },
+      nullFlavorExtension,
+    ]);
+  }
+
+  const issues: Issue[] = [nullFlavorExtension];
 
   if (!DAR_EXACT.has(code)) {
     issues.push({
