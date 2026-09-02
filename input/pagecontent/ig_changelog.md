@@ -345,6 +345,20 @@ otherwise.
   first-class `unmapped` row with an owner, worded against the normative
   sentence rather than the lexical form — R5's `dateTime` regex makes the zone
   group optional, so a regex-only reading misses the rule entirely.
+- **Negative durations are written the way openEHR writes them.** openEHR's
+  `Iso8601_duration` supports a negative duration — its own example is `-P3M`,
+  "minus 3 months", for a very premature newborn — but its component invariants
+  require every component to be non-negative, so the sign precedes the `P`. The
+  conversion emitted `P-3M`, which violates a published openEHR invariant, and
+  reported nothing about it. Both directions now use the `-P…` / `-PT…` form,
+  and the parser accepts it, so the pair stays symmetric.
+- **`DV_DURATION.value` no longer claims `lossless` for the millisecond case.**
+  `{value: 5, code: "ms"}` becomes `PT0.005S` and reads back as
+  `{value: 0.005, code: "s"}`: the magnitude changes, not only the unit, so the
+  drop already booked on `Duration.code` never covered it. The sub-case is now a
+  FHIR-sourced `Duration.value[ms]` row of its own, the conversion reports the
+  rescale as a second named drop, and a millisecond fixture pair puts it under
+  the round-trip matrix — it passed before only because no `ms` pair existed.
 
 **Compatible, Non-Substantive**
 

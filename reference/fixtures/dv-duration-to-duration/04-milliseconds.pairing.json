@@ -1,0 +1,4 @@
+{
+  "directions": ["toOpenehr"],
+  "reason": "No DV_DURATION produces a millisecond-coded Duration: openEHR's Iso8601_duration has no millisecond designator, so PT0.005S reads back as 0.005 seconds rather than 5 milliseconds. The inbound direction holds and reports both the unit fold and the magnitude rescale; the fhir:duration.value.ms row says so."
+}

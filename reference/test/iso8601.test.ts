@@ -45,14 +45,50 @@ test('ms is the one unit that does not survive the return trip, and says so', ()
   assert.equal(iso.fidelity, 'lossy', 'a unit change is a loss, not a lossless conversion');
   assert.deepEqual(
     iso.issues.map((issue: Issue) => issue.path),
-    ['Duration.code'],
+    ['Duration.code', 'Duration.value[ms]'],
   );
 
   // The asymmetry itself: `GROUP_UNITS` has no `ms` capture, so the value comes
-  // back in seconds. The magnitude is exact; the unit is not carried.
+  // back in seconds. The length of time is the same; neither the unit nor the
+  // stated magnitude is carried, which is why both are named drops.
   const back = iso8601ToUcum('PT0.25S');
   assert.equal(back.value?.code, 's');
   assert.equal(back.value?.value, 0.25);
+});
+
+test('a negative duration puts the sign before the P, as openEHR requires', () => {
+  // openEHR's own example is `-P3M`, "minus 3 months" for a very premature
+  // newborn; its component invariants (`Years_valid` … `Seconds_valid`) forbid
+  // the `P-3M` form the converter used to emit.
+  const months = ucumToIso8601({ value: -3, code: 'mo', system: 'http://unitsofmeasure.org' });
+  assert.equal(months.value, '-P3M');
+  assert.equal(months.fidelity, 'lossless');
+
+  const minutes = ucumToIso8601({ value: -6, code: 'min', system: 'http://unitsofmeasure.org' });
+  assert.equal(minutes.value, '-PT6M');
+
+  const milliseconds = ucumToIso8601({
+    value: -250,
+    code: 'ms',
+    system: 'http://unitsofmeasure.org',
+  });
+  assert.equal(milliseconds.value, '-PT0.25S');
+
+  // And the inverse: parsing accepts the leading sign, so the pair is symmetric
+  // rather than one-sided.
+  assert.equal(iso8601ToUcum('-P3M').value?.value, -3);
+  assert.equal(iso8601ToUcum('-P3M').value?.code, 'mo');
+  assert.equal(iso8601ToUcum('-PT6M').value?.value, -6);
+  assert.equal(iso8601ToUcum('P-3M').fidelity, 'unmapped', 'the sign never sits inside');
+
+  const pair = converterFor('dv-duration-to-duration');
+  assert.ok(pair);
+  assert.equal(
+    (pair.toOpenehr({ value: -3, code: 'mo', system: 'http://unitsofmeasure.org' }).value as {
+      value?: string;
+    })?.value,
+    '-P3M',
+  );
 });
 
 test('months and minutes are distinguished by the T separator', () => {

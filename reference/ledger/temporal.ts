@@ -37,6 +37,7 @@ const DV_DATE_TIME = rm('_dv_date_time_class', 'openEHR RM — DV_DATE_TIME');
 const DV_DURATION = rm('_dv_duration_class', 'openEHR RM — DV_DURATION');
 const DV_TEMPORAL = rm('_dv_temporal_class', 'openEHR RM — DV_TEMPORAL');
 const ISO_TYPES = base('_time_types', 'openEHR BASE — ISO 8601 time types');
+const ISO_DURATION_TYPE = base('_iso8601_duration_class', 'openEHR BASE — Iso8601_duration');
 const FHIR_DATE = r5('date', 'FHIR R5 — date');
 const FHIR_TIME = r5('time', 'FHIR R5 — time');
 const FHIR_DATETIME = r5('dateTime', 'FHIR R5 — dateTime');
@@ -421,7 +422,7 @@ const dvDurationToDuration = {
   fhirType: 'Duration',
   title: 'DV_DURATION ↔ Duration',
   scope: 'datatype',
-  sources: [DV_DURATION, FHIR_DURATION],
+  sources: [DV_DURATION, ISO_DURATION_TYPE, FHIR_DURATION],
   review: DURATION_REVIEW,
   rows: [
     {
@@ -449,16 +450,66 @@ const dvDurationToDuration = {
       note:
         'A UCUM quantity carries one unit, so a single-component duration converts ' +
         'cleanly: `a` ↔ `P{n}Y`, `mo` ↔ `P{n}M`, `wk` ↔ `P{n}W`, `d` ↔ `P{n}D`, ' +
-        '`h` ↔ `PT{n}H`, `min` ↔ `PT{n}M`, and `s` ↔ `PT{n}S`. `ms` is the exception: it ' +
-        'has no ISO 8601 designator of its own, so `{n}` ms is written as ' +
-        '`PT{n/1000}S` — the **value** is preserved exactly and the **unit is not**, ' +
-        'because reading that duration back names seconds, not milliseconds. That ' +
-        'asymmetry is reported as a drop rather than claimed lossless. Note ' +
+        '`h` ↔ `PT{n}H`, `min` ↔ `PT{n}M`, and `s` ↔ `PT{n}S`. **Durations may be ' +
+        'negative**, and the sign belongs *before* the `P`: openEHR\u2019s ' +
+        '`Iso8601_duration` gives `-P3M` — an age of minus three months, for a very ' +
+        'premature newborn — as its own example, while its `Years_valid` … ' +
+        '`Seconds_valid` invariants require every individual component to be ' +
+        'non-negative, so `P-3M` is not a legal openEHR duration. A negative ' +
+        '`Duration.value` is legal FHIR; invariant `drt-1` constrains only the code. ' +
+        'A millisecond-coded `Duration` is the one case that does **not** carry: it is ' +
+        'the `Duration.value[ms]` row below, not this one. Note ' +
         'that `M` means *months* before the `T` separator and *minutes* after it. Even ' +
         'within UCUM, date and time conversions are not straightforward, and sub-millisecond ' +
         'precision may be lost. A standalone conversion library is planned by the working ' +
         'group; if one is published it supersedes the reference helper rather than ' +
         'conflicting with it.',
+    },
+    {
+      id: 'fhir:duration.value.ms',
+      scope: 'datatype',
+      openehr: {
+        kind: 'none',
+        reason:
+          'openEHR\u2019s `Iso8601_duration` has **no millisecond designator**. A ' +
+          'millisecond-coded `Duration` therefore has no openEHR form that keeps the ' +
+          'magnitude as stated: `5 ms` can only be written `PT0.005S`, which is a ' +
+          'different number in a different unit.',
+        cite: ISO_DURATION_TYPE,
+      },
+      fhir: [
+        {
+          path: 'Duration.value[ms]',
+          cardinality: '0..1',
+          type: 'decimal',
+          kind: 'element',
+          cite: FHIR_DURATION,
+        },
+      ],
+      toFhir: {
+        fidelity: 'unmapped',
+        reason:
+          'No `DV_DURATION` produces a millisecond-coded `Duration`: with no `ms` ' +
+          'designator to parse, an ISO 8601 duration always reads back as seconds.',
+        owner: 'working-group',
+      },
+      toOpenehr: {
+        fidelity: 'unmapped',
+        reason:
+          'The magnitude is rescaled with the unit — `{value: 5, code: "ms"}` becomes ' +
+          '`PT0.005S`, and reading that back gives `{value: 0.005, code: "s"}`. The ' +
+          'duration is the same length of time and the **stated number is not the same ' +
+          'number**, so the millisecond form itself does not survive.',
+        owner: 'working-group',
+      },
+      maturity: 'open',
+      note:
+        'A **FHIR-sourced** gap, in the pattern of `Quantity.comparator[ad]` and ' +
+        '`Attachment.size[overflow]`: the conversion still produces a `DV_DURATION`, and ' +
+        'the row says the FHIR *feature* — a magnitude stated in milliseconds — has no ' +
+        'openEHR form. It is deliberately **not** an openEHR-side path: nothing in ' +
+        '`DV_DURATION` emits it, and declaring one would make every ordinary duration ' +
+        'fixture report a loss it does not make.',
     },
     {
       id: 'dv-duration.value.multi-component',

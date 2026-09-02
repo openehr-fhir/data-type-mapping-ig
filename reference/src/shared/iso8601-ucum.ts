@@ -51,9 +51,18 @@ export interface UcumDuration {
 
 const UCUM_SYSTEM = 'http://unitsofmeasure.org' as const;
 
-/** `P` [n]Y [n]M [n]W [n]D [ T [n]H [n]M [n(.n)]S ] */
+/**
+ * `[-] P` [n]Y [n]M [n]W [n]D [ T [n]H [n]M [n(.n)]S ]
+ *
+ * The leading `-` is deliberate. openEHR's `Iso8601_duration` supports negative
+ * durations — its own worked example is `-P3M`, "minus 3 months" for a very
+ * premature newborn — but its `Years_valid` … `Seconds_valid` invariants all
+ * require the individual components to be non-negative, so **the sign precedes
+ * `P`**. It is matched here rather than captured, because adding a group would
+ * shift every index `GROUP_UNITS` depends on.
+ */
 const ISO_DURATION =
-  /^P(?!$)(?:(\d+(?:\.\d+)?)Y)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)W)?(?:(\d+(?:\.\d+)?)D)?(?:T(?!$)(?:(\d+(?:\.\d+)?)H)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)S)?)?$/;
+  /^-?P(?!$)(?:(\d+(?:\.\d+)?)Y)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)W)?(?:(\d+(?:\.\d+)?)D)?(?:T(?!$)(?:(\d+(?:\.\d+)?)H)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)S)?)?$/;
 
 /** The order the capture groups appear in, as UCUM codes. */
 const GROUP_UNITS: readonly string[] = ['a', 'mo', 'wk', 'd', 'h', 'min', 's'];
@@ -111,8 +120,9 @@ export function iso8601ToUcum(iso: string): MappingResult<UcumDuration> {
   }
 
   const only = present[0] as { unit: string; value: number };
+  const magnitude = iso.startsWith('-') ? -only.value : only.value;
   return {
-    value: { value: only.value, code: only.unit, system: UCUM_SYSTEM },
+    value: { value: magnitude, code: only.unit, system: UCUM_SYSTEM },
     fidelity: 'lossless',
     issues: [],
   };
@@ -131,29 +141,46 @@ export function ucumToIso8601(duration: UcumDuration): MappingResult<string> {
     return { fidelity: 'unmapped', issues: [issue] };
   }
 
+  // openEHR's `Iso8601_duration` places the sign **before** `P`: every
+  // component invariant (`Years_valid` … `Seconds_valid`) requires a
+  // non-negative value, so `P-3M` violates a published openEHR invariant while
+  // `-P3M` is the form the specification's own example uses. A negative
+  // `Duration.value` is legal FHIR — `drt-1` constrains only the code.
+  const sign = duration.value < 0 ? '-' : '';
+  const magnitude = Math.abs(duration.value);
+
   if (unit.ucum === 'ms') {
     // `GROUP_UNITS` has no `ms` capture, so `PT0.001S` parses back as seconds:
     // the unit provably does not survive the return trip, and claiming
     // `lossless` here would be the same defect the mandatory-attribute rule
-    // exists to stop. The value is right; the unit is not carried.
+    // exists to stop. **The magnitude does not survive either** — 5 ms is
+    // written `PT0.005S` and reads back as 0.005 s — so the rescale is its own
+    // named drop rather than something the unit drop can be read as covering.
     return {
-      value: `PT${duration.value / 1000}S`,
+      value: `${sign}PT${magnitude / 1000}S`,
       fidelity: 'lossy',
       issues: [
         {
           path: 'Duration.code',
           message:
-            `'ms' has no ISO 8601 designator of its own, so ${duration.value} ms is ` +
-            `written as PT${duration.value / 1000}S; the value is preserved exactly and ` +
-            'the unit is not — the same duration read back names seconds, not milliseconds',
+            `'ms' has no ISO 8601 designator of its own, so ${magnitude} ms is ` +
+            `written as ${sign}PT${magnitude / 1000}S; the unit is not carried — the same ` +
+            'duration read back names seconds, not milliseconds',
+        },
+        {
+          path: 'Duration.value[ms]',
+          message:
+            `the magnitude is rescaled with the unit: Duration.value ${duration.value} ` +
+            `becomes ${magnitude / 1000} seconds, so the number a receiving Duration ` +
+            'would state is not the number this one states',
         },
       ],
     };
   }
 
-  const body = `${duration.value}${unit.designator}`;
+  const body = `${magnitude}${unit.designator}`;
   return {
-    value: unit.time ? `PT${body}` : `P${body}`,
+    value: unit.time ? `${sign}PT${body}` : `${sign}P${body}`,
     fidelity: 'lossless',
     issues: [],
   };
