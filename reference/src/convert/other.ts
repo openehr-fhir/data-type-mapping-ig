@@ -45,6 +45,9 @@ export const OTHER_PATH = {
   attachmentPages: 'Attachment.pages',
 } as const;
 
+/** The FHIR R5 `integer64` lexical form, which is a JSON String. */
+const INTEGER64 = /^-?(0|[1-9]\d*)$/;
+
 /** The `Attachment` elements no `DV_MULTIMEDIA` attribute can receive. */
 const MEDIA_DETAILS: readonly {
   readonly key: 'creation' | 'height' | 'width' | 'frames' | 'duration' | 'pages';
@@ -125,7 +128,10 @@ export function dvMultimediaToAttachment(source: DvMultimedia): MappingResult<At
       language: source.language?.code_string,
       data: source.data,
       url: source.uri?.value,
-      size: source.size,
+      // `DV_MULTIMEDIA.size` is an RM `Integer` and stays a JSON number on the
+      // openEHR side; R5 types `Attachment.size` as an `integer64`, which is
+      // serialised as a JSON String.
+      size: String(source.size),
       hash: source.integrity_check,
       title: source.alternate_text,
     }),
@@ -142,32 +148,42 @@ export function attachmentToDvMultimedia(source: Attachment): MappingResult<DvMu
 
   // `DV_MULTIMEDIA.media_type` and `.size` are both mandatory (1..1) while
   // `Attachment.contentType` and `.size` are `0..1`, so an Attachment that
-  // omits either cannot become a DV_MULTIMEDIA.
-  if (source.contentType === undefined || source.size === undefined) {    const mediaType: Issue = {
+  // omits either cannot become a DV_MULTIMEDIA. `Attachment.size` is an R5
+  // `integer64` and therefore arrives as a JSON String; it is parsed once here,
+  // and a string that does not name a whole number states no size at all and is
+  // treated as an absent one, because NaN must never reach an openEHR instance.
+  const size =
+    source.size !== undefined && INTEGER64.test(source.size)
+      ? Number(source.size)
+      : undefined;
+
+  if (source.contentType === undefined || size === undefined) {
+    const mediaType: Issue = {
       path: OTHER_PATH.attachmentContentTypeAbsent,
       message:
         'DV_MULTIMEDIA.media_type is mandatory (1..1) and the Attachment supplies no ' +
         'contentType; the mandatory-attribute rule forbids inventing one, so nothing is ' +
         'produced',
     };
-    const size: Issue = {
+    const sizeIssue: Issue = {
       path: OTHER_PATH.attachmentSizeAbsent,
       message:
-        'DV_MULTIMEDIA.size is mandatory (1..1) and the Attachment supplies no size; the ' +
+        'DV_MULTIMEDIA.size is mandatory (1..1) and the Attachment states no size — it is ' +
+        'either absent, or an integer64 string that names no whole number; the ' +
         'mandatory-attribute rule forbids inventing one — 0 is a real size, not a missing ' +
         'one — so nothing is produced',
     };
-    if (source.contentType === undefined && source.size === undefined) {
-      return unmapped([mediaType, size]);
+    if (source.contentType === undefined && size === undefined) {
+      return unmapped([mediaType, sizeIssue]);
     }
-    return unmapped(source.contentType === undefined ? [mediaType] : [size]);
+    return unmapped(source.contentType === undefined ? [mediaType] : [sizeIssue]);
   }
 
   // RM `Integer` is 32-bit and R5 `Attachment.size` is an `integer64`, so an
   // attachment larger than 2,147,483,647 bytes has no `DV_MULTIMEDIA.size` to
   // land in. `size` is mandatory, so nothing is produced rather than a
   // truncated one.
-  if (source.size > INT32_MAX) {
+  if (size > INT32_MAX) {
     return unmapped([
       {
         path: OTHER_PATH.attachmentSizeOverflow,
@@ -206,7 +222,7 @@ export function attachmentToDvMultimedia(source: Attachment): MappingResult<DvMu
         terminology_id: { value: 'IANA_media-types' },
         code_string: source.contentType,
       },
-      size: source.size,
+      size,
       language:
         source.language === undefined
           ? undefined

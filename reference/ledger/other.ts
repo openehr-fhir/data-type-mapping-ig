@@ -207,7 +207,11 @@ const dvMultimediaToAttachment = {
         'is 32-bit and R5 `Attachment.size` is an `integer64`, so an attachment larger ' +
         'than 2,147,483,647 bytes has no `DV_MULTIMEDIA.size` to land in. That sub-case is ' +
         'the row below, and it is the same gap the numeric category publishes as ' +
-        '`Integer64[overflow]` on [Numeric Primitives](mapping-numeric.html).' +
+        '`Integer64[overflow]` on [Numeric Primitives](mapping-numeric.html). The two ' +
+        'sides also differ **on the wire**: an `integer64` is serialised as a **JSON ' +
+        'String**, so a conformant `Attachment.size` for 20,416 bytes is `"20416"`, while ' +
+        '`DV_MULTIMEDIA.size` is the JSON number `20416` — the same reasoning the ' +
+        '`Integer64` row on [Numeric Primitives](mapping-numeric.html) sets out.' +
         MANDATORY_RULE,
     },
     {
@@ -251,7 +255,9 @@ const dvMultimediaToAttachment = {
         'Cross-refer to `Integer64[overflow]` on ' +
         '[Numeric Primitives](mapping-numeric.html): it is the identical 32-bit/64-bit gap, ' +
         'and publishing one as a first-class `unmapped` row while folding the other into a ' +
-        '`lossless` claim was a transcription slip rather than a position.',
+        '`lossless` claim was a transcription slip rather than a position. The overflowing ' +
+        'value is a **JSON String** like every other `integer64`, so the boundary case ' +
+        'reads `"4294967296"`, not `4294967296`.',
     },
     {
       id: 'dv-multimedia.alternate_text',

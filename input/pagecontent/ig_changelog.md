@@ -325,6 +325,15 @@ otherwise.
   value to be carried at all" — which the same page, the `DV_QUANTITY` table and
   the converter all contradicted — is replaced by the rule that is actually
   implemented.
+- **`Attachment.size` is published in the wire format R5 actually has.** R5
+  types `Attachment.size` as an `integer64`, and an `integer64` is a **JSON
+  String**; the guide's own numeric reasoning already said that a guide
+  publishing a bare number for one publishes a wire format R5 does not have,
+  while every `DV_MULTIMEDIA ↔ Attachment` worked example published
+  `"size": 20416`. The four examples, the reference type, and the row's note now
+  carry the string form, and an `Attachment.size` string that names no whole
+  number is treated as a size the Attachment does not state rather than reaching
+  an openEHR instance as `NaN`.
 
 **Compatible, Non-Substantive**
 

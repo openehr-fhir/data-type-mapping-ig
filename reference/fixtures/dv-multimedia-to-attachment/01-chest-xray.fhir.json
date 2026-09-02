@@ -1,6 +1,6 @@
 {
   "contentType": "image/png",
   "url": "https://example.org/images/chest-xray.png",
-  "size": 20416,
+  "size": "20416",
   "title": "Chest X-ray, PA view"
 }
