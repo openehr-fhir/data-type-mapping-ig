@@ -289,7 +289,9 @@ const dvDateTimeToDateTime = {
         'Unlike `time`, `dateTime` carries a UTC offset directly, and its R5 regex admits ' +
         'partial precision down to the year, so `2026-03` is **truncated**, never padded. ' +
         'What the regex does *not* admit is a time without seconds; that sub-case is a ' +
-        'named drop on the row below.',
+        'named drop on the row below. R5 separately **requires** an offset once hours and ' +
+        'minutes are present, so a source stating a time and no offset is **refused** ' +
+        'rather than padded with `Z` — the row after next.',
     },
     {
       id: 'dv-date-time.value.minute-precision',
@@ -334,6 +336,49 @@ const dvDateTimeToDateTime = {
         'Partial precision *above* the time — `2026`, `2026-03`, `2026-03-01` — is a ' +
         'different case entirely and is carried by truncation, losslessly, on the row ' +
         'above. Only the minute-without-seconds form has no FHIR representation.',
+    },
+    {
+      id: 'dv-date-time.value.no-offset',
+      scope: 'datatype',
+      openehr: {
+        path: 'DV_DATE_TIME.value[no-offset]',
+        cardinality: '1..1',
+        type: 'Iso8601_date_time',
+        kind: 'element',
+        cite: DV_DATE_TIME,
+      },
+      fhir: {
+        kind: 'none',
+        reason:
+          'R5\u2019s published `dateTime` **regex** makes the zone group optional, so the ' +
+          'lexical form is not what forbids this. The rule is the normative sentence ' +
+          'beside it \u2014 *"If hours and minutes are specified, a timezone offset SHALL ' +
+          'be populated"* \u2014 so a `DV_DATE_TIME` stating a time with no offset has no ' +
+          'conformant FHIR `dateTime` to become.',
+        cite: FHIR_DATETIME,
+      },
+      toFhir: {
+        fidelity: 'unmapped',
+        reason:
+          'Nothing is produced. The offset has to come from the source or from the ' +
+          'surrounding template, and a data-type conversion sees neither: padding with ' +
+          '`Z` would state a time zone the source did not, and emitting the value without ' +
+          'an offset would publish an invalid FHIR primitive as a faithful conversion.',
+        owner: 'working-group',
+      },
+      toOpenehr: {
+        fidelity: 'unmapped',
+        reason: 'Nothing arrives to map back, because nothing was emitted.',
+        owner: 'working-group',
+      },
+      maturity: 'open',
+      note:
+        'This is a **narrative** rule, not a lexical one, which is why a regex-only reading ' +
+        'of R5 misses it. Where the offset is known to the mapping engine \u2014 from the ' +
+        'composition, the template, or deployment configuration \u2014 it SHOULD be applied ' +
+        'before the data-type conversion runs, at which point the value takes the ordinary ' +
+        '`DV_DATE_TIME.value` row above. openEHR data without a time zone is rare in ' +
+        'practice, which is what keeps this an open item rather than a blocking gap.',
     },
     {
       id: 'dv-temporal.accuracy',

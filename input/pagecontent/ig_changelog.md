@@ -334,6 +334,17 @@ otherwise.
   carry the string form, and an `Attachment.size` string that names no whole
   number is treated as a size the Attachment does not state rather than reaching
   an openEHR instance as `NaN`.
+- **The last two published ISO 8601 rules are now implemented.** A compact
+  minute-precision `T1430` or `20260301T1430` fell through both helpers and was
+  emitted verbatim as a `lossless` FHIR value that matches no R5 regex; the
+  compact expansion now accepts `hhmm` as well as `hhmmss`, and both forms are
+  published rows of the subset table. And a `DV_DATE_TIME` stating a time with
+  no UTC offset is **refused** rather than emitted: R5 requires an offset once
+  hours and minutes are present, the offset can only come from the source or its
+  surrounding template, and a data-type conversion sees neither. The gap is a
+  first-class `unmapped` row with an owner, worded against the normative
+  sentence rather than the lexical form — R5's `dateTime` regex makes the zone
+  group optional, so a regex-only reading misses the rule entirely.
 
 **Compatible, Non-Substantive**
 

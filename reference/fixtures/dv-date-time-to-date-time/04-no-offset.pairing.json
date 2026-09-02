@@ -1,0 +1,5 @@
+{
+  "directions": [],
+  "reason": "This pair records a refusal rather than a conversion. The openEHR side states a time and no UTC offset, which R5 requires once hours and minutes are present, so nothing is produced from it; the FHIR side carries the offset that the source does not, and reading it back gives a different DV_DATE_TIME. The dv-date-time.value.no-offset row states the gap.",
+  "covered_by": "test/iso8601.test.ts"
+}

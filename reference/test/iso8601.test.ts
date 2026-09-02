@@ -7,6 +7,7 @@ import {
   completeSeconds,
   divergentForms,
   expandCompact,
+  hasTimeWithoutOffset,
   sharedForms,
   truncateFractionalSeconds,
 } from '../src/shared/iso8601-subset.ts';
@@ -163,6 +164,33 @@ test('a compact UTC offset is expanded before the offset is separated', () => {
   assert.equal(expandCompact('2026-03-01'), '2026-03-01', 'a bare date is untouched');
 });
 
+test('compact minute-precision forms expand, and hour-only compact does not', () => {
+  assert.equal(expandCompact('T1430'), '14:30');
+  assert.equal(expandCompact('20260301T1430'), '2026-03-01T14:30');
+  assert.equal(expandCompact('T1430+0100'), '14:30+01:00');
+  // `ISO8601_FORMS` has no hour-only row, so expanding one would implement a
+  // rule the guide does not publish.
+  assert.equal(expandCompact('T14'), 'T14', 'hour-only compact is out of scope');
+});
+
+test('a dateTime stating a time and no offset is refused, not padded with Z', () => {
+  assert.equal(hasTimeWithoutOffset('2026-03-01T14:30:00'), true);
+  assert.equal(hasTimeWithoutOffset('2026-03-01T14:30:00Z'), false);
+  assert.equal(hasTimeWithoutOffset('2026-03-01T14:30:00+01:00'), false);
+  assert.equal(hasTimeWithoutOffset('2026-03-01'), false, 'a date states no time');
+  assert.equal(hasTimeWithoutOffset('2026-03'), false);
+
+  const pair = converterFor('dv-date-time-to-date-time');
+  assert.ok(pair);
+  const result = pair.toFhir({ _type: 'DV_DATE_TIME', value: '2026-03-01T14:30:00' });
+  assert.equal(result.fidelity, 'unmapped');
+  assert.equal(result.value, undefined, 'an offset-less dateTime is not a valid FHIR primitive');
+  assert.deepEqual(
+    result.issues.map((issue: Issue) => issue.path),
+    ['DV_DATE_TIME.value[no-offset]'],
+  );
+});
+
 // ── the published rules, driven through the converters ───────────────────────
 
 /**
@@ -190,6 +218,7 @@ const EXPECTED: Readonly<
   '14:30:00': { out: '14:30:00', issues: [] },
   T143000: { out: '14:30:00', issues: [] },
   '14:30': { out: '14:30:00', issues: ['DV_TIME.value[minute-precision]'] },
+  T1430: { out: '14:30:00', issues: ['DV_TIME.value[minute-precision]'] },
   '14:30:00.123': { out: '14:30:00.123', issues: [] },
   '14:30:00.123456789': { out: '14:30:00.123', issues: ['time.value'] },
   '14:30:00+01:00': { out: '14:30:00', issues: ['DV_TIME.value[timezone]'] },
@@ -197,9 +226,16 @@ const EXPECTED: Readonly<
   '2026-03-01T14:30:00Z': { out: '2026-03-01T14:30:00Z', issues: [] },
   '20260301T143000Z': { out: '2026-03-01T14:30:00Z', issues: [] },
   '2026-03-01T14:30:00+01:00': { out: '2026-03-01T14:30:00+01:00', issues: [] },
+  // Completion to seconds happens, and then the offset rule refuses: R5 requires
+  // a UTC offset once hours and minutes are present, and nothing here supplies
+  // one. The refusal is the head issue; the completion is still reported.
   '2026-03-01T14:30': {
-    out: '2026-03-01T14:30:00',
-    issues: ['DV_DATE_TIME.value[minute-precision]'],
+    out: '',
+    issues: ['DV_DATE_TIME.value[no-offset]', 'DV_DATE_TIME.value[minute-precision]'],
+  },
+  '20260301T1430': {
+    out: '',
+    issues: ['DV_DATE_TIME.value[no-offset]', 'DV_DATE_TIME.value[minute-precision]'],
   },
 };
 

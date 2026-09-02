@@ -54,7 +54,7 @@ pages are the normative statement.
 | [LINK](mapping-reference.html) | `Reference \| CodeableReference` | `lossy` | `unmapped` | `open` | `datatype` |
 | [DV_DATE](mapping-temporal.html) | `date \| dateTime` | `lossless` | `lossless` | `settled` | `datatype` |
 | [DV_TIME](mapping-temporal.html) | `time` | `lossy` | `lossy` | `open` | `datatype` |
-| [DV_DATE_TIME](mapping-temporal.html) | `dateTime \| instant` | `lossy` | `lossy` | `settled` | `datatype` |
+| [DV_DATE_TIME](mapping-temporal.html) | `dateTime \| instant` | `lossy` | `lossy` | `open` | `datatype` |
 | [DV_DURATION](mapping-temporal.html) | `Duration` | `lossy` | `lossy` | `open` | `datatype` |
 | [DV_GENERAL_TIME_SPECIFICATION / DV_PERIODIC_TIME_SPECIFICATION](mapping-temporal.html) | `Timing` | `unmapped` | `unmapped` | `not-discussed` | `datatype` |
 | [DV_MULTIMEDIA](mapping-other.html) | `Attachment` | `lossy` | `lossy` | `open` | `datatype` |

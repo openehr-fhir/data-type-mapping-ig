@@ -100,6 +100,17 @@ export const ISO8601_FORMS: readonly Iso8601Form[] = [
   },
   {
     kind: 'time',
+    example: 'T1430',
+    description: 'Compact time, hours and minutes only',
+    openehr: true,
+    fhir: false,
+    action:
+      'SHALL be expanded to `14:30` and then completed to `14:30:00`. Neither the compact ' +
+      'form nor a seconds-less time is a FHIR `time`, and the completion adds a precision ' +
+      'the source did not state, so it is a **named drop**.',
+  },
+  {
+    kind: 'time',
     example: '14:30:00.123',
     description: 'Fractional seconds, 3 digits',
     openehr: true,
@@ -177,6 +188,18 @@ export const ISO8601_FORMS: readonly Iso8601Form[] = [
       'the time: that offset SHALL come from the source or its context and is never ' +
       'invented by a data-type conversion.',
   },
+  {
+    kind: 'dateTime',
+    example: '20260301T1430',
+    description: 'Compact date and time without seconds',
+    openehr: true,
+    fhir: false,
+    action:
+      'SHALL be expanded to `2026-03-01T14:30` and then completed to ' +
+      '`2026-03-01T14:30:00`, which is a **named drop**. This form also states no UTC ' +
+      'offset, which FHIR requires once hours and minutes are present and which a ' +
+      'data-type conversion never invents, so nothing is produced from it.',
+  },
 ];
 
 /** Forms both standards accept unchanged. */
@@ -194,18 +217,29 @@ function expandCompactOffset(value: string): string {
   return value.replace(/([+-])(\d{2})(\d{2})$/, '$1$2:$3');
 }
 
-/** Expand an openEHR compact date, time, or date-time into the FHIR extended form. */
+/**
+ * Expand an openEHR compact date, time, or date-time into the FHIR extended form.
+ *
+ * The time groups accept `hhmm` as well as `hhmmss`, because openEHR permits a
+ * compact minute-precision time and `completeSeconds` — which requires the
+ * extended `hh:mm` — is what supplies the seconds afterwards. **Hour-only
+ * compact (`T14`) is deliberately out of scope:** `ISO8601_FORMS` has no
+ * hour-only row, and expanding one here would implement a rule the guide does
+ * not publish.
+ */
 export function expandCompact(input: string): string {
   const value = expandCompactOffset(input);
-  const dateTime = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(.*)$/.exec(value);
+  const dateTime = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})?(.*)$/.exec(value);
   if (dateTime !== null) {
-    const [, y, mo, d, h, mi, s, rest] = dateTime as unknown as string[];
-    return `${y}-${mo}-${d}T${h}:${mi}:${s}${rest ?? ''}`;
+    const [, y, mo, d, h, mi, s, rest] = dateTime as unknown as (string | undefined)[];
+    const seconds = s === undefined ? '' : `:${s}`;
+    return `${y}-${mo}-${d}T${h}:${mi}${seconds}${rest ?? ''}`;
   }
-  const time = /^T(\d{2})(\d{2})(\d{2})(.*)$/.exec(value);
+  const time = /^T(\d{2})(\d{2})(\d{2})?(.*)$/.exec(value);
   if (time !== null) {
-    const [, h, mi, s, rest] = time as unknown as string[];
-    return `${h}:${mi}:${s}${rest ?? ''}`;
+    const [, h, mi, s, rest] = time as unknown as (string | undefined)[];
+    const seconds = s === undefined ? '' : `:${s}`;
+    return `${h}:${mi}${seconds}${rest ?? ''}`;
   }
   const fullDate = /^(\d{4})(\d{2})(\d{2})$/.exec(value);
   if (fullDate !== null) {
@@ -248,4 +282,19 @@ export function completeSeconds(value: string): {
   if (match === null) return { value, truncated: false };
   const [, head, , tail] = match as unknown as string[];
   return { value: `${head ?? ''}${tail ?? ''}`, truncated: true };
+}
+
+/**
+ * True when a `dateTime` lexical form states a time of day and no UTC offset.
+ *
+ * **The lexical form is not what forbids this.** R5's published `dateTime`
+ * regex makes the zone group optional; the rule is the normative sentence
+ * beside it — *"If hours and minutes are specified, a timezone offset SHALL be
+ * populated"* (`datatypes.html`). The offset has to come from the source or
+ * from the enclosing template, and a data-type conversion sees neither, so the
+ * caller refuses rather than inventing `Z`.
+ */
+export function hasTimeWithoutOffset(value: string): boolean {
+  if (!/T\d{2}:\d{2}/.test(value)) return false;
+  return !/(Z|[+-]\d{2}:\d{2})$/.test(value);
 }

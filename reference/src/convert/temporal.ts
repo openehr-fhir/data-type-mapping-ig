@@ -12,6 +12,7 @@ import { iso8601ToUcum, ucumToIso8601 } from '../shared/iso8601-ucum.ts';
 import {
   completeSeconds,
   expandCompact,
+  hasTimeWithoutOffset,
   truncateFractionalSeconds,
 } from '../shared/iso8601-subset.ts';
 import type {
@@ -35,6 +36,7 @@ export const TEMPORAL_PATH = {
   durationCode: 'Duration.code',
   timeMinutePrecision: 'DV_TIME.value[minute-precision]',
   dateTimeMinutePrecision: 'DV_DATE_TIME.value[minute-precision]',
+  dateTimeNoOffset: 'DV_DATE_TIME.value[no-offset]',
   durationValueAbsent: 'Duration.value[absent]',
   durationCodeAbsent: 'Duration.code[absent]',
   timeOffset: 'DV_TIME.value[timezone]',
@@ -160,6 +162,26 @@ export function dvDateTimeToDateTime(source: DvDateTime): MappingResult<FhirDate
   const completed = completeSeconds(expandCompact(source.value));
   if (completed.completed) {
     issues.push({ path: TEMPORAL_PATH.dateTimeMinutePrecision, message: COMPLETED_SECONDS });
+  }
+
+  // R5 requires a `dateTime` carrying hours and minutes to state a UTC offset.
+  // A data-type conversion never sees the source system or the enclosing
+  // template that could supply one, so it has nothing to populate the offset
+  // from: returning the value anyway would publish an invalid FHIR primitive as
+  // a faithful conversion, and adding `Z` would state a time zone the source
+  // did not.
+  if (hasTimeWithoutOffset(completed.value)) {
+    return unmapped([
+      {
+        path: TEMPORAL_PATH.dateTimeNoOffset,
+        message:
+          'FHIR R5 requires a UTC offset once a dateTime states hours and minutes, and ' +
+          'the offset can only come from the source or its surrounding template, neither ' +
+          'of which a data-type conversion sees; nothing is produced rather than an ' +
+          'offset being invented',
+      },
+      ...issues,
+    ]);
   }
 
   return resultFor(completed.value, issues);
