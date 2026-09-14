@@ -527,6 +527,18 @@ otherwise.
   one inherited attribute carries one verdict pair unless a reason is recorded;
   and no row names in prose an attribute its own mapping leaves uncovered.
 
+*Inline rendering and regression protection*
+
+- **Supported nested inline markup preserves its meaning, and generated code
+  is checked before it is excluded from prose checks.**
+  - `reference\render\html.ts` preserves nested emphasis and strong spans,
+    adjoining boundaries, and literal code and link destinations without
+    expanding the supported Markdown subset.
+  - `reference\test\render.test.ts` detects escaped pipes inside generated code
+    with the same assertion used on registered output, while preserving both
+    complete Notes-cell baselines and all eight existing six-column alternative
+    rows. Current managed output and mapping claims remain unchanged.
+
 **Compatible, Non-Substantive**
 
 *Published table rendering*

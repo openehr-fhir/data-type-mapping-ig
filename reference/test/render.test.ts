@@ -253,6 +253,13 @@ test('a code cell keeps a bare pipe and gains no backslash', () => {
   assert.doesNotMatch(span, /\\/);
 });
 
+test('code preserves caller-supplied literal backslashes', () => {
+  assert.equal(
+    code(String.raw`Range \| Period \| Quantity`),
+    String.raw`<code>Range \| Period \| Quantity</code>`,
+  );
+});
+
 test('htmlTable enforces the column count at construction', () => {
   assert.throws(
     () => htmlTable(['a', 'b', 'c'], [['1', '2']]),
@@ -280,7 +287,7 @@ test('inline converts the ledger markdown subset and escapes the rest', () => {
     '<a href="mapping-coded.html">null_flavour</a>',
   );
   assert.equal(inline('a < b'), 'a &lt; b');
-  // A marker inside a code span is literal: code spans are scanned first.
+  // A complete code span keeps its payload literal.
   assert.equal(inline('`a|b *c*`'), '<code>a|b *c*</code>');
   // Nested prose is converted, not escaped — the ledger writes this.
   assert.equal(
@@ -293,6 +300,82 @@ test('inline turns a real ledger string into a working anchor', () => {
   assert.equal(
     inline('See [TERM_MAPPING](#term-mapping) below.'),
     'See <a href="#term-mapping">TERM_MAPPING</a> below.',
+  );
+});
+
+for (const [name, input, expected] of [
+  ['strong inside emphasis', '*a **b** c*', '<em>a <strong>b</strong> c</em>'],
+  ['emphasis inside strong', '**a *b* c**', '<strong>a <em>b</em> c</strong>'],
+  ['emphasis around delimiter-bearing code', '*`*_unbounded`*', '<em><code>*_unbounded</code></em>'],
+  ['strong around delimiter-bearing code', '**`**_unbounded`**', '<strong><code>**_unbounded</code></strong>'],
+  [
+    'composed link label',
+    '[**only `DV_TEXT.value` participates**](mapping-textual.html)',
+    '<a href="mapping-textual.html"><strong>only <code>DV_TEXT.value</code> participates</strong></a>',
+  ],
+] as const) {
+  test(`inline preserves supported nesting: ${name}`, () => {
+    assert.equal(inline(input), expected);
+  });
+}
+
+for (const [name, input, expected] of [
+  ['strong closes before emphasis', '*a **b***', '<em>a <strong>b</strong></em>'],
+  ['emphasis closes before strong', '**a *b***', '<strong>a <em>b</em></strong>'],
+  [
+    'alternating nested markers',
+    '*a **b *c* d** e*',
+    '<em>a <strong>b <em>c</em> d</strong> e</em>',
+  ],
+  ['emphasis then adjacent strong', '*a***b**', '<em>a</em><strong>b</strong>'],
+  ['strong then adjacent emphasis', '**a***b*', '<strong>a</strong><em>b</em>'],
+  [
+    'opaque link target inside emphasis',
+    '*see [x](a*b.html) now*',
+    '<em>see <a href="a*b.html">x</a> now</em>',
+  ],
+  [
+    'opaque code inside a composed link label',
+    '[**a `](*` b**](mapping-textual.html)',
+    '<a href="mapping-textual.html"><strong>a <code>](*</code> b</strong></a>',
+  ],
+] as const) {
+  test(`inline preserves enclosing and adjoining boundaries: ${name}`, () => {
+    assert.equal(inline(input), expected);
+  });
+}
+
+for (const [name, input, expected] of [
+  ['unmatched backtick before emphasis', '`unfinished then *ok*', '`unfinished then <em>ok</em>'],
+  ['unmatched emphasis before code', '*unfinished then `x`', '*unfinished then <code>x</code>'],
+  ['unmatched link before code', '[unfinished `x`', '[unfinished <code>x</code>'],
+  ['invalid link target', '[**x**](bad target)', '[<strong>x</strong>](bad target)'],
+  ['unsupported underscore syntax', '_literal_ and __literal__', '_literal_ and __literal__'],
+  ['empty emphasis is literal', '**', '**'],
+  ['empty code span', '``', '<code></code>'],
+  ['empty link label', '[](target)', '<a href="target"></a>'],
+  ['empty link target is literal', '[x]()', '[x]()'],
+  ['escaping inside strong', '**a < b & c**', '<strong>a &lt; b &amp; c</strong>'],
+  [
+    'failed inner emphasis leaves its parent closer and later span',
+    '**a *unfinished** then *ok*',
+    '<strong>a *unfinished</strong> then <em>ok</em>',
+  ],
+  [
+    'failed enclosing continuation leaves adjoining spans',
+    '*a **b**',
+    '<em>a </em><em>b</em>*',
+  ],
+] as const) {
+  test(`inline preserves literal fallback and raw helper contracts: ${name}`, () => {
+    assert.equal(inline(input), expected);
+  });
+}
+
+test('inline composes a link label and escapes its quoted target once', () => {
+  assert.equal(
+    inline('[**a < b & `x>`**](p?q="a"&v=\'b\')'),
+    '<a href="p?q=&quot;a&quot;&amp;v=&#39;b&#39;"><strong>a &lt; b &amp; <code>x&gt;</code></strong></a>',
   );
 });
 
@@ -337,11 +420,66 @@ function generatedBodies(): readonly (readonly [string, string])[] {
   return [...regionRenderers()].map(([id, render]) => [id, render()] as const);
 }
 
-/** Every `<td>`/`<th>` in a generated body, with its `<code>` spans removed. */
-function cellsOutsideCodeSpans(body: string): readonly string[] {
-  return [...body.matchAll(/<t[dh]>([\s\S]*?)<\/t[dh]>/g)].map((m) =>
-    (m[1] ?? '').replace(/<code>[\s\S]*?<\/code>/g, ''),
+function assertGeneratedCellContent(id: string, body: string): void {
+  for (const match of body.matchAll(/<t[dh]>([\s\S]*?)<\/t[dh]>/g)) {
+    const cell = match[1] ?? '';
+    for (const span of cell.matchAll(/<code>([\s\S]*?)<\/code>/g)) {
+      const payload = span[1] ?? '';
+      assert.ok(!payload.includes('\\|'), `${id}: an escaped pipe survived inside code: ${payload}`);
+    }
+    const text = cell.replace(/<code>[\s\S]*?<\/code>/g, '');
+    assert.ok(!text.includes('`'), `${id}: a backtick survived: ${text}`);
+    assert.ok(!text.includes(']('), `${id}: a markdown link survived: ${text}`);
+    assert.ok(!text.includes('**'), `${id}: markdown strong survived: ${text}`);
+    assert.ok(!text.includes('\\|'), `${id}: an escaped pipe survived: ${text}`);
+    assert.ok(!text.includes('*'), `${id}: markdown emphasis survived: ${text}`);
+  }
+}
+
+function only<T>(values: readonly T[], description: string): T {
+  assert.equal(values.length, 1, `expected exactly one ${description}`);
+  const value = values[0];
+  assert.ok(value !== undefined, `missing ${description}`);
+  return value;
+}
+
+function generatedCell(id: string, heading: string, label: string, column: string): string {
+  const [, body] = only(
+    generatedBodies().filter(([candidate]) => candidate === id),
+    `${id} registered body`,
   );
+  const table = only(
+    [...body.matchAll(/<table>[\s\S]*?<\/table>/g)]
+      .map(([html]) => html)
+      .filter((html) => html.includes(`<th>${heading}</th>`)),
+    `${id} table headed ${heading}`,
+  );
+  const [thead] = only([...table.matchAll(/<thead>[\s\S]*?<\/thead>/g)], `${id} thead`);
+  const headers = [...thead.matchAll(/<th>([\s\S]*?)<\/th>/g)].map((match) => match[1]);
+  assert.equal(headers.length, 6, `${id}: six header cells`);
+  assert.equal(headers[0], heading, `${id}: first header`);
+  assert.equal(headers.filter((header) => header === heading).length, 1, `${id}: unique heading`);
+  const columnIndex = only(
+    headers.flatMap((header, index) => header === column ? [index] : []),
+    `${id} ${column} header`,
+  );
+  const [tbody] = only([...table.matchAll(/<tbody>[\s\S]*?<\/tbody>/g)], `${id} tbody`);
+  const rows = [...tbody.matchAll(/<tr>[\s\S]*?<\/tr>/g)].map(([row]) =>
+    [...row.matchAll(/<td>([\s\S]*?)<\/td>/g)].map((match) => match[1]),
+  );
+  const cells = only(
+    rows.filter((row) => {
+      const first = row[0];
+      assert.ok(first !== undefined, `${id}: row has a first cell`);
+      const endpoint = /^<a href="[^"]*">([^<]*)<\/a>/.exec(first);
+      return endpoint !== null && endpoint[1] === label;
+    }),
+    `${id} row with first-cell endpoint ${label}`,
+  );
+  assert.equal(cells.length, headers.length, `${id}: ${label} has six data cells`);
+  const cell = cells[columnIndex];
+  assert.ok(cell !== undefined, `${id}: ${label} has a ${column} cell`);
+  return cell;
 }
 
 test('no generated body contains a markdown pipe-table row', () => {
@@ -395,36 +533,81 @@ test('generated bodies contain only balanced tags from a known vocabulary', () =
 test('generated cells contain no residual markdown', () => {
   for (const [id, body] of generatedBodies()) {
     if (id.startsWith(EXAMPLE_PREFIX)) continue;
-    for (const text of cellsOutsideCodeSpans(body)) {
-      assert.ok(!text.includes('`'), `${id}: a backtick survived: ${text}`);
-      assert.ok(!text.includes(']('), `${id}: a markdown link survived: ${text}`);
-      assert.ok(!text.includes('**'), `${id}: markdown strong survived: ${text}`);
-      assert.ok(!text.includes('\\|'), `${id}: an escaped pipe survived: ${text}`);
-      assert.ok(!text.includes('*'), `${id}: markdown emphasis survived: ${text}`);
-    }
+    assertGeneratedCellContent(id, body);
   }
 });
 
-test('ledger prose survives conversion instead of being flattened', () => {
-  const bodies = generatedBodies().filter(([id]) => !id.startsWith(EXAMPLE_PREFIX));
-
-  // A link that came from prose, not from a citation: citations are absolute
-  // spec URLs, so a relative page link inside a cell can only have come from
-  // `inline()` running over ledger markdown.
-  const proseLinks = bodies.flatMap(([, body]) =>
-    [...body.matchAll(/<td>[\s\S]*?<\/td>/g)].flatMap((cellMatch) =>
-      [...(cellMatch[0] ?? '').matchAll(/<a href="([^"]+)"/g)].map((m) => m[1] ?? ''),
-    ),
+test('generated-cell validation rejects escaped pipes inside code', () => {
+  const body = String.raw`<table><thead><tr><th>FHIR type</th></tr></thead><tbody><tr><td><code>Range \| Period \| Quantity</code></td></tr></tbody></table>`;
+  assert.equal((body.match(/<th>/g) ?? []).length, 1, 'one header cell');
+  assert.equal((body.match(/<td>/g) ?? []).length, 1, 'one data cell matches the header width');
+  assert.throws(
+    () => assertGeneratedCellContent('escaped-code', body),
+    /escaped-code: an escaped pipe survived inside code:/,
   );
-  assert.ok(
-    proseLinks.some((href) => href.endsWith('.html') && !href.startsWith('http')),
-    'at least one generated cell carries a link converted from ledger prose',
-  );
-
-  for (const [id, body] of bodies) {
-    assert.ok(!body.includes(']('), `${id}: a literal markdown link reached the page`);
-  }
 });
+
+test('generated-cell validation accepts clean code alternatives', () => {
+  const body = '<table><thead><tr><th>FHIR type</th></tr></thead><tbody><tr><td><code>Range | Period | Quantity</code></td></tr></tbody></table>';
+  assert.equal((body.match(/<th>/g) ?? []).length, 1, 'one header cell');
+  assert.equal((body.match(/<td>/g) ?? []).length, 1, 'one data cell matches the header width');
+  assertGeneratedCellContent('clean-code', body);
+});
+
+test('generated-cell validation treats Markdown-looking code as opaque', () => {
+  const body = '<table><thead><tr><th>FHIR type</th></tr></thead><tbody><tr><td><code>* ** [label](target) `backticks`</code></td></tr></tbody></table>';
+  assert.equal((body.match(/<th>/g) ?? []).length, 1, 'one header cell');
+  assert.equal((body.match(/<td>/g) ?? []).length, 1, 'one data cell matches the header width');
+  assertGeneratedCellContent('opaque-code', body);
+});
+
+test('DV_BOOLEAN.value preserves its complete generated Notes cell', () => {
+  assert.equal(
+    generatedCell('mapping:dv-boolean-to-boolean', 'openEHR field', 'DV_BOOLEAN.value', 'Notes'),
+    'A direct 1:1 mapping with no transformation: neither side carries precision, accuracy, or ' +
+      'auxiliary metadata. The one asymmetry is <strong>optionality</strong>. ' +
+      '<code>DV_BOOLEAN.value</code> is <strong>mandatory</strong> in the Reference Model — a ' +
+      '<code>DV_BOOLEAN</code> that exists has a value — while a FHIR <code>boolean</code> element ' +
+      'may be absent, with the reason for its absence carried by an extension on the element ' +
+      'rather than by a value. An absent FHIR <code>boolean</code> therefore has no ' +
+      '<code>DV_BOOLEAN</code> to become; see <a href="mapping-coded.html">null_flavour</a> for ' +
+      'how "why is this absent" is carried. This row is <code>open</code> because the section has ' +
+      'not yet been reviewed from either side.',
+  );
+});
+
+test('LINK.meaning preserves its complete generated Notes cell', () => {
+  assert.equal(
+    generatedCell('mapping:link-to-reference', 'openEHR field', 'LINK.meaning', 'Notes'),
+    '→ FHIR: drops <code>LINK.meaning</code> — <code>LINK.meaning</code> is a ' +
+      '<code>DV_TEXT [1..1]</code> and <code>Reference.display</code> is a plain <code>string</code>, ' +
+      'so <strong>only <code>DV_TEXT.value</code> participates</strong>. <code>formatting</code>, ' +
+      '<code>encoding</code>, the deprecated <code>hyperlink</code>, and <code>mappings</code> are ' +
+      '<code>lossy</code> or <code>unmapped</code> into a FHIR <code>string</code> — see the ' +
+      '<code>DV_TEXT</code> table on <a href="mapping-textual.html">Textual Data</a> — and a ' +
+      '<code>Reference.display</code> has no extension slot in this mapping to carry them ' +
+      '→ openEHR: No <code>LINK</code> is produced at all, so nothing lands in <code>meaning</code>. ' +
+      'See the <code>LINK.type</code> row. (owner: <code>openehr-modelling</code>) The ' +
+      '<code>lossless</code> claim this row used to carry was false in both directions: it ignored ' +
+      'every <code>DV_TEXT</code> attribute except <code>value</code>, and it depended on ' +
+      '<code>referenceToLink</code> fabricating a <code>LINK.type</code>.',
+  );
+});
+
+for (const [name, label, expected] of [
+  ['DV_INTERVAL<T>', 'DV_INTERVAL&lt;T&gt;', '<code>Range | Period | Quantity</code>'],
+  ['DV_CODED_TEXT', 'DV_CODED_TEXT', '<code>CodeableConcept | Coding</code>'],
+  ['DV_TEXT', 'DV_TEXT', '<code>string | markdown</code>'],
+  ['DV_PARAGRAPH', 'DV_PARAGRAPH', '<code>markdown | string</code>'],
+  ['DV_URI / DV_EHR_URI', 'DV_URI / DV_EHR_URI', '<code>uri | url</code>'],
+  ['LINK', 'LINK', '<code>Reference | CodeableReference</code>'],
+  ['DV_DATE', 'DV_DATE', '<code>date | dateTime</code>'],
+  ['DV_DATE_TIME', 'DV_DATE_TIME', '<code>dateTime | instant</code>'],
+] as const) {
+  test(`summary:all preserves its alternative cell: ${name}`, () => {
+    assert.equal(generatedCell('summary:all', 'openEHR type', label, 'FHIR type'), expected);
+  });
+}
 
 test('no hand-authored code span publishes an escaped pipe', () => {
   // Narrow on purpose: `\|` outside a code span is legitimate markdown escaping

@@ -111,35 +111,134 @@ export function htmlTable(
  * markdown is not processed inside a raw HTML block, escaping that prose as
  * plain text would publish the syntax literally and dead-link the guide.
  *
- * Code spans are scanned **first**, so a `|`, `<` or `*` inside one is literal
- * and is never re-interpreted. The body of a link, of `**strong**` and of `*em*`
- * is prose in its own right and is converted recursively, because the ledger
- * nests them — `**only `DV_TEXT.value` participates**` is a real ledger string.
+ * Complete code spans keep their payload literal. Complete links likewise
+ * protect their destinations from enclosing formatting boundaries. Link labels,
+ * `**strong**` and `*em*` contain recursively converted prose, with adjoining
+ * closers assigned to the pending inner-to-outer marker widths. The ledger
+ * nests these constructs — `**only `DV_TEXT.value` participates**` is a real
+ * ledger string.
  * Anything the subset does not cover stays literal text; the residual-markdown
  * guard in `reference/test/render.test.ts` is what makes that visible rather
  * than silent, and widening the subset is a deliberate change here rather than
  * an escape hatch at a call site.
  */
 export function inline(prose: string): string {
-  // One alternation, scanned left to right, so a construct is only ever
-  // recognised outside a code span. Strong is tried before emphasis, and its
-  // body is lazy so `**a *b* c**` pairs correctly.
-  const pattern = /`([^`]*)`|\[([^\]]*)\]\(([^)\s]+)\)|\*\*([\s\S]+?)\*\*|\*([^*]+?)\*/g;
+  type Span = { html: string; end: number };
+  type Width = 1 | 2;
 
-  let out = '';
-  let last = 0;
-  for (const match of prose.matchAll(pattern)) {
-    const at = match.index;
-    out += escapeText(prose.slice(last, at));
-    const [whole, codeText, linkLabel, linkTarget, strongText, emText] = match;
-    if (codeText !== undefined) out += code(codeText);
-    else if (linkLabel !== undefined && linkTarget !== undefined) {
-      // The label is converted, not escaped: a link label is prose too.
-      out += `<a href="${escapeAttr(linkTarget)}">${inline(linkLabel)}</a>`;
-    } else if (strongText !== undefined) out += strong(inline(strongText));
-    else if (emText !== undefined) out += em(inline(emText));
-    last = at + whole.length;
+  function readCode(at: number, limit: number): Span | undefined {
+    if (prose[at] !== '`') return undefined;
+    const end = prose.indexOf('`', at + 1);
+    if (end < 0 || end >= limit) return undefined;
+    return { html: code(prose.slice(at + 1, end)), end: end + 1 };
   }
-  out += escapeText(prose.slice(last));
-  return out;
+
+  function readSpan(at: number, limit: number, parents: readonly Width[]): Span | undefined {
+    if (prose[at] === '`') return readCode(at, limit);
+
+    if (prose[at] === '[') {
+      let labelEnd = at + 1;
+      while (labelEnd < limit && prose[labelEnd] !== ']') {
+        const span = readCode(labelEnd, limit);
+        labelEnd = span === undefined ? labelEnd + 1 : span.end;
+      }
+      if (labelEnd >= limit || prose[labelEnd + 1] !== '(') return undefined;
+      const targetEnd = prose.indexOf(')', labelEnd + 2);
+      if (targetEnd < 0 || targetEnd >= limit) return undefined;
+      const target = prose.slice(labelEnd + 2, targetEnd);
+      if (target.length === 0 || /\s/.test(target)) return undefined;
+      return {
+        html: `<a href="${escapeAttr(target)}">${readInline(at + 1, labelEnd)}</a>`,
+        end: targetEnd + 1,
+      };
+    }
+
+    if (prose[at] === '*') {
+      for (const width of [2, 1] as const) {
+        if (width === parents[0] || at + width > limit ||
+            !prose.startsWith('*'.repeat(width), at)) continue;
+        const body = readBody(at + width, limit, width, parents, at + width);
+        if (body !== undefined) {
+          return { html: width === 2 ? strong(body.html) : em(body.html), end: body.end };
+        }
+      }
+    }
+    return undefined;
+  }
+
+  function readBody(
+    from: number,
+    limit: number,
+    width: Width,
+    parents: readonly Width[],
+    bodyStart: number,
+  ): Span | undefined {
+    let html = '';
+    let rawStart = from;
+    let at = from;
+    while (at < limit) {
+      if (prose[at] === '*') {
+        let runEnd = at + 1;
+        while (runEnd < limit && prose[runEnd] === '*') runEnd += 1;
+        const run = runEnd - at;
+        const canClose = at > bodyStart && run >= width;
+        const parent = parents[0];
+        const close = (): Span => ({
+          html: html + escapeText(prose.slice(rawStart, at)),
+          end: at + width,
+        });
+
+        // A run can close pending wrappers or end this span before an adjacent
+        // opener. Consume this wrapper's width, not the longest marker.
+        if (canClose && (run === width || run > 2 ||
+            (parent !== undefined && run >= width + parent))) return close();
+
+        const child = readSpan(at, limit, [width, ...parents]);
+        if (child !== undefined) {
+          // A speculative formatting child is kept only if this wrapper can
+          // still close; a failed attempt cannot consume its caller's boundary.
+          const rest = readBody(child.end, limit, width, parents, bodyStart);
+          if (rest !== undefined) {
+            return {
+              html: html + escapeText(prose.slice(rawStart, at)) + child.html + rest.html,
+              end: rest.end,
+            };
+          }
+        }
+        if (canClose && (parent === undefined || run < parent)) return close();
+        if (parent !== undefined && run >= parent) return undefined;
+        at = runEnd;
+        continue;
+      }
+
+      const child = readSpan(at, limit, [width, ...parents]);
+      if (child === undefined) {
+        at += 1;
+      } else {
+        html += escapeText(prose.slice(rawStart, at)) + child.html;
+        at = child.end;
+        rawStart = at;
+      }
+    }
+    return undefined;
+  }
+
+  function readInline(from: number, limit: number): string {
+    let html = '';
+    let rawStart = from;
+    let at = from;
+    while (at < limit) {
+      const span = readSpan(at, limit, []);
+      if (span === undefined) {
+        at += 1;
+      } else {
+        html += escapeText(prose.slice(rawStart, at)) + span.html;
+        at = span.end;
+        rawStart = at;
+      }
+    }
+    return html + escapeText(prose.slice(rawStart, limit));
+  }
+
+  return readInline(0, prose.length);
 }
