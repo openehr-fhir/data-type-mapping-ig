@@ -17,7 +17,7 @@ formats are under discussion:
 
 | Option | Form | Example |
 |-|-|-|
-| A — pipe | `system\|version` | `http://hl7.org/fhir/encounter-status\|5.0.0` |
+| A — pipe | <code>system&#124;version</code> | <code>http://hl7.org/fhir/encounter-status&#124;5.0.0</code> |
 | B — parenthetical | `system (version)` | `http://hl7.org/fhir/encounter-status (5.0.0)` |
 | C — hash | `system#version` | `http://hl7.org/fhir/encounter-status#5.0.0` |
 

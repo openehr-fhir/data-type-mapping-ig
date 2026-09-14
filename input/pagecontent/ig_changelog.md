@@ -529,6 +529,22 @@ otherwise.
 
 **Compatible, Non-Substantive**
 
+*Published table rendering*
+
+- **The guide's generated tables are emitted as HTML, and now publish as
+  tables.** The ledger renderer produced markdown pipe tables, which the
+  publisher's converter would neither start nor end adjacent to a managed
+  region's HTML comment, so most of them reached readers as their own source
+  text. Region bodies are now separated from both sentinels by a blank line, and
+  every table the ledger owns is final HTML produced by one serializer. That
+  serializer also fixes two escaping defects the old context-blind cell escaper
+  had: parameterised type names such as `DV_INTERVAL<T>` and `EVENT<T>` were
+  parsed as HTML tags and lost their links, and alternative-type separators such
+  as `Range | Period | Quantity` published a stray backslash. The same pipe
+  defect is corrected in the one hand-authored table that carried it, on
+  `cross-cutting.html`. **No mapping fact, fidelity verdict, citation, maturity,
+  scope, region id, or conformance verb changed** — only the markup did.
+
 *Review remediation, third pass*
 
 - **The reference implementation says which tests need the mirrors.** Both

@@ -426,6 +426,32 @@ test('ledger prose survives conversion instead of being flattened', () => {
   }
 });
 
+test('no hand-authored code span publishes an escaped pipe', () => {
+  // Narrow on purpose: `\|` outside a code span is legitimate markdown escaping
+  // in a hand-authored table, and only inside a code span does the backslash
+  // reach the reader.
+  const offenders: string[] = [];
+  for (const file of readdirSync(PAGECONTENT).filter((f) => f.endsWith('.md'))) {
+    let fence: string | undefined;
+    const lines = readFileSync(join(PAGECONTENT, file), 'utf8').split('\n');
+    lines.forEach((rawLine, index) => {
+      const line = rawLine.endsWith('\r') ? rawLine.slice(0, -1) : rawLine;
+      const fenceMatch = /^\s*(```+|~~~+)/.exec(line);
+      if (fenceMatch !== null) {
+        const marker = fenceMatch[1] as string;
+        if (fence === undefined) fence = marker;
+        else if (marker.startsWith(fence)) fence = undefined;
+        return;
+      }
+      if (fence !== undefined) return;
+      for (const span of line.match(/`[^`]*`/g) ?? []) {
+        if (span.includes('\\|')) offenders.push(`${file}:${index + 1}: ${span}`);
+      }
+    });
+  }
+  assert.deepEqual(offenders, [], `an escaped pipe publishes literally:\n${offenders.join('\n')}`);
+});
+
 test('a parameterised type name publishes as text, not as a tag', () => {
   const summary = renderSummaryAll();
   assert.match(summary, /<a href="[^"]*">DV_INTERVAL&lt;T&gt;<\/a>/);
