@@ -339,6 +339,36 @@ for (const [name, input, expected] of [
     '[**a `](*` b**](mapping-textual.html)',
     '<a href="mapping-textual.html"><strong>a <code>](*</code> b</strong></a>',
   ],
+  [
+    'adjacent emphasis siblings inside strong',
+    '**a *b**c* d**',
+    '<strong>a <em>b</em><em>c</em> d</strong>',
+  ],
+  [
+    'adjacent emphasis siblings at strong closer',
+    '**a *b**c***',
+    '<strong>a <em>b</em><em>c</em></strong>',
+  ],
+  [
+    'complete nested child wins over an adjacent interpretation',
+    '**a *b**c**d* e**',
+    '<strong>a <em>b<strong>c</strong>d</em> e</strong>',
+  ],
+  [
+    'adjacent emphasis siblings under alternating ancestors',
+    '*lead **a *b**c* d** tail*',
+    '<em>lead <strong>a <em>b</em><em>c</em> d</strong> tail</em>',
+  ],
+  [
+    'delimiter-bearing code in nested adjacent emphasis',
+    '**a *`*_unbounded`**c* d**',
+    '<strong>a <em><code>*_unbounded</code></em><em>c</em> d</strong>',
+  ],
+  [
+    'nested adjacent emphasis in a composed link label',
+    '[**a *b**c* d**](mapping-textual.html)',
+    '<a href="mapping-textual.html"><strong>a <em>b</em><em>c</em> d</strong></a>',
+  ],
 ] as const) {
   test(`inline preserves enclosing and adjoining boundaries: ${name}`, () => {
     assert.equal(inline(input), expected);

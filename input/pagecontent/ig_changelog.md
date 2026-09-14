@@ -538,6 +538,13 @@ otherwise.
     with the same assertion used on registered output, while preserving both
     complete Notes-cell baselines and all eight existing six-column alternative
     rows. Current managed output and mapping claims remain unchanged.
+- **Adjacent emphasis inside strong formatting validates its enclosing
+  continuation before splitting a shared boundary.**
+  - `reference\render\html.ts` retains complete nested-child precedence and
+    non-consuming recovery when a sibling or enclosing span cannot close.
+  - `reference\test\render.test.ts` covers six bounded compositions, including
+    shared closers, alternating ancestors, code and link labels; existing
+    generated-cell baselines and guards are unchanged.
 
 **Compatible, Non-Substantive**
 

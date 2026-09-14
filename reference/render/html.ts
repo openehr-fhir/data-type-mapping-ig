@@ -125,6 +125,7 @@ export function htmlTable(
 export function inline(prose: string): string {
   type Span = { html: string; end: number };
   type Width = 1 | 2;
+  type Context = { width: Width; bodyStart: number };
 
   function readCode(at: number, limit: number): Span | undefined {
     if (prose[at] !== '`') return undefined;
@@ -133,7 +134,7 @@ export function inline(prose: string): string {
     return { html: code(prose.slice(at + 1, end)), end: end + 1 };
   }
 
-  function readSpan(at: number, limit: number, parents: readonly Width[]): Span | undefined {
+  function readSpan(at: number, limit: number, parents: readonly Context[]): Span | undefined {
     if (prose[at] === '`') return readCode(at, limit);
 
     if (prose[at] === '[') {
@@ -155,7 +156,7 @@ export function inline(prose: string): string {
 
     if (prose[at] === '*') {
       for (const width of [2, 1] as const) {
-        if (width === parents[0] || at + width > limit ||
+        if (width === parents[0]?.width || at + width > limit ||
             !prose.startsWith('*'.repeat(width), at)) continue;
         const body = readBody(at + width, limit, width, parents, at + width);
         if (body !== undefined) {
@@ -170,9 +171,10 @@ export function inline(prose: string): string {
     from: number,
     limit: number,
     width: Width,
-    parents: readonly Width[],
+    parents: readonly Context[],
     bodyStart: number,
   ): Span | undefined {
+    const pending = [{ width, bodyStart }, ...parents];
     let html = '';
     let rawStart = from;
     let at = from;
@@ -182,7 +184,7 @@ export function inline(prose: string): string {
         while (runEnd < limit && prose[runEnd] === '*') runEnd += 1;
         const run = runEnd - at;
         const canClose = at > bodyStart && run >= width;
-        const parent = parents[0];
+        const parent = parents[0]?.width;
         const close = (): Span => ({
           html: html + escapeText(prose.slice(rawStart, at)),
           end: at + width,
@@ -193,17 +195,24 @@ export function inline(prose: string): string {
         if (canClose && (run === width || run > 2 ||
             (parent !== undefined && run >= width + parent))) return close();
 
-        const child = readSpan(at, limit, [width, ...parents]);
+        const canSplit = canClose && width === 1 && run === 2 && parent === 2;
+        const child = readSpan(at, limit, pending);
         if (child !== undefined) {
           // A speculative formatting child is kept only if this wrapper can
           // still close; a failed attempt cannot consume its caller's boundary.
           const rest = readBody(child.end, limit, width, parents, bodyStart);
-          if (rest !== undefined) {
+          if (rest !== undefined && (!canSplit || canContinue(rest.end, limit, parents))) {
             return {
               html: html + escapeText(prose.slice(rawStart, at)) + child.html + rest.html,
               end: rest.end,
             };
           }
+        }
+        // Splitting a parent's marker must complete a sibling and every pending
+        // enclosing continuation, not merely find another occurrence of '**'.
+        if (canSplit) {
+          const sibling = readSpan(at + width, limit, parents);
+          if (sibling !== undefined && canContinue(sibling.end, limit, parents)) return close();
         }
         if (canClose && (parent === undefined || run < parent)) return close();
         if (parent !== undefined && run >= parent) return undefined;
@@ -211,7 +220,7 @@ export function inline(prose: string): string {
         continue;
       }
 
-      const child = readSpan(at, limit, [width, ...parents]);
+      const child = readSpan(at, limit, pending);
       if (child === undefined) {
         at += 1;
       } else {
@@ -221,6 +230,15 @@ export function inline(prose: string): string {
       }
     }
     return undefined;
+  }
+
+  function canContinue(at: number, limit: number, parents: readonly Context[]): boolean {
+    for (const [index, parent] of parents.entries()) {
+      const rest = readBody(at, limit, parent.width, parents.slice(index + 1), parent.bodyStart);
+      if (rest === undefined) return false;
+      at = rest.end;
+    }
+    return true;
   }
 
   function readInline(from: number, limit: number): string {
