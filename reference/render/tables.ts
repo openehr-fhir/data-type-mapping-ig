@@ -1,11 +1,21 @@
 /**
  * The region renderers.
  *
- * Each renderer turns part of the ledger into the markdown body of one managed
- * region. Renderers are registered by **region id**; `render-pages.ts` treats a
- * region id in a page that no renderer claims, and a renderer whose region has
- * no home in any page, as **errors**. That is why a region and its renderer
- * always land in the same commit.
+ * Each renderer turns part of the ledger into the body of one managed region.
+ * Renderers are registered by **region id**; `render-pages.ts` treats a region
+ * id in a page that no renderer claims, and a renderer whose region has no home
+ * in any page, as **errors**. That is why a region and its renderer always land
+ * in the same commit.
+ *
+ * Region bodies are **final HTML**, produced by `html.ts`, not markdown the
+ * publisher is asked to reinterpret. Markdown survives in exactly two places:
+ * the `####` headings of `open-items`, which the template builds in-page
+ * navigation from, and the JSON fences of `example:` regions. Everything else —
+ * tables, the `**Sources:**` line, the archetype note, the empty-state
+ * paragraphs — goes through the serializer, which is the only thing that decides
+ * escaping. Ledger prose is authored in markdown and is converted by `inline()`;
+ * identifiers and paths go through `code()`; everything else through
+ * `escapeText()`.
  *
  * Nothing here writes files. `render-pages.ts` does the I/O.
  */
@@ -30,6 +40,18 @@ import {
 import { aggregateVerdict, categories, ledger, mappingsFor } from '../src/model/load.ts';
 import { ISO8601_FORMS } from '../src/shared/iso8601-subset.ts';
 import { OPEN_ITEMS, type Side } from '../content/open-items.ts';
+import {
+  BR,
+  anchor,
+  code,
+  em,
+  escapeText,
+  htmlTable,
+  inline,
+  paragraph,
+  strong,
+  sup,
+} from './html.ts';
 
 /** Where `example:` regions read their fixtures from. */
 export const FIXTURES_ROOT = new URL('../fixtures/', import.meta.url);
@@ -62,44 +84,27 @@ export const CATEGORY_LABEL: Readonly<Record<Category, string>> = {
 
 // ── cell helpers ─────────────────────────────────────────────────────────────
 
-/** One markdown table row from its cells. */
-export function tableRow(cells: readonly string[]): string {
-  return `| ${cells.join(' | ')} |`;
-}
-
-/** Escape the characters that would break out of a markdown table cell. */
-export function cell(text: string): string {
-  return text.replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
-}
-
-/** A markdown link to a citation, with the extension-tier marker where it applies. */
-export function citeLink(cite: Cite, label: string): string {
-  const marker = cite.verification === 'extension-unverified' ? '<sup>†</sup>' : '';
-  return `[${cell(label)}](${cite.url})${marker}`;
+/** A link to a citation, with the extension-tier marker where it applies. */
+export function citeAnchor(cite: Cite, label: string): string {
+  const marker = cite.verification === 'extension-unverified' ? sup('†') : '';
+  return `${anchor(cite.url, label)}${marker}`;
 }
 
 /** The rendered form of one fidelity value. */
 export function fidelityCell(verdict: Verdict): string {
-  switch (verdict.fidelity) {
-    case 'lossless':
-      return '`lossless`';
-    case 'lossy':
-      return '`lossy`';
-    case 'unmapped':
-      return '`unmapped`';
-  }
+  return code(verdict.fidelity);
 }
 
 /** The rendered form of an aggregate (mapping-level) fidelity value. */
 export function aggregateCell(fidelity: Fidelity): string {
-  return `\`${fidelity}\``;
+  return code(fidelity);
 }
 
 /** A Jira browse URL for an owner that names a ticket. */
 export function ownerCell(owner: string): string {
   return /^(FHIR|HTA)-\d+$/.test(owner)
-    ? `[${owner}](https://jira.hl7.org/browse/${owner})`
-    : `\`${owner}\``;
+    ? anchor(`https://jira.hl7.org/browse/${owner}`, owner)
+    : code(owner);
 }
 
 /** The Notes cell: drop list, unmapped reason, owner, and the row's own note. */
@@ -109,85 +114,100 @@ export function notesCell(row: Row): string {
   const describe = (verdict: Verdict, arrow: string): void => {
     if (verdict.fidelity === 'lossy') {
       const drops = verdict.drops
-        .map((d) => `\`${d.path}\` — ${d.reason}`)
+        .map((d) => `${code(d.path)} — ${inline(d.reason)}`)
         .join('; ');
-      parts.push(`${arrow} drops ${drops}`);
+      parts.push(`${escapeText(arrow)} drops ${drops}`);
     }
     if (verdict.fidelity === 'unmapped') {
       const owner = verdict.owner === undefined ? '' : ` (owner: ${ownerCell(verdict.owner)})`;
-      parts.push(`${arrow} ${verdict.reason}${owner}`);
+      parts.push(`${escapeText(arrow)} ${inline(verdict.reason)}${owner}`);
     }
   };
 
   describe(row.toFhir, '→ FHIR:');
   describe(row.toOpenehr, '→ openEHR:');
-  if (row.note !== undefined) parts.push(row.note);
+  if (row.note !== undefined) parts.push(inline(row.note));
 
-  return parts.length === 0 ? '' : cell(parts.join(' '));
+  return parts.join(' ');
+}
+
+/** The cell an endpoint that has no counterpart at all renders as. */
+function noCounterpartCell(side: NoCounterpart): string {
+  return `—${BR}${em('no counterpart')} (${anchor(side.cite.url, 'inventory')})`;
 }
 
 /** The openEHR side of a row, as a cell. */
 export function openehrCell(side: Endpoint | NoCounterpart): string {
-  if (isNoCounterpart(side)) return `— <br/>*no counterpart* ([inventory](${side.cite.url}))`;
-  const cardinality = side.cardinality === undefined ? '' : ` \`${side.cardinality}\``;
-  return `${citeLink(side.cite, side.path)}${cardinality}`;
+  if (isNoCounterpart(side)) return noCounterpartCell(side);
+  const cardinality = side.cardinality === undefined ? '' : ` ${code(side.cardinality)}`;
+  return `${citeAnchor(side.cite, side.path)}${cardinality}`;
 }
 
 /** The FHIR side of a row, as a cell. One line per candidate target. */
 export function fhirCell(side: readonly Endpoint[] | NoCounterpart): string {
-  if (isNoCounterpart(side)) return `— <br/>*no counterpart* ([inventory](${side.cite.url}))`;
-  const lines = side.map((endpoint) => {
-    const when = endpoint.when === undefined ? '' : `*when* ${endpoint.when}: `;
-    const kind = endpoint.kind === 'extension' ? ' *(extension)*' : '';
-    return `${when}${citeLink(endpoint.cite, endpoint.path)}${kind}`;
-  });
-  return cell(lines.join(' <br/>'));
+  if (isNoCounterpart(side)) return noCounterpartCell(side);
+  return side
+    .map((endpoint) => {
+      const when = endpoint.when === undefined ? '' : `${em('when')} ${inline(endpoint.when)}: `;
+      const kind = endpoint.kind === 'extension' ? ` ${em('(extension)')}` : '';
+      return `${when}${citeAnchor(endpoint.cite, endpoint.path)}${kind}`;
+    })
+    .join(BR);
 }
 
 // ── the mapping: renderer ────────────────────────────────────────────────────
 
 const FIELD_HEADER = [
-  '| openEHR field | FHIR target | → FHIR | → openEHR | Maturity | Notes |',
-  '|-|-|-|-|-|-|',
+  'openEHR field',
+  'FHIR target',
+  '→ FHIR',
+  '→ openEHR',
+  'Maturity',
+  'Notes',
 ];
 
 /** The per-type field table, preceded by its `**Sources:**` line. */
 export function renderMappingTable(mapping: Mapping): string {
-  const sources = mapping.sources.map((c) => citeLink(c, c.label)).join(' · ');
-  const lines: string[] = [`**Sources:** ${sources}`, ''];
+  const sources = mapping.sources.map((c) => citeAnchor(c, c.label)).join(' · ');
+  const blocks: string[] = [paragraph(`${strong('Sources:')} ${sources}`)];
 
   if (mapping.scope === 'archetype') {
-    lines.push(
-      '*This mapping is `archetype` scope: it is not expressible between the two data ' +
-        'types alone and needs the surrounding openEHR archetype and FHIR resource.*',
-      '',
+    blocks.push(
+      paragraph(
+        em(
+          `This mapping is ${code('archetype')} scope: it is not expressible between the ` +
+            'two data types alone and needs the surrounding openEHR archetype and FHIR ' +
+            'resource.',
+        ),
+      ),
     );
   }
 
-  lines.push(...FIELD_HEADER);
-  if (mapping.rows.length === 0) {
-    lines.push(tableRow(['—', '—', '—', '—', '—', 'No field rows recorded yet.']));
-  }
-  for (const row of mapping.rows) {
-    lines.push(
-      tableRow([
-        openehrCell(row.openehr),
-        fhirCell(row.fhir),
-        fidelityCell(row.toFhir),
-        fidelityCell(row.toOpenehr),
-        `\`${row.maturity}\``,
-        notesCell(row),
-      ]),
-    );
-  }
-  return lines.join('\n');
+  const rows =
+    mapping.rows.length === 0
+      ? [['—', '—', '—', '—', '—', 'No field rows recorded yet.']]
+      : mapping.rows.map((row) => [
+          openehrCell(row.openehr),
+          fhirCell(row.fhir),
+          fidelityCell(row.toFhir),
+          fidelityCell(row.toOpenehr),
+          code(row.maturity),
+          notesCell(row),
+        ]);
+
+  blocks.push(htmlTable(FIELD_HEADER, rows));
+  return blocks.join('\n\n');
 }
 
 // ── the summary: renderers ───────────────────────────────────────────────────
 
 const SUMMARY_HEADER = [
-  '| openEHR type | FHIR type | → FHIR | → openEHR | Maturity | Scope |',
-  '|-|-|-|-|-|-|',
+  'openEHR type',
+  'FHIR type',
+  '→ FHIR',
+  '→ openEHR',
+  'Maturity',
+  'Scope',
 ];
 
 /** The coarsest maturity present in a mapping: the least settled row wins. */
@@ -197,47 +217,41 @@ export function mappingMaturity(mapping: Mapping): string {
   return 'settled';
 }
 
-function summaryRow(mapping: Mapping, withLink: boolean): string {
+function summaryRow(mapping: Mapping, withLink: boolean): readonly string[] {
   const page = CATEGORY_PAGE[mapping.category];
-  const name = withLink
-    ? `[${cell(mapping.openehrType)}](${page})`
-    : `\`${cell(mapping.openehrType)}\``;
-  return tableRow([
+  const name = withLink ? anchor(page, mapping.openehrType) : code(mapping.openehrType);
+  return [
     name,
-    `\`${cell(mapping.fhirType)}\``,
+    code(mapping.fhirType),
     aggregateCell(aggregateVerdict(mapping, 'toFhir')),
     aggregateCell(aggregateVerdict(mapping, 'toOpenehr')),
-    `\`${mappingMaturity(mapping)}\``,
-    `\`${mapping.scope}\``,
-  ]);
+    code(mappingMaturity(mapping)),
+    code(mapping.scope),
+  ];
 }
 
 /** Every mapping in the ledger, one row each, linked to its category page. */
 export function renderSummaryAll(): string {
-  const all = ledger();
-  const lines = [...SUMMARY_HEADER];
-  if (all.length === 0) {
-    lines.push('');
-    lines.push('No mappings recorded yet.');
-    return lines.join('\n');
+  if (ledger().length === 0) {
+    return `${htmlTable(SUMMARY_HEADER, [])}\n\n${paragraph('No mappings recorded yet.')}`;
   }
+  const rows: (readonly string[])[] = [];
   for (const category of categories()) {
-    for (const mapping of mappingsFor(category)) lines.push(summaryRow(mapping, true));
+    for (const mapping of mappingsFor(category)) rows.push(summaryRow(mapping, true));
   }
-  return lines.join('\n');
+  return htmlTable(SUMMARY_HEADER, rows);
 }
 
 /** Every mapping in one category, one row each. */
 export function renderSummaryCategory(category: Category): string {
   const mappings = mappingsFor(category);
-  const lines = [...SUMMARY_HEADER];
   if (mappings.length === 0) {
-    lines.push('');
-    lines.push('No mappings recorded yet.');
-    return lines.join('\n');
+    return `${htmlTable(SUMMARY_HEADER, [])}\n\n${paragraph('No mappings recorded yet.')}`;
   }
-  for (const mapping of mappings) lines.push(summaryRow(mapping, false));
-  return lines.join('\n');
+  return htmlTable(
+    SUMMARY_HEADER,
+    mappings.map((mapping) => summaryRow(mapping, false)),
+  );
 }
 
 // ── the example: renderer ────────────────────────────────────────────────────
@@ -255,10 +269,7 @@ export function renderExample(fixturePath: string): string {
 
 // ── the gaps: renderers ──────────────────────────────────────────────────────
 
-const GAP_HEADER = [
-  '| Feature | Counterpart | Fidelity | Maturity | Owner | Why |',
-  '|-|-|-|-|-|-|',
-];
+const GAP_HEADER = ['Feature', 'Counterpart', 'Fidelity', 'Maturity', 'Owner', 'Why'];
 
 /** The owner named by a row's verdict in one direction, if any. */
 function verdictOwner(verdict: Verdict): string {
@@ -269,9 +280,9 @@ function verdictOwner(verdict: Verdict): string {
 
 /** The reason a direction is a gap: the unmapped reason, or the drop list. */
 function gapReason(verdict: Verdict): string {
-  if (verdict.fidelity === 'unmapped') return cell(verdict.reason);
+  if (verdict.fidelity === 'unmapped') return inline(verdict.reason);
   if (verdict.fidelity === 'lossy') {
-    return cell(verdict.drops.map((d) => `\`${d.path}\` — ${d.reason}`).join('; '));
+    return verdict.drops.map((d) => `${code(d.path)} — ${inline(d.reason)}`).join('; ');
   }
   return '';
 }
@@ -314,26 +325,22 @@ function gapTable(
   entries: readonly { mapping: Mapping; row: Row }[],
   direction: Direction,
 ): string {
-  const lines = [...GAP_HEADER];
   if (entries.length === 0) {
-    lines.push('', 'No gaps recorded yet.');
-    return lines.join('\n');
+    return `${htmlTable(GAP_HEADER, [])}\n\n${paragraph('No gaps recorded yet.')}`;
   }
-  for (const { mapping, row } of entries) {
+  const rows = entries.map(({ mapping, row }) => {
     const feature = direction === 'toFhir' ? openehrCell(row.openehr) : fhirCell(row.fhir);
     const counterpart = direction === 'toFhir' ? fhirCell(row.fhir) : openehrCell(row.openehr);
-    lines.push(
-      tableRow([
-        `${feature} <br/>*[${cell(mapping.title)}](${CATEGORY_PAGE[mapping.category]})*`,
-        counterpart,
-        fidelityCell(row[direction]),
-        `\`${row.maturity}\``,
-        verdictOwner(row[direction]),
-        gapReason(row[direction]),
-      ]),
-    );
-  }
-  return lines.join('\n');
+    return [
+      `${feature}${BR}${em(anchor(CATEGORY_PAGE[mapping.category], mapping.title))}`,
+      counterpart,
+      fidelityCell(row[direction]),
+      code(row.maturity),
+      verdictOwner(row[direction]),
+      gapReason(row[direction]),
+    ];
+  });
+  return htmlTable(GAP_HEADER, rows);
 }
 
 /** openEHR features that cannot be carried into FHIR. */
@@ -348,93 +355,74 @@ export function renderGapsFhirToOpenehr(): string {
 
 /** FHIR types for which the openEHR Reference Model has no counterpart at all. */
 export function renderGapsFhirNoCounterpart(): string {
-  const lines = [
-    '| FHIR type | Why openEHR has no counterpart | Owner |',
-    '|-|-|-|',
-  ];
-  let found = 0;
+  const header = ['FHIR type', 'Why openEHR has no counterpart', 'Owner'];
+  const rows: (readonly string[])[] = [];
   for (const mapping of ledger()) {
     for (const row of mapping.rows) {
       if (!isNoCounterpart(row.openehr)) continue;
       if (row.maturity === 'not-discussed') continue;
-      found += 1;
-      lines.push(
-        tableRow([
-          fhirCell(row.fhir),
-          cell(row.openehr.reason) + ` ([inventory](${row.openehr.cite.url}))`,
-          verdictOwner(row.toOpenehr),
-        ]),
-      );
+      rows.push([
+        fhirCell(row.fhir),
+        `${inline(row.openehr.reason)} (${anchor(row.openehr.cite.url, 'inventory')})`,
+        verdictOwner(row.toOpenehr),
+      ]);
     }
   }
-  if (found === 0) {
-    lines.push('', 'No types recorded yet.');
+  if (rows.length === 0) {
+    return `${htmlTable(header, [])}\n\n${paragraph('No types recorded yet.')}`;
   }
-  return lines.join('\n');
+  return htmlTable(header, rows);
 }
 
 /** Everything on either side the working group has not examined. */
 export function renderGapsNotDiscussed(): string {
-  const lines = ['| Construct | Side | Why it is listed |', '|-|-|-|'];
-  let found = 0;
+  const header = ['Construct', 'Side', 'Why it is listed'];
+  const rows: (readonly string[])[] = [];
   for (const mapping of ledger()) {
     for (const row of mapping.rows) {
       if (row.maturity !== 'not-discussed') continue;
-      found += 1;
       const side = isNoCounterpart(row.openehr) ? 'FHIR' : 'openEHR';
       const feature = isNoCounterpart(row.openehr) ? fhirCell(row.fhir) : openehrCell(row.openehr);
-      lines.push(tableRow([feature, side, gapReason(row.toFhir)]));
+      rows.push([feature, escapeText(side), gapReason(row.toFhir)]);
     }
   }
-  if (found === 0) {
-    lines.push('', 'Nothing recorded yet.');
+  if (rows.length === 0) {
+    return `${htmlTable(header, [])}\n\n${paragraph('Nothing recorded yet.')}`;
   }
-  return lines.join('\n');
+  return htmlTable(header, rows);
 }
 
 /** Render the ISO 8601 subset comparison from the capability table itself. */
 export function renderIso8601Subset(): string {
-  const lines = [
-    '| Form | Example | openEHR | FHIR | Mapping rule |',
-    '|-|-|-|-|-|',
-  ];
-  const tick = (accepted: boolean): string => (accepted ? '✓' : '—');
-  for (const form of ISO8601_FORMS) {
-    lines.push(
-      tableRow([
-        `${cell(form.description)} <br/>*(\`${form.kind}\`)*`,
-        `\`${cell(form.example)}\``,
-        tick(form.openehr),
-        tick(form.fhir),
-        cell(form.action),
-      ]),
-    );
-  }
-  return lines.join('\n');
+  const header = ['Form', 'Example', 'openEHR', 'FHIR', 'Mapping rule'];
+  const tick = (accepted: boolean): string => escapeText(accepted ? '✓' : '—');
+  const rows = ISO8601_FORMS.map((form) => [
+    `${inline(form.description)}${BR}${em(`(${code(form.kind)})`)}`,
+    code(form.example),
+    tick(form.openehr),
+    tick(form.fhir),
+    inline(form.action),
+  ]);
+  return htmlTable(header, rows);
 }
 
 // ── the review-coverage and open-items renderers ─────────────────────────────
 
 /** Reviewer coverage, from every `Mapping.review` field. */
 export function renderReviewCoverage(): string {
-  const lines = [
-    '| Mapping | Category | openEHR review | FHIR review |',
-    '|-|-|-|-|',
-  ];
+  const header = ['Mapping', 'Category', 'openEHR review', 'FHIR review'];
   const names = (reviewers: readonly string[]): string =>
-    reviewers.length === 0 ? '**unchecked**' : `✓ ${cell(reviewers.join(', '))}`;
+    reviewers.length === 0
+      ? strong('unchecked')
+      : `${escapeText('✓')} ${escapeText(reviewers.join(', '))}`;
 
-  for (const mapping of ledger()) {
-    lines.push(
-      tableRow([
-        `[${cell(mapping.title)}](${CATEGORY_PAGE[mapping.category]})`,
-        CATEGORY_LABEL[mapping.category],
-        names(mapping.review.openehr),
-        names(mapping.review.fhir),
-      ]),
-    );
-  }
-  return lines.join('\n');
+  const rows = ledger().map((mapping) => [
+    anchor(CATEGORY_PAGE[mapping.category], mapping.title),
+    escapeText(CATEGORY_LABEL[mapping.category]),
+    names(mapping.review.openehr),
+    names(mapping.review.fhir),
+  ]);
+  return htmlTable(header, rows);
 }
 
 /** The open-items register, grouped by side. */
@@ -444,24 +432,22 @@ export function renderOpenItems(): string {
     { side: 'openehr', heading: 'openEHR-side actions' },
     { side: 'documentation', heading: 'Documentation and tooling' },
   ];
+  const header = ['Item', 'Owner', 'Priority', 'Status'];
 
-  const lines: string[] = [];
+  // The `####` headings stay markdown: the template builds the page's in-page
+  // navigation from them, and a blank line separates each from its table.
+  const blocks: string[] = [];
   for (const { side, heading } of sides) {
-    const items = OPEN_ITEMS.filter((item) => item.side === side);
-    lines.push(`#### ${heading}`, '');
-    lines.push('| Item | Owner | Priority | Status |', '|-|-|-|-|');
-    for (const item of items) {
+    const rows = OPEN_ITEMS.filter((item) => item.side === side).map((item) => {
       const title =
         item.ticket === undefined
-          ? cell(item.title)
-          : `${cell(item.title)} <br/>[${cell(item.ticket.label)}](${item.ticket.url})`;
-      lines.push(
-        tableRow([title, cell(item.owner), `\`${item.priority}\``, cell(item.status)]),
-      );
-    }
-    lines.push('');
+          ? inline(item.title)
+          : `${inline(item.title)}${BR}${anchor(item.ticket.url, item.ticket.label)}`;
+      return [title, escapeText(item.owner), code(item.priority), inline(item.status)];
+    });
+    blocks.push(`#### ${heading}`, htmlTable(header, rows));
   }
-  return lines.join('\n').trimEnd();
+  return blocks.join('\n\n');
 }
 
 // ── the registry ─────────────────────────────────────────────────────────────

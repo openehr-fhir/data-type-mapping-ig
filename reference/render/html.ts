@@ -112,15 +112,19 @@ export function htmlTable(
  * plain text would publish the syntax literally and dead-link the guide.
  *
  * Code spans are scanned **first**, so a `|`, `<` or `*` inside one is literal
- * and is never re-interpreted. Anything the subset does not cover stays literal
- * text; the residual-markdown guard in `reference/test/render.test.ts` is what
- * makes that visible rather than silent, and widening the subset is a deliberate
- * change here rather than an escape hatch at a call site.
+ * and is never re-interpreted. The body of a link, of `**strong**` and of `*em*`
+ * is prose in its own right and is converted recursively, because the ledger
+ * nests them — `**only `DV_TEXT.value` participates**` is a real ledger string.
+ * Anything the subset does not cover stays literal text; the residual-markdown
+ * guard in `reference/test/render.test.ts` is what makes that visible rather
+ * than silent, and widening the subset is a deliberate change here rather than
+ * an escape hatch at a call site.
  */
 export function inline(prose: string): string {
   // One alternation, scanned left to right, so a construct is only ever
-  // recognised outside a code span.
-  const pattern = /`([^`]*)`|\[([^\]]*)\]\(([^)\s]+)\)|\*\*([^*]+)\*\*|\*([^*]+)\*/g;
+  // recognised outside a code span. Strong is tried before emphasis, and its
+  // body is lazy so `**a *b* c**` pairs correctly.
+  const pattern = /`([^`]*)`|\[([^\]]*)\]\(([^)\s]+)\)|\*\*([\s\S]+?)\*\*|\*([^*]+?)\*/g;
 
   let out = '';
   let last = 0;
@@ -130,9 +134,10 @@ export function inline(prose: string): string {
     const [whole, codeText, linkLabel, linkTarget, strongText, emText] = match;
     if (codeText !== undefined) out += code(codeText);
     else if (linkLabel !== undefined && linkTarget !== undefined) {
-      out += anchor(linkTarget, linkLabel);
-    } else if (strongText !== undefined) out += strong(escapeText(strongText));
-    else if (emText !== undefined) out += em(escapeText(emText));
+      // The label is converted, not escaped: a link label is prose too.
+      out += `<a href="${escapeAttr(linkTarget)}">${inline(linkLabel)}</a>`;
+    } else if (strongText !== undefined) out += strong(inline(strongText));
+    else if (emText !== undefined) out += em(inline(emText));
     last = at + whole.length;
   }
   out += escapeText(prose.slice(last));

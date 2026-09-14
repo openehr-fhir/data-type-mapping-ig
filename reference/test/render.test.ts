@@ -16,14 +16,13 @@ import {
 } from '../render/html.ts';
 import {
   EXAMPLE_PREFIX,
-  cell,
   regionRenderers,
   renderExample,
   rendererFor,
   renderGapsFhirToOpenehr,
+  renderGapsNotDiscussed,
   renderGapsOpenehrToFhir,
   renderSummaryAll,
-  tableRow,
 } from '../render/tables.ts';
 
 /**
@@ -201,7 +200,7 @@ test('an example: region for a missing fixture is an error', () => {
 
 test('the empty ledger still renders a summary region', () => {
   const body = renderSummaryAll();
-  assert.match(body, /openEHR type \| FHIR type/);
+  assert.match(body, /<th>openEHR type<\/th><th>FHIR type<\/th>/);
 });
 
 test('a sentinel inside a fenced code block is documentation, not a region', () => {
@@ -224,12 +223,6 @@ test('a sentinel inside a fenced code block is documentation, not a region', () 
   const regions = parseRegions(documented);
   assert.equal(regions.length, 1);
   assert.equal(regions[0]?.id, 'summary:all');
-});
-
-test('table cells escape pipes and collapse newlines', () => {
-  assert.equal(cell('a|b'), 'a\\|b');
-  assert.equal(cell('a\nb'), 'a b');
-  assert.equal(tableRow(['a', 'b']), '| a | b |');
 });
 
 // ── the HTML serialization layer ─────────────────────────────────────────────
@@ -289,6 +282,11 @@ test('inline converts the ledger markdown subset and escapes the rest', () => {
   assert.equal(inline('a < b'), 'a &lt; b');
   // A marker inside a code span is literal: code spans are scanned first.
   assert.equal(inline('`a|b *c*`'), '<code>a|b *c*</code>');
+  // Nested prose is converted, not escaped — the ledger writes this.
+  assert.equal(
+    inline('**only `DV_TEXT.value` participates**'),
+    '<strong>only <code>DV_TEXT.value</code> participates</strong>',
+  );
 });
 
 test('inline turns a real ledger string into a working anchor', () => {
@@ -299,12 +297,12 @@ test('inline turns a real ledger string into a working anchor', () => {
 });
 
 test('each directional gap table contains only what its own heading promises', () => {
-  /** The first column of every data row — the **feature** the gap is about. */
+  /** The first column of every `<tbody>` row — the **feature** the gap is about. */
   const featureCells = (table: string): readonly string[] =>
     table
       .split('\n')
-      .filter((line) => line.startsWith('| ') && !line.startsWith('| Feature') && !line.startsWith('|-'))
-      .map((line) => line.split(' | ')[0] ?? '');
+      .filter((line) => line.startsWith('<tr><td>'))
+      .map((line) => line.slice('<tr><td>'.length).split('</td>')[0] ?? '');
 
   const outbound = featureCells(renderGapsOpenehrToFhir());
   const inbound = featureCells(renderGapsFhirToOpenehr());
@@ -325,4 +323,115 @@ test('each directional gap table contains only what its own heading promises', (
     !inbound.some((c) => c.includes('RelativeTime')),
     'a FHIR type with no openEHR counterpart is not listed twice',
   );
+});
+
+// ── the converted-output regression guards ───────────────────────────────────
+
+/**
+ * Every registered renderer's body, keyed by region id.
+ *
+ * The guards below iterate this rather than a hand-picked list, so a renderer
+ * added later is covered without anybody remembering to add it.
+ */
+function generatedBodies(): readonly (readonly [string, string])[] {
+  return [...regionRenderers()].map(([id, render]) => [id, render()] as const);
+}
+
+/** Every `<td>`/`<th>` in a generated body, with its `<code>` spans removed. */
+function cellsOutsideCodeSpans(body: string): readonly string[] {
+  return [...body.matchAll(/<t[dh]>([\s\S]*?)<\/t[dh]>/g)].map((m) =>
+    (m[1] ?? '').replace(/<code>[\s\S]*?<\/code>/g, ''),
+  );
+}
+
+test('no generated body contains a markdown pipe-table row', () => {
+  for (const [id, body] of generatedBodies()) {
+    for (const line of body.split('\n')) {
+      assert.doesNotMatch(line, /^\s*\|?\s*-{1,}\s*\|/, `${id}: delimiter row: ${line}`);
+      assert.ok(!line.startsWith('| '), `${id}: markdown table row: ${line}`);
+    }
+  }
+});
+
+test('every generated table row has its header column count', () => {
+  let checked = 0;
+  for (const [id, body] of generatedBodies()) {
+    for (const table of body.match(/<table>[\s\S]*?<\/table>/g) ?? []) {
+      const headers = (table.match(/<th>/g) ?? []).length;
+      assert.ok(headers > 0, `${id}: a table with no header cells`);
+      const tbody = /<tbody>([\s\S]*?)<\/tbody>/.exec(table)?.[1] ?? '';
+      for (const row of tbody.match(/<tr>[\s\S]*?<\/tr>/g) ?? []) {
+        assert.equal((row.match(/<td>/g) ?? []).length, headers, `${id}: ${row}`);
+        checked += 1;
+      }
+    }
+  }
+  assert.ok(checked > 0, 'the guard actually inspected generated rows');
+});
+
+test('generated bodies contain only balanced tags from a known vocabulary', () => {
+  const allowed = new Set([
+    'table', 'thead', 'tbody', 'tr', 'th', 'td', 'a', 'code', 'em', 'strong', 'sup', 'br', 'p',
+  ]);
+  for (const [id, body] of generatedBodies()) {
+    if (id.startsWith(EXAMPLE_PREFIX)) continue;
+    const open: string[] = [];
+    for (const tag of body.match(/<[^>]*>/g) ?? []) {
+      const parsed = /^<(\/?)([a-zA-Z][a-zA-Z0-9]*)(\s[^>]*?)?(\/?)>$/.exec(tag);
+      assert.ok(parsed !== null, `${id}: not a well-formed tag: ${tag}`);
+      const name = (parsed?.[2] ?? '').toLowerCase();
+      assert.ok(allowed.has(name), `${id}: unexpected element <${name}> from ${tag}`);
+      if (parsed?.[4] === '/' || name === 'br') continue;
+      if (parsed?.[1] === '/') {
+        assert.equal(open.pop(), name, `${id}: ${tag} closes the wrong element`);
+      } else {
+        open.push(name);
+      }
+    }
+    assert.deepEqual(open, [], `${id}: unclosed elements`);
+  }
+});
+
+test('generated cells contain no residual markdown', () => {
+  for (const [id, body] of generatedBodies()) {
+    if (id.startsWith(EXAMPLE_PREFIX)) continue;
+    for (const text of cellsOutsideCodeSpans(body)) {
+      assert.ok(!text.includes('`'), `${id}: a backtick survived: ${text}`);
+      assert.ok(!text.includes(']('), `${id}: a markdown link survived: ${text}`);
+      assert.ok(!text.includes('**'), `${id}: markdown strong survived: ${text}`);
+      assert.ok(!text.includes('\\|'), `${id}: an escaped pipe survived: ${text}`);
+      assert.ok(!text.includes('*'), `${id}: markdown emphasis survived: ${text}`);
+    }
+  }
+});
+
+test('ledger prose survives conversion instead of being flattened', () => {
+  const bodies = generatedBodies().filter(([id]) => !id.startsWith(EXAMPLE_PREFIX));
+
+  // A link that came from prose, not from a citation: citations are absolute
+  // spec URLs, so a relative page link inside a cell can only have come from
+  // `inline()` running over ledger markdown.
+  const proseLinks = bodies.flatMap(([, body]) =>
+    [...body.matchAll(/<td>[\s\S]*?<\/td>/g)].flatMap((cellMatch) =>
+      [...(cellMatch[0] ?? '').matchAll(/<a href="([^"]+)"/g)].map((m) => m[1] ?? ''),
+    ),
+  );
+  assert.ok(
+    proseLinks.some((href) => href.endsWith('.html') && !href.startsWith('http')),
+    'at least one generated cell carries a link converted from ledger prose',
+  );
+
+  for (const [id, body] of bodies) {
+    assert.ok(!body.includes(']('), `${id}: a literal markdown link reached the page`);
+  }
+});
+
+test('a parameterised type name publishes as text, not as a tag', () => {
+  const summary = renderSummaryAll();
+  assert.match(summary, /<a href="[^"]*">DV_INTERVAL&lt;T&gt;<\/a>/);
+  assert.ok(!summary.includes('</T>'), 'no stray closing tag from a type parameter');
+
+  const notDiscussed = renderGapsNotDiscussed();
+  assert.ok(notDiscussed.includes('EVENT&lt;T&gt;'), 'EVENT<T> is escaped');
+  assert.ok(!notDiscussed.includes('<T>'), 'EVENT<T> is not parsed as a tag');
 });
