@@ -80,6 +80,28 @@ test('splicing is idempotent', () => {
   assert.equal(twice, once);
 });
 
+test('a spliced body is separated from both sentinels by a blank line', () => {
+  const spliced = spliceRegion(page('summary:all', 'x'), 'summary:all', '| a | b |');
+  const lines = spliced.split('\n');
+  const opener = lines.indexOf(openerFor('summary:all'));
+  const closer = lines.indexOf(closerFor('summary:all'));
+  assert.ok(opener >= 0 && closer > opener);
+  assert.equal(lines[opener + 1], '', 'the line after the opener is blank');
+  assert.equal(lines[closer - 1], '', 'the line before the closer is blank');
+  assert.equal(lines[opener + 2], '| a | b |');
+});
+
+test('splicing a body that already has blank edges stays idempotent', () => {
+  const once = spliceRegion(page('summary:all', 'x'), 'summary:all', '\n\nbody\n\n');
+  const twice = spliceRegion(once, 'summary:all', '\n\nbody\n\n');
+  assert.equal(twice, once);
+  const lines = once.split('\n');
+  const opener = lines.indexOf(openerFor('summary:all'));
+  assert.equal(lines[opener + 1], '');
+  assert.equal(lines[opener + 2], 'body');
+  assert.equal(lines[opener + 3], '');
+});
+
 test('a hand-edited region is detected by re-rendering', () => {
   const rendered = spliceRegion(page('summary:all', ''), 'summary:all', 'LEDGER-BODY');
   const tampered = rendered.replace('LEDGER-BODY', 'somebody typed here');

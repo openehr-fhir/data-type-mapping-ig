@@ -16,6 +16,13 @@
  *
  * Everything outside a sentinel pair is hand-authored prose and is **never**
  * touched by a splice.
+ *
+ * **Padding invariant.** A splice always separates the region body from both
+ * sentinels with a blank line. Markdown's block parser absorbs a pipe table or
+ * a raw HTML block that sits flush against an HTML comment into that comment's
+ * block, and the publisher then emits the source verbatim instead of a table.
+ * The body's own leading and trailing blank lines are stripped first, so a
+ * second render reproduces the first byte for byte.
  */
 
 const RENDER_COMMAND = 'npm --prefix reference run render';
@@ -125,6 +132,10 @@ export function parseRegions(markdown: string): readonly Region[] {
  * render never rewrites a CRLF file as LF (or the reverse), which would make
  * every page look changed.
  *
+ * The body is separated from both sentinels by a blank line — see the
+ * *Padding invariant* above. Stripping the body's own blank edges first is what
+ * keeps the operation idempotent.
+ *
  * @throws if the document has no region with that id.
  */
 export function spliceRegion(markdown: string, id: string, body: string): string {
@@ -133,11 +144,10 @@ export function spliceRegion(markdown: string, id: string, body: string): string
     throw new Error(`page has no managed region '${id}'`);
   }
   const eol = markdown.includes('\r\n') ? '\r\n' : '\n';
-  const normalizedBody = body.replace(/\r\n/g, '\n').replace(/\n/g, eol);
-  const withTrailingEol = normalizedBody.endsWith(eol)
-    ? normalizedBody
-    : `${normalizedBody}${eol}`;
-  const replacement = `${openerFor(id)}${eol}${withTrailingEol}${closerFor(id)}${eol}`;
+  const trimmed = body.replace(/\r\n/g, '\n').replace(/^\n+/, '').replace(/\n+$/, '');
+  const normalizedBody = trimmed.replace(/\n/g, eol);
+  const replacement =
+    `${openerFor(id)}${eol}${eol}${normalizedBody}${eol}${eol}${closerFor(id)}${eol}`;
   return markdown.slice(0, region.start) + replacement + markdown.slice(region.end);
 }
 
