@@ -7,6 +7,14 @@ import { fileURLToPath } from 'node:url';
 
 import { closerFor, openerFor, parseRegions, spliceRegion } from '../render/regions.ts';
 import {
+  anchor,
+  code,
+  escapeAttr,
+  escapeText,
+  htmlTable,
+  inline,
+} from '../render/html.ts';
+import {
   EXAMPLE_PREFIX,
   cell,
   regionRenderers,
@@ -222,6 +230,72 @@ test('table cells escape pipes and collapse newlines', () => {
   assert.equal(cell('a|b'), 'a\\|b');
   assert.equal(cell('a\nb'), 'a b');
   assert.equal(tableRow(['a', 'b']), '| a | b |');
+});
+
+// ── the HTML serialization layer ─────────────────────────────────────────────
+
+test('escapeText escapes the markup characters and flattens newlines', () => {
+  assert.equal(escapeText('<T>'), '&lt;T&gt;');
+  assert.equal(escapeText('a & b'), 'a &amp; b');
+  assert.equal(escapeText('a\nb'), 'a b');
+  assert.equal(escapeText('a\r\nb'), 'a b');
+  // `&` is replaced first, so an escape is never double-escaped.
+  assert.equal(escapeText('&lt;'), '&amp;lt;');
+});
+
+test('escapeAttr escapes quotes as well', () => {
+  assert.equal(escapeAttr('a"b'), 'a&quot;b');
+  assert.equal(escapeAttr("a'b"), 'a&#39;b');
+});
+
+test('an anchor label with angle brackets survives as text, not as a tag', () => {
+  const link = anchor('mapping-quantity.html', 'DV_INTERVAL<T>');
+  assert.equal(link, '<a href="mapping-quantity.html">DV_INTERVAL&lt;T&gt;</a>');
+  assert.doesNotMatch(link, /<T>/);
+});
+
+test('a code cell keeps a bare pipe and gains no backslash', () => {
+  const span = code('Range | Period | Quantity');
+  assert.equal(span, '<code>Range | Period | Quantity</code>');
+  assert.doesNotMatch(span, /\\/);
+});
+
+test('htmlTable enforces the column count at construction', () => {
+  assert.throws(
+    () => htmlTable(['a', 'b', 'c'], [['1', '2']]),
+    /row 0 has 2 cell\(s\) but the header has 3/,
+  );
+});
+
+test('htmlTable emits one row per line with the header column count', () => {
+  const table = htmlTable(['a', 'b'], [['1', '2'], ['3', '4']]);
+  const lines = table.split('\n');
+  assert.equal(lines[0], '<table>');
+  assert.equal(lines[2], '<tr><th>a</th><th>b</th></tr>');
+  assert.equal(lines.filter((l) => l.startsWith('<tr><td>')).length, 2);
+  assert.equal(table.at(-1), '>');
+  // No indentation anywhere: an indented line could be read as a code block.
+  assert.deepEqual(lines.filter((l) => /^\s/.test(l)), []);
+});
+
+test('inline converts the ledger markdown subset and escapes the rest', () => {
+  assert.equal(inline('`DV_TEXT`'), '<code>DV_TEXT</code>');
+  assert.equal(inline('**must**'), '<strong>must</strong>');
+  assert.equal(inline('*when*'), '<em>when</em>');
+  assert.equal(
+    inline('[null_flavour](mapping-coded.html)'),
+    '<a href="mapping-coded.html">null_flavour</a>',
+  );
+  assert.equal(inline('a < b'), 'a &lt; b');
+  // A marker inside a code span is literal: code spans are scanned first.
+  assert.equal(inline('`a|b *c*`'), '<code>a|b *c*</code>');
+});
+
+test('inline turns a real ledger string into a working anchor', () => {
+  assert.equal(
+    inline('See [TERM_MAPPING](#term-mapping) below.'),
+    'See <a href="#term-mapping">TERM_MAPPING</a> below.',
+  );
 });
 
 test('each directional gap table contains only what its own heading promises', () => {
