@@ -550,6 +550,15 @@ otherwise.
 
 *Published table rendering*
 
+- **Narrative tables have consistent grid presentation and intact direction
+  headers.** All hand-authored and ledger-generated tables use the `grid`
+  class, with named, keyboard-focusable wrappers for table-local horizontal
+  scrolling. The complete `→ openEHR` header stays on one line; ordinary
+  headers, descriptions, and other body content remain free to wrap.
+  The renderer preserves the presentation through content refreshes, and the
+  editor note documents the authored-table pattern. Table wording, values,
+  links, citations, order, and mapping meaning are unchanged.
+
 - **The guide's generated tables are emitted as HTML, and now publish as
   tables.** The ledger renderer produced markdown pipe tables, which the
   publisher's converter would neither start nor end adjacent to a managed

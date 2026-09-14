@@ -11,6 +11,8 @@ per type would hide that, so this guide does not publish one.
 The summary tables on [Data Type Mapping](mapping.html) and on each category
 page use these columns:
 
+<div markdown="1" style="max-width: 100%; overflow-x: auto;" tabindex="0" role="group" aria-label="Scrollable table">
+
 | Column | Meaning |
 |-|-|
 | openEHR type | The openEHR Reference Model type being mapped |
@@ -19,6 +21,9 @@ page use these columns:
 | → openEHR | The aggregate fidelity of the FHIR → openEHR direction |
 | Maturity | How settled the mapping decision is |
 | Scope | `datatype` or `archetype` — see [Scope](#scope) below |
+{: .grid}
+
+</div>
 
 An aggregate verdict is `lossless` only when **every** field row is `lossless`
 in that direction, `unmapped` only when every row is `unmapped`, and `lossy`
@@ -28,6 +33,8 @@ otherwise. It is a reading aid; the field table is the normative statement.
 
 Each per-type table uses these columns:
 
+<div markdown="1" style="max-width: 100%; overflow-x: auto;" tabindex="0" role="group" aria-label="Scrollable table">
+
 | Column | Meaning |
 |-|-|
 | openEHR field | The Reference Model attribute, linked to its specification |
@@ -36,6 +43,9 @@ Each per-type table uses these columns:
 | → openEHR | The fidelity of this field, FHIR → openEHR |
 | Maturity | How settled this row is |
 | Notes | What is dropped, and any conditions on the mapping |
+{: .grid}
+
+</div>
 
 Above each table, a **Sources** line names the specification sections the whole
 mapping is drawn from.
@@ -44,11 +54,16 @@ mapping is drawn from.
 
 Fidelity is stated **per direction**, using exactly three values.
 
+<div markdown="1" style="max-width: 100%; overflow-x: auto;" tabindex="0" role="group" aria-label="Scrollable table">
+
 | Value | Meaning |
 |-|-|
 | `lossless` | The information survives the conversion in that direction |
 | `lossy` | The conversion succeeds but drops named information |
 | `unmapped` | There is nothing to convert to in that direction |
+{: .grid}
+
+</div>
 
 A mapping marked **lossless** SHALL round-trip: converting openEHR to FHIR and
 back SHALL yield an equivalent instance. A mapping marked **lossy** SHALL
@@ -111,11 +126,16 @@ governs is what an implementation does when it is not.
 Exactly **three** substitutions are permitted, and each is recorded on the row
 that describes it:
 
+<div markdown="1" style="max-width: 100%; overflow-x: auto;" tabindex="0" role="group" aria-label="Scrollable table">
+
 | Site | Why it is an exception |
 |-|-|
 | `CODE_PHRASE.terminology_id` from an absent `Coding.system` | The working group has explicitly refused to choose a strategy. The placeholder is substituted **and reported**, so the conversion is `lossy`, never `lossless` |
 | `DV_STATE.is_terminal` from a `CodeableConcept` | Nothing in a `CodeableConcept` can source it; it is inferred from the state machine the archetype defines, and the openEHR-only gap is published |
 | `TERM_MAPPING.match` from a `Coding` | A `Coding` carries no degree of equivalence and `match` is `1..1`. The Reference Model publishes a value for exactly this case — `?`, "the kind of mapping is unknown" — which is substituted **and reported**, so the conversion is `lossy`, never `lossless`, and no equivalence is asserted |
+{: .grid}
+
+</div>
 
 The list is closed. A fourth exception would have to be argued for in the
 reference implementation's own contract tests, where the three above are pinned
@@ -136,11 +156,16 @@ disappear.
 Fidelity says what a conversion does. Maturity says how much confidence the
 working group has in it. They are separate columns and are never collapsed.
 
+<div markdown="1" style="max-width: 100%; overflow-x: auto;" tabindex="0" role="group" aria-label="Scrollable table">
+
 | Value | Meaning |
 |-|-|
 | `settled` | The working group has reviewed the mapping and agreed it |
 | `open` | The mapping is under discussion; the alternatives are stated in the Notes and none has been adopted |
 | `not-discussed` | The type or field has not been examined yet |
+{: .grid}
+
+</div>
 
 A `not-discussed` row SHALL NOT claim a fidelity outcome. It carries `unmapped`
 in both directions with a reason, because the guide cannot assert what nobody
@@ -149,10 +174,15 @@ has checked. Reviewer coverage is published in full on
 
 #### Scope
 
+<div markdown="1" style="max-width: 100%; overflow-x: auto;" tabindex="0" role="group" aria-label="Scrollable table">
+
 | Value | Meaning |
 |-|-|
 | `datatype` | The mapping is expressible between the two data types alone |
 | `archetype` | The mapping needs surrounding context — an openEHR archetype and a FHIR resource or profile — to be stated at all |
+{: .grid}
+
+</div>
 
 `DV_ORDINAL` is the clearest `archetype`-scope case: its symbol and its ordinal
 value have no single FHIR data type to land in, and the mapping is only
@@ -222,3 +252,24 @@ will touch it.
 The drift check turns a hand edit into a loud failure rather than a silent loss,
 but it only helps if it is run. It is named in the repository's contributor
 guidance for that reason.
+
+Generated table presentation is maintained in `reference\render\html.ts`;
+mapping content remains owned by the ledger. For hand-authored tables outside
+managed regions, retain the Markdown rows and give each table the `grid` class
+inside its own named, keyboard-focusable scrolling wrapper:
+
+```markdown
+<div markdown="1" style="max-width: 100%; overflow-x: auto;" tabindex="0" role="group" aria-label="Scrollable table">
+
+| <span style="white-space: nowrap;">→ openEHR</span> | Notes |
+|-|-|
+| Example value | Longer explanations can wrap normally. |
+{: .grid}
+
+</div>
+```
+
+The attribute line attaches `grid` to the table itself. The wrapper permits
+table-local horizontal scrolling when needed, while ordinary headers and body
+cells remain free to wrap. Use the no-wrap span only when `→ openEHR` is an
+actual column header, not for explanatory body labels such as those above.

@@ -89,15 +89,20 @@ export function htmlTable(
     }
   });
 
+  const headerCells = headers.map((h) =>
+    h === '→ openEHR' ? `<th style="white-space: nowrap;">${h}</th>` : `<th>${h}</th>`,
+  );
   const lines = [
-    '<table>',
+    '<div style="max-width: 100%; overflow-x: auto;" tabindex="0" role="group" aria-label="Scrollable table">',
+    '<table class="grid">',
     '<thead>',
-    `<tr>${headers.map((h) => `<th>${h}</th>`).join('')}</tr>`,
+    `<tr>${headerCells.join('')}</tr>`,
     '</thead>',
     '<tbody>',
     ...rows.map((row) => `<tr>${row.map((c) => `<td>${c}</td>`).join('')}</tr>`),
     '</tbody>',
     '</table>',
+    '</div>',
   ];
   return lines.join('\n');
 }

@@ -33,6 +33,9 @@ import {
  */
 
 const PAGECONTENT = fileURLToPath(new URL('../../input/pagecontent/', import.meta.url));
+const SCROLL_WRAPPER =
+  '<div style="max-width: 100%; overflow-x: auto;" tabindex="0" role="group" aria-label="Scrollable table">';
+const MARKDOWN_SCROLL_WRAPPER = SCROLL_WRAPPER.replace('<div ', '<div markdown="1" ');
 
 function page(id: string, body: string): string {
   return [
@@ -270,12 +273,48 @@ test('htmlTable enforces the column count at construction', () => {
 test('htmlTable emits one row per line with the header column count', () => {
   const table = htmlTable(['a', 'b'], [['1', '2'], ['3', '4']]);
   const lines = table.split('\n');
-  assert.equal(lines[0], '<table>');
-  assert.equal(lines[2], '<tr><th>a</th><th>b</th></tr>');
+  assert.equal(lines[0], SCROLL_WRAPPER);
+  assert.equal(lines[1], '<table class="grid">');
+  assert.equal(lines[3], '<tr><th>a</th><th>b</th></tr>');
   assert.equal(lines.filter((l) => l.startsWith('<tr><td>')).length, 2);
+  assert.deepEqual(lines.slice(-2), ['</table>', '</div>']);
   assert.equal(table.at(-1), '>');
   // No indentation anywhere: an indented line could be read as a code block.
   assert.deepEqual(lines.filter((l) => /^\s/.test(l)), []);
+});
+
+test('htmlTable decorates populated and empty tables with accessible grid overflow', () => {
+  for (const rows of [[], [['<code>a | b</code>', '<em>already escaped &amp; composed</em>']]]) {
+    const table = htmlTable(['a', 'b'], rows);
+    assert.equal(assertGeneratedPresentation('helper', table), 1);
+    assert.deepEqual(
+      [...table.matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/g)].map((match) => match[1]),
+      rows.flat(),
+      'cell fragments are unchanged, including the zero-row case',
+    );
+    assert.equal((table.match(/<tr>/g) ?? []).length, rows.length + 1);
+  }
+});
+
+test('htmlTable keeps only the exact openEHR direction header on one line', () => {
+  const ordinary = [
+    '→ FHIR', '→ OpenEHR', '→ openEHR ', ' → openEHR', '→  openEHR',
+    '→\u00a0openEHR', '<code>→ openEHR</code>', 'Notes',
+  ];
+  for (const position of [0, 3, ordinary.length]) {
+    const headers = [...ordinary.slice(0, position), '→ openEHR', ...ordinary.slice(position)];
+    const bodyCells = headers.map(() => '→ openEHR');
+    const table = htmlTable(headers, [bodyCells]);
+    assert.equal(assertGeneratedPresentation('direction-header', table), 1);
+    const emitted = [...table.matchAll(/<th\b([^>]*)>([\s\S]*?)<\/th>/g)];
+    assert.deepEqual(emitted.map((match) => match[2]), headers, 'no label normalization');
+    assert.equal(emitted[position]?.[2]?.codePointAt(1), 0x20, 'the space stays U+0020');
+    assert.deepEqual(
+      [...table.matchAll(/<td\b([^>]*)>([\s\S]*?)<\/td>/g)].map((match) => [match[1], match[2]]),
+      bodyCells.map((cell) => ['', cell]),
+      'an identically worded body cell receives no styling',
+    );
+  }
 });
 
 test('inline converts the ledger markdown subset and escapes the rest', () => {
@@ -450,9 +489,10 @@ function generatedBodies(): readonly (readonly [string, string])[] {
   return [...regionRenderers()].map(([id, render]) => [id, render()] as const);
 }
 
-function assertGeneratedCellContent(id: string, body: string): void {
-  for (const match of body.matchAll(/<t[dh]>([\s\S]*?)<\/t[dh]>/g)) {
-    const cell = match[1] ?? '';
+function assertGeneratedCellContent(id: string, body: string): number {
+  let checked = 0;
+  for (const match of body.matchAll(/<t([dh])\b[^>]*>([\s\S]*?)<\/t\1>/g)) {
+    const cell = match[2] ?? '';
     for (const span of cell.matchAll(/<code>([\s\S]*?)<\/code>/g)) {
       const payload = span[1] ?? '';
       assert.ok(!payload.includes('\\|'), `${id}: an escaped pipe survived inside code: ${payload}`);
@@ -463,7 +503,40 @@ function assertGeneratedCellContent(id: string, body: string): void {
     assert.ok(!text.includes('**'), `${id}: markdown strong survived: ${text}`);
     assert.ok(!text.includes('\\|'), `${id}: an escaped pipe survived: ${text}`);
     assert.ok(!text.includes('*'), `${id}: markdown emphasis survived: ${text}`);
+    checked += 1;
   }
+  return checked;
+}
+
+function assertGeneratedPresentation(id: string, body: string): number {
+  const tables = [...body.matchAll(/<table\b[^>]*>[\s\S]*?<\/table>/g)];
+  assert.equal((body.match(/<table\b/g) ?? []).length, tables.length, `${id}: closed tables`);
+  assert.equal((body.match(/<div\b/g) ?? []).length, tables.length, `${id}: one wrapper per table`);
+  assert.equal((body.match(/<\/div>/g) ?? []).length, tables.length, `${id}: closed wrappers`);
+  let directionHeaders = 0;
+  for (const table of tables) {
+    assert.ok(table[0].startsWith('<table class="grid">\n<thead>\n'), `${id}: native grid table`);
+    assert.ok(table[0].endsWith('</tbody>\n</table>'), `${id}: native table body`);
+    assert.ok(
+      body.slice(0, table.index).endsWith(`${SCROLL_WRAPPER}\n`),
+      `${id}: the complete scroll wrapper immediately encloses this table`,
+    );
+    assert.ok(
+      body.slice(table.index + table[0].length).startsWith('\n</div>'),
+      `${id}: this table has its own wrapper closer`,
+    );
+    for (const header of table[0].matchAll(/<th\b([^>]*)>([\s\S]*?)<\/th>/g)) {
+      const target = header[2] === '→ openEHR';
+      assert.equal(header[1], target ? ' style="white-space: nowrap;"' : '', `${id}: header styling`);
+      if (target) directionHeaders += 1;
+    }
+  }
+  assert.equal(
+    (body.match(/white-space:\s*nowrap/g) ?? []).length,
+    directionHeaders,
+    `${id}: no no-wrap styling outside exact direction headers`,
+  );
+  return tables.length;
 }
 
 function only<T>(values: readonly T[], description: string): T {
@@ -479,13 +552,15 @@ function generatedCell(id: string, heading: string, label: string, column: strin
     `${id} registered body`,
   );
   const table = only(
-    [...body.matchAll(/<table>[\s\S]*?<\/table>/g)]
+    [...body.matchAll(/<table\b[^>]*>[\s\S]*?<\/table>/g)]
       .map(([html]) => html)
-      .filter((html) => html.includes(`<th>${heading}</th>`)),
+      .filter((html) =>
+        [...html.matchAll(/<th\b[^>]*>([\s\S]*?)<\/th>/g)].some((match) => match[1] === heading),
+      ),
     `${id} table headed ${heading}`,
   );
   const [thead] = only([...table.matchAll(/<thead>[\s\S]*?<\/thead>/g)], `${id} thead`);
-  const headers = [...thead.matchAll(/<th>([\s\S]*?)<\/th>/g)].map((match) => match[1]);
+  const headers = [...thead.matchAll(/<th\b[^>]*>([\s\S]*?)<\/th>/g)].map((match) => match[1]);
   assert.equal(headers.length, 6, `${id}: six header cells`);
   assert.equal(headers[0], heading, `${id}: first header`);
   assert.equal(headers.filter((header) => header === heading).length, 1, `${id}: unique heading`);
@@ -495,7 +570,7 @@ function generatedCell(id: string, heading: string, label: string, column: strin
   );
   const [tbody] = only([...table.matchAll(/<tbody>[\s\S]*?<\/tbody>/g)], `${id} tbody`);
   const rows = [...tbody.matchAll(/<tr>[\s\S]*?<\/tr>/g)].map(([row]) =>
-    [...row.matchAll(/<td>([\s\S]*?)<\/td>/g)].map((match) => match[1]),
+    [...row.matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/g)].map((match) => match[1]),
   );
   const cells = only(
     rows.filter((row) => {
@@ -522,24 +597,43 @@ test('no generated body contains a markdown pipe-table row', () => {
 });
 
 test('every generated table row has its header column count', () => {
-  let checked = 0;
+  const checked = { tables: 0, headers: 0, rows: 0, cells: 0 };
   for (const [id, body] of generatedBodies()) {
-    for (const table of body.match(/<table>[\s\S]*?<\/table>/g) ?? []) {
-      const headers = (table.match(/<th>/g) ?? []).length;
+    for (const table of body.match(/<table\b[^>]*>[\s\S]*?<\/table>/g) ?? []) {
+      const headers = (table.match(/<th\b[^>]*>/g) ?? []).length;
       assert.ok(headers > 0, `${id}: a table with no header cells`);
-      const tbody = /<tbody>([\s\S]*?)<\/tbody>/.exec(table)?.[1] ?? '';
+      const [, tbody] = only([...table.matchAll(/<tbody>([\s\S]*?)<\/tbody>/g)], `${id} tbody`);
+      assert.ok(tbody !== undefined, `${id}: a table body`);
+      checked.tables += 1;
+      checked.headers += headers;
       for (const row of tbody.match(/<tr>[\s\S]*?<\/tr>/g) ?? []) {
-        assert.equal((row.match(/<td>/g) ?? []).length, headers, `${id}: ${row}`);
-        checked += 1;
+        const cells = (row.match(/<td\b[^>]*>/g) ?? []).length;
+        assert.equal(cells, headers, `${id}: ${row}`);
+        checked.rows += 1;
+        checked.cells += cells;
       }
     }
   }
-  assert.ok(checked > 0, 'the guard actually inspected generated rows');
+  for (const [kind, count] of Object.entries(checked)) {
+    assert.ok(count > 0, `the guard actually inspected generated ${kind}`);
+  }
+});
+
+test('every registered generated table has grid presentation and its own scroll wrapper', () => {
+  let checked = 0;
+  let directionHeaders = 0;
+  for (const [id, body] of generatedBodies()) {
+    if (id.startsWith(EXAMPLE_PREFIX)) continue;
+    checked += assertGeneratedPresentation(id, body);
+    directionHeaders += (body.match(/<th\b[^>]*>→ openEHR<\/th>/g) ?? []).length;
+  }
+  assert.equal(checked, 48, 'all current tables across every registered table family');
+  assert.ok(directionHeaders > 0, 'exact direction headers were inspected');
 });
 
 test('generated bodies contain only balanced tags from a known vocabulary', () => {
   const allowed = new Set([
-    'table', 'thead', 'tbody', 'tr', 'th', 'td', 'a', 'code', 'em', 'strong', 'sup', 'br', 'p',
+    'div', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'a', 'code', 'em', 'strong', 'sup', 'br', 'p',
   ]);
   for (const [id, body] of generatedBodies()) {
     if (id.startsWith(EXAMPLE_PREFIX)) continue;
@@ -561,10 +655,41 @@ test('generated bodies contain only balanced tags from a known vocabulary', () =
 });
 
 test('generated cells contain no residual markdown', () => {
+  let checked = 0;
   for (const [id, body] of generatedBodies()) {
     if (id.startsWith(EXAMPLE_PREFIX)) continue;
-    assertGeneratedCellContent(id, body);
+    checked += assertGeneratedCellContent(id, body);
   }
+  assert.ok(checked > 0, 'the guard actually inspected generated cells');
+});
+
+test('generated-cell validation inspects attributed header and data cells', () => {
+  for (const tag of ['th', 'td']) {
+    for (const payload of [
+      '`unconverted`', '**strong**', '*emphasis*', '[link](target)',
+      String.raw`<code>Range \| Period</code>`,
+    ]) {
+      assert.throws(
+        () => assertGeneratedCellContent('attributed', `<${tag} class="example">${payload}</${tag}>`),
+        /survived/,
+        `${tag}: attributed cells still reject ${payload}`,
+      );
+    }
+  }
+  assert.equal(
+    assertGeneratedCellContent(
+      'clean-attributed',
+      '<table class="grid"><thead><tr><th style="white-space: nowrap;">→ openEHR</th></tr></thead>' +
+        '<tbody><tr><td class="example"><code>Range | Period</code></td></tr></tbody></table>',
+    ),
+    2,
+    'both attributed cell kinds are inspected',
+  );
+  assert.equal(
+    assertGeneratedCellContent('not-a-cell', '<thead class="example">**not a cell**</thead>'),
+    0,
+    'the th tag-name boundary does not match thead',
+  );
 });
 
 test('generated-cell validation rejects escaped pipes inside code', () => {
@@ -663,6 +788,180 @@ test('no hand-authored code span publishes an escaped pipe', () => {
     });
   }
   assert.deepEqual(offenders, [], `an escaped pipe publishes literally:\n${offenders.join('\n')}`);
+});
+
+function authoredLines(markdown: string): readonly string[] {
+  const parts: string[] = [];
+  let end = 0;
+  for (const region of parseRegions(markdown)) {
+    parts.push(markdown.slice(end, region.start));
+    end = region.end;
+  }
+  parts.push(markdown.slice(end));
+  let fence: string | undefined;
+  return parts.join('\n').split(/\r?\n/).map((line) => {
+    const match = /^\s*(`{3,}|~{3,})(.*)$/.exec(line);
+    const marker = match?.[1];
+    if (fence !== undefined) {
+      if (marker?.startsWith(fence) && (match?.[2] ?? '').trim() === '') fence = undefined;
+      return '';
+    }
+    if (marker !== undefined) {
+      fence = marker;
+      return '';
+    }
+    return line;
+  });
+}
+
+function tagAttribute(tag: string, name: string): string | undefined {
+  const match = new RegExp(`\\s${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, 'i').exec(tag);
+  return match?.[1] ?? match?.[2];
+}
+
+function assertScrollWrapper(id: string, opening: string, markdown: boolean): void {
+  assert.match(opening, /^<div\b[^>]*>$/i, `${id}: a complete div wrapper`);
+  assert.equal(tagAttribute(opening, 'tabindex'), '0', `${id}: a keyboard-focusable wrapper`);
+  assert.equal(tagAttribute(opening, 'role'), 'group', `${id}: a group, not a landmark`);
+  assert.ok(tagAttribute(opening, 'aria-label')?.trim(), `${id}: a named wrapper`);
+  const style = tagAttribute(opening, 'style') ?? '';
+  assert.match(style, /\bmax-width\s*:\s*100%\s*(?:;|$)/, `${id}: viewport-bounded wrapper`);
+  assert.match(style, /\boverflow-x\s*:\s*auto\s*(?:;|$)/, `${id}: local horizontal scrolling`);
+  assert.doesNotMatch(style, /white-space\s*:\s*nowrap/, `${id}: ordinary wrapping`);
+  if (markdown) assert.equal(tagAttribute(opening, 'markdown'), '1', `${id}: Markdown processing`);
+}
+
+function assertAuthoredPresentation(id: string, markdown: string): { markdown: number; html: number } {
+  const lines = authoredLines(markdown);
+  const checked = { markdown: 0, html: 0 };
+  const delimiter = /^\s*\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)+\|?\s*$/;
+  for (let index = 0; index < lines.length - 1; index += 1) {
+    if (!lines[index]?.includes('|') || !delimiter.test(lines[index + 1] ?? '')) continue;
+    let end = index + 2;
+    while (lines[end]?.includes('|')) end += 1;
+    const attributes = /^\s*\{:\s*([^}]*)\}\s*$/.exec(lines[end] ?? '');
+    assert.ok(attributes !== null, `${id}: an immediately attached table attribute`);
+    assert.match(attributes[1] ?? '', /(?:^|\s)\.grid(?:\s|$)/, `${id}: the table has .grid`);
+    assert.equal(lines[index - 1]?.trim(), '', `${id}: a blank line after the Markdown wrapper`);
+    let before = index - 1;
+    while (before >= 0 && lines[before]?.trim() === '') before -= 1;
+    assertScrollWrapper(id, lines[before]?.trim() ?? '', true);
+    assert.equal(lines[end + 1]?.trim(), '', `${id}: a blank line before the wrapper closer`);
+    let after = end + 1;
+    while (after < lines.length && lines[after]?.trim() === '') after += 1;
+    assert.equal(lines[after]?.trim(), '</div>', `${id}: this table has its own wrapper closer`);
+    checked.markdown += 1;
+    index = end;
+  }
+
+  const visible = lines.join('\n');
+  const tables = [...visible.matchAll(/<table\b[^>]*>[\s\S]*?<\/table>/gi)];
+  assert.equal((visible.match(/<table\b/gi) ?? []).length, tables.length, `${id}: closed HTML tables`);
+  for (const table of tables) {
+    const opening = /^<table\b[^>]*>/i.exec(table[0])?.[0] ?? '';
+    assert.ok(tagAttribute(opening, 'class')?.split(/\s+/).includes('grid'), `${id}: HTML table grid`);
+    const wrapper = /<div\b[^>]*>\s*$/i.exec(visible.slice(0, table.index))?.[0].trim() ?? '';
+    assertScrollWrapper(id, wrapper, false);
+    assert.match(
+      visible.slice(table.index + table[0].length),
+      /^\s*<\/div>/i,
+      `${id}: this HTML table has its own wrapper closer`,
+    );
+    checked.html += 1;
+  }
+  return checked;
+}
+
+test('every authored narrative table has grid presentation and a Markdown scroll wrapper', () => {
+  const inventory: Record<string, { markdown: number; html: number }> = {};
+  for (const file of readdirSync(PAGECONTENT).filter((f) => f.endsWith('.md'))) {
+    const checked = assertAuthoredPresentation(file, readFileSync(join(PAGECONTENT, file), 'utf8'));
+    if (checked.markdown + checked.html > 0) inventory[file] = checked;
+  }
+  assert.deepEqual(inventory, {
+    'conventions.md': { markdown: 6, html: 0 },
+    'cross-cutting.md': { markdown: 2, html: 0 },
+    'mapping.md': { markdown: 1, html: 0 },
+    'type-systems.md': { markdown: 1, html: 0 },
+  }, 'all ten current authored tables, not fenced examples or managed bodies');
+});
+
+test('authored-table coverage rejects missing decorations and ignores fenced examples', () => {
+  const rows = '| A | B |\n|-|-|\n| left | right |';
+  const decorated = `${MARKDOWN_SCROLL_WRAPPER}\n\n${rows}\n{: .grid}\n\n</div>`;
+  assert.deepEqual(assertAuthoredPresentation('valid', decorated), { markdown: 1, html: 0 });
+  assert.deepEqual(
+    assertAuthoredPresentation('existing-attributes', decorated.replace('{: .grid}', '{: #sample .other .grid}')),
+    { markdown: 1, html: 0 },
+  );
+  for (const broken of [
+    rows,
+    decorated.replace('{: .grid}', ''),
+    decorated.replace('{: .grid}', '{: .gridlike}'),
+    decorated.replace(MARKDOWN_SCROLL_WRAPPER, ''),
+    decorated.replace('</div>', ''),
+    decorated.replace('tabindex="0"', ''),
+    decorated.replace('role="group"', ''),
+    decorated.replace('aria-label="Scrollable table"', 'aria-label=" "'),
+    decorated.replace('markdown="1"', ''),
+    decorated.replace('overflow-x: auto;', ''),
+    decorated.replace('>\n\n|', '>\n|'),
+    decorated.replace('{: .grid}\n\n</div>', '{: .grid}\n</div>'),
+  ]) {
+    assert.throws(() => assertAuthoredPresentation('missing-decoration', broken));
+  }
+  for (const fence of ['```', '~~~']) {
+    const example = `${fence}markdown\n${rows}\n\n<table><tr><td>example</td></tr></table>\n${fence}`;
+    assert.deepEqual(assertAuthoredPresentation('fenced', example), { markdown: 0, html: 0 });
+    assert.deepEqual(
+      assertAuthoredPresentation('fenced-and-real', `${example}\n\n${decorated}`),
+      { markdown: 1, html: 0 },
+    );
+  }
+  assert.deepEqual(
+    assertAuthoredPresentation('longer-fence', `\`\`\`\`markdown\n${rows}\n\`\`\`\n${rows}\n\`\`\`\``),
+    { markdown: 0, html: 0 },
+  );
+  assert.deepEqual(
+    assertAuthoredPresentation('managed-and-real', `${page('summary:all', rows)}\n${decorated}`),
+    { markdown: 1, html: 0 },
+  );
+});
+
+test('authored HTML tables cannot bypass the grid and scroll-wrapper guard', () => {
+  const table = '<table class="other grid"><thead><tr><th>A</th></tr></thead><tbody></tbody></table>';
+  const decorated = `${SCROLL_WRAPPER}\n${table}\n</div>`;
+  assert.deepEqual(assertAuthoredPresentation('html', decorated), { markdown: 0, html: 1 });
+  assert.deepEqual(
+    assertAuthoredPresentation(
+      'html-uppercase',
+      decorated.replace('<table class=', '<TABLE CLASS=').replace('</table>', '</TABLE>'),
+    ),
+    { markdown: 0, html: 1 },
+  );
+  for (const broken of [
+    table,
+    decorated.replace('class="other grid"', 'class="gridlike"'),
+    decorated.replace('class="other grid"', '').replaceAll('table', 'TABLE'),
+    decorated.replace('</div>', ''),
+    decorated.replace('</table>', ''),
+    decorated.replace('tabindex="0"', ''),
+    `${SCROLL_WRAPPER}\n${table}\n${table}\n</div>`,
+  ]) {
+    assert.throws(() => assertAuthoredPresentation('undecorated-html', broken));
+  }
+});
+
+test('regeneration preserves authored table decoration outside sentinels', () => {
+  const decorated = `${MARKDOWN_SCROLL_WRAPPER}\n\n| A | B |\n|-|-|\n| left | right |\n{: .grid}\n\n</div>`;
+  const before = `Prose above.\n\n${decorated}\n\n${page('summary:all', 'old body')}\n${decorated}\n\nProse below.\n`;
+  const after = spliceRegion(before, 'summary:all', htmlTable(['New'], [['body']]));
+  const oldRegion = only(parseRegions(before), 'original region');
+  const newRegion = only(parseRegions(after), 'regenerated region');
+  assert.equal(after.slice(0, newRegion.start), before.slice(0, oldRegion.start));
+  assert.equal(after.slice(newRegion.end), before.slice(oldRegion.end));
+  assert.deepEqual(assertAuthoredPresentation('preserved', after), { markdown: 2, html: 0 });
+  assert.equal(spliceRegion(after, 'summary:all', htmlTable(['New'], [['body']])), after);
 });
 
 test('a parameterised type name publishes as text, not as a tag', () => {

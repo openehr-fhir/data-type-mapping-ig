@@ -44,12 +44,17 @@ whatever structure its abstract ancestors define. Generic types such as
 Alongside the `DV_` hierarchy the RM defines **supporting types** that are not
 data values but are referenced by them:
 
+<div markdown="1" style="max-width: 100%; overflow-x: auto;" tabindex="0" role="group" aria-label="Scrollable table">
+
 | Type | Role |
 |-|-|
 | `CODE_PHRASE` | A `terminology_id` + `code_string` pair, with an optional `preferred_term`, anchoring coded data. |
 | `TERM_MAPPING` | A mapping from a term to an equivalent, broader, or narrower term in another terminology. |
 | `REFERENCE_RANGE<T>` | A named range with a `meaning` (`DV_TEXT`) and a `range` (`DV_INTERVAL<T>`). |
 | `LINK` | Defined in the [Common Information Model](https://specifications.openehr.org/releases/RM/latest/common.html); a logical relationship between archetype nodes. |
+{: .grid}
+
+</div>
 
 Above the data types, openEHR layers Reference Model classes — `ELEMENT`,
 `CLUSTER`, `OBSERVATION`, `COMPOSITION` — that carry data values in their
