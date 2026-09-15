@@ -48,6 +48,12 @@ pnpm-debug.log*
 .env.*
 !.env.example
 
+# =============================================================================
+# Converter site - generated modules and bundle output, never hand-edited
+# =============================================================================
+converter-site/src/generated/
+converter-site/dist/
+
 # >>> dev-* skills (managed by dev-setup) >>>
 # Local scratch workspace for dev-* skills
 /scratch/

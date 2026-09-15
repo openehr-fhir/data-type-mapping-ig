@@ -1,0 +1,21 @@
+{
+  "name": "openehr-fhir-data-type-mapping-converter-site",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "The hosted browser converter for the openEHR to FHIR Data Type Mapping IG. Not a published package.",
+  "license": "CC0-1.0",
+  "scripts": {
+    "generate": "node scripts/generate.ts",
+    "pretypecheck": "npm run generate",
+    "typecheck": "tsc --noEmit -p .",
+    "pretest": "npm run generate",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.9.0",
+    "yaml": "^2.8.0"
+  }
+}
