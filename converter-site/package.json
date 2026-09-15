@@ -10,7 +10,10 @@
     "pretypecheck": "npm run generate",
     "typecheck": "tsc --noEmit -p .",
     "pretest": "npm run generate",
-    "test": "node --test"
+    "test": "node --test",
+    "prebuild": "npm run generate",
+    "build": "node scripts/build.ts",
+    "preview": "node scripts/build.ts --serve"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

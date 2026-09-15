@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>openEHR ↔ FHIR data type converter</title>
+<link rel="stylesheet" href="./styles.css"/>
+</head>
+<body>
+<header>
+<h1>openEHR ↔ FHIR data type converter</h1>
+<p class="lede">
+  Paste an instance, pick a mapping, and see exactly what the
+  <a id="guide-link" href="./">openEHR to FHIR Data Type Mapping</a>
+  implementation guide says happens to it — including every field that is not
+  carried across, linked to the mapping row that declares the loss.
+</p>
+</header>
+
+<main>
+<section class="controls" aria-label="Conversion settings">
+  <fieldset id="direction">
+    <legend>Direction</legend>
+    <label><input type="radio" name="direction" value="toFhir" checked/> openEHR → FHIR</label>
+    <label><input type="radio" name="direction" value="toOpenehr"/> FHIR → openEHR</label>
+  </fieldset>
+
+  <p class="field">
+    <label for="mapping">Mapping</label>
+    <select id="mapping"></select>
+  </p>
+
+  <p class="field">
+    <label for="example">Worked example</label>
+    <select id="example"></select>
+  </p>
+
+  <p class="field action">
+    <button id="convert" type="button">Convert</button>
+  </p>
+</section>
+
+<section class="panes">
+  <div class="pane">
+    <label for="input">Input</label>
+    <textarea id="input" spellcheck="false" autocomplete="off"></textarea>
+  </div>
+  <div class="pane">
+    <label for="output">Output</label>
+    <pre id="output" tabindex="0"></pre>
+  </div>
+</section>
+
+<section id="verdict" class="verdict" aria-live="polite"></section>
+</main>
+
+<footer>
+<p class="privacy">Runs entirely in your browser — nothing you paste is sent anywhere.</p>
+<p class="provenance" id="provenance"></p>
+</footer>
+
+<script type="module" src="./main.js"></script>
+</body>
+</html>

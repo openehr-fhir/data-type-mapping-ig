@@ -1,0 +1,149 @@
+:root {
+  color-scheme: light dark;
+  --ink: #1a1a1a;
+  --muted: #5a5a5a;
+  --rule: #d0d0d0;
+  --surface: #ffffff;
+  --shell: #f6f7f9;
+  --lossless: #1b6b3a;
+  --lossy: #8a5800;
+  --unmapped: #8a1f1f;
+  --invalid: #7a1fa2;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #eaeaea;
+    --muted: #a8a8a8;
+    --rule: #3a3a3a;
+    --surface: #1d1f22;
+    --shell: #141517;
+    --lossless: #63c68c;
+    --lossy: #e0aa4a;
+    --unmapped: #f08a8a;
+    --invalid: #d9a3f0;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 1rem 1.25rem 2rem;
+  background: var(--shell);
+  color: var(--ink);
+  font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+h1 { font-size: 1.35rem; margin: 0 0 0.35rem; }
+.lede { margin: 0 0 1rem; max-width: 62rem; color: var(--muted); }
+a { color: inherit; }
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  align-items: end;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+fieldset {
+  margin: 0;
+  padding: 0.25rem 0.75rem 0.5rem;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+}
+
+legend { padding: 0 0.35rem; color: var(--muted); font-size: 0.85rem; }
+fieldset label { margin-right: 0.9rem; white-space: nowrap; }
+
+.field { display: flex; flex-direction: column; gap: 0.25rem; margin: 0; }
+.field > label { color: var(--muted); font-size: 0.85rem; }
+.field.action { justify-content: end; }
+
+select, button, textarea, pre {
+  font-size: 0.95rem;
+  color: inherit;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 0.4rem 0.5rem;
+}
+
+select { min-width: 18rem; max-width: 100%; }
+button { cursor: pointer; font-weight: 600; padding: 0.45rem 1.2rem; }
+
+.panes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.pane { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
+.pane > label { color: var(--muted); font-size: 0.85rem; }
+
+textarea, pre {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  min-height: 18rem;
+  margin: 0;
+  overflow: auto;
+  white-space: pre;
+  tab-size: 2;
+}
+
+textarea { resize: vertical; }
+
+.verdict { margin-top: 1rem; }
+.verdict:empty { display: none; }
+
+.banner {
+  margin: 0 0 0.5rem;
+  padding: 0.55rem 0.8rem;
+  border-left: 4px solid var(--rule);
+  border-radius: 4px;
+  background: var(--surface);
+  font-weight: 600;
+}
+
+.banner.lossless { border-left-color: var(--lossless); color: var(--lossless); }
+.banner.lossy { border-left-color: var(--lossy); color: var(--lossy); }
+.banner.unmapped { border-left-color: var(--unmapped); color: var(--unmapped); }
+
+/* "This is not JSON" and "this converted with loss" must never look alike. */
+.banner.invalid-json,
+.banner.unavailable {
+  border-left-color: var(--invalid);
+  color: var(--invalid);
+  border-left-style: dashed;
+  border-left-width: 6px;
+  font-style: italic;
+}
+
+.issues { margin: 0; padding: 0; list-style: none; }
+
+.issues li {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--rule);
+  border-top: 0;
+  background: var(--surface);
+}
+
+.issues li:first-child { border-top: 1px solid var(--rule); border-radius: 4px 4px 0 0; }
+.issues li:last-child { border-radius: 0 0 4px 4px; }
+.issues code { font-size: 0.85rem; }
+.issues a { display: inline-block; margin-top: 0.15rem; font-size: 0.85rem; }
+
+footer {
+  margin-top: 1.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--rule);
+}
+
+.privacy { margin: 0 0 0.2rem; font-weight: 600; }
+.provenance { margin: 0; color: var(--muted); font-size: 0.85rem; }
