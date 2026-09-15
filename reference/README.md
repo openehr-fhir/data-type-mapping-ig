@@ -34,6 +34,18 @@ reference implementation of the conversions those facts describe.
   conversion.
 - **A renderer** — `render/`. It projects the ledger into sentinel-delimited
   managed regions inside `input/pagecontent/*.md`.
+- **The guide's link surface** — `src/publish/guide-links.ts`. One declaration
+  of where a mapping and a row are published: category pages, category labels,
+  direction labels, and the `id` anchors the renderer emits on every mapping
+  table and every row. It is browser-safe by construction — types only, no
+  `node:` builtin — so the renderer and any external consumer read the same
+  facts rather than two copies that can drift.
+- **The consumer facade** — `src/browser/`. `contract.ts` and `convert.ts` are
+  the **one contract** external consumers program against: catalogue discovery,
+  conversion, and issue-to-guide links, all as plain JSON-serialisable data.
+  `Mapping`, `Row`, the registry and the renderer stay private behind it. The
+  guide's [hosted browser converter](../converter-site/README.md) is built on
+  it and imports nothing else from this workspace.
 - **Tests** — `test/`. They substantiate the fidelity claims: a `lossless`
   mapping must round-trip, and a `lossy` mapping must drop exactly what it says
   it drops — no more and no less.

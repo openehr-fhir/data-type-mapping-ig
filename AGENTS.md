@@ -41,9 +41,10 @@ Two framing facts settle most arguments:
 Because it is a spec, there is **no test suite** in the software sense. The
 build *is* the verification — see [Test](#test).
 
-**This repository is new.** It has no commit history, no `origin` remote, and
-no published release yet. Where a convention below is stated as a *target*
-rather than an *observed* practice, it says so.
+**This repository has history and a remote.** `origin` is
+`git@github.com:GinoCanessa/openehr-fhir-data-type-mapping.git`, and `main`
+carries commits; there is no published release yet. Where a convention below is
+stated as a *target* rather than an *observed* practice, it says so.
 
 ---
 
@@ -67,7 +68,14 @@ rather than an *observed* practice, it says so.
 | `scratch/` | `dev-*` skill slots. **Ignored.** |
 | `reference/` | The **mapping ledger** and the TypeScript reference implementation. Outside `input/`, so neither SUSHI nor the IG Publisher walks it. `ledger/` holds the mapping facts, `src/model/` their single shape declaration, `src/convert/` the converters, `fixtures/` the paired instances, `render/` the projection into `input/pagecontent/`, `test/` the suite. See [Track 3](#track-3--reference-implementation) and `reference/README.md`. |
 | `reference/fixtures/<mapping-id>/NN-<name>.pairing.json` | The **pairing marker** for a fixture pair that is deliberately one-directional: `{ "directions": ["toFhir"], "reason": "…" }`. `reference/test/pairs.test.ts` asserts only the directions it names, and asserts that every direction it does *not* name genuinely fails to produce the partner, so a marker cannot outlive the defect it documents. A marker with no reason is a failure. |
+| `reference/src/publish/guide-links.ts` | A deliberate **public boundary**: the single declaration of where a mapping and a row are published in the guide — category pages, category labels, direction labels, anchor ids, and hrefs. Browser-safe by construction (types only, no `node:` builtin), so the renderer and any consuming site read the same facts. A second copy anywhere is a Blocker. |
+| `reference/src/browser/` | The other deliberate **public boundary**: `contract.ts` and `convert.ts` are the only modules a browser consumer imports from `reference/`. They expose catalogue discovery, conversion, and issue-to-guide links as plain JSON-serialisable data; `Mapping`, `Row`, the registry, and the renderer stay private. |
 | `reference/node_modules/` | npm install tree. **Ignored** by the existing unrooted `node_modules/` rule. |
+| `converter-site/` | The **hosted browser converter**: a static single page that runs the reference converters in the reader's browser. Outside `input/`, so neither SUSHI nor the IG Publisher walks it. See [Track 4](#track-4--converter-site) and `converter-site/README.md`. |
+| `converter-site/scripts/` | The two generators (fixture catalogue, provenance) and the esbuild build. |
+| `converter-site/src/generated/` | Generated browser modules. **Ignored, and never hand-edited** — run `npm --prefix converter-site run generate`. |
+| `converter-site/dist/` | esbuild output. **Ignored, and never hand-edited.** |
+| `.github/workflows/` | CI. `converter-site.yml` builds the converter and deploys it to GitHub Pages. Ordinary CI — unrelated to the `dev-*` [GitHub Integration](#github-integration) below, which stays `Enabled: no`. |
 
 Ignored paths are listed in `.gitignore`. Anything under `fsh-generated/`,
 `output/`, `temp/`, `template/`, or `input-cache/` is a build artifact:
@@ -94,6 +102,15 @@ editing it is always wrong, and the edit is destroyed on the next build.
   every other test have **no** dependency at all — Node runs them directly —
   so a failed `npm install` degrades the workspace to "type-check and
   `pages.test.ts` unavailable", never to "nothing runs".
+- **`converter-site/` dependencies** — four **devDependencies**, declared as
+  caret ranges in `converter-site/package.json` and pinned exactly by the
+  committed `converter-site/package-lock.json`: `esbuild` produces the bundle,
+  `typescript` and `@types/node` serve `typecheck`, and `yaml` serves the
+  provenance generator and `converter-site/test/workflow.test.ts`. The site
+  needs **Node ≥ 22.18** — the floor at which native TypeScript type stripping
+  is unflagged — because its generators, tests and build script are all `.ts`
+  run directly. **esbuild, not `tsc`, produces the bundle**; `tsc --noEmit`
+  remains the type gate and emits nothing.
 - **Java** — required to run the IG Publisher. `INSTALLATION.md` states JRE 8
   is a floor and JDK 11+ is recommended (heap headroom). Verified working
   with **OpenJDK 25.0.4.1**. The build scripts set
@@ -232,6 +249,33 @@ form stays available for contributors without the mirrors.
 Citations in the ledger are always **published URLs**; a machine-local path
 must never be written into one.
 
+### Track 4 — converter site
+
+The `converter-site/` workspace is built and verified independently of both the
+IG and the reference suite. Nothing in the SUSHI or IG Publisher path reads it —
+**Track 4 is not part of Track 1 or Track 2** — and it writes nothing into
+`input/`. All commands run from the repository root:
+
+```powershell
+npm --prefix converter-site install
+npm --prefix converter-site run generate
+npm --prefix converter-site run typecheck
+npm --prefix converter-site test
+npm --prefix converter-site run build
+```
+
+- `install` — restores the four devDependencies and writes
+  `converter-site/package-lock.json`. CI uses `npm --prefix converter-site ci`.
+- `generate` — writes `converter-site/src/generated/`: the fixture catalogue
+  from `reference/fixtures/`, and provenance from `sushi-config.yaml`,
+  `git rev-parse --short HEAD`, and `GUIDE_BASE_URL`. It runs **automatically**
+  before the other three through the `pretypecheck`, `pretest` and `prebuild`
+  hooks, so it rarely needs to be typed.
+- `typecheck` — `tsc --noEmit -p .`. Expected: exit 0, no diagnostics.
+- `test` — `node --test`. Expected: `fail 0`.
+- `build` — esbuild. Expected: exit 0, and `converter-site/dist/` holding
+  `index.html`, `main.js` and `styles.css`.
+
 ---
 
 ## Test
@@ -245,12 +289,15 @@ one, and do not add one.** Verification for the guide is:
 4. The rendered pages under `output/` say what the change intended, read in
    a browser.
 
-The `reference/` workspace **does** have a test suite, and it is the only
-place in this repository that has one. It is scoped to `reference/` and adds
-no tooling to the IG: `npm --prefix reference test` runs the Node built-in
-test runner with no test-runner dependency. Its job is to substantiate the
-guide's fidelity claims — a `lossless` mapping must round-trip, and a `lossy`
-mapping must drop exactly what the ledger says it drops.
+The `reference/` and `converter-site/` workspaces **do** have test suites, and
+they are the only two places in this repository that have one. Both are scoped
+to their own directory and add no tooling to the IG: `npm --prefix reference
+test` and `npm --prefix converter-site test` both run the Node built-in test
+runner with no test-runner dependency. The reference suite's job is to
+substantiate the guide's fidelity claims — a `lossless` mapping must
+round-trip, and a `lossy` mapping must drop exactly what the ledger says it
+drops. The site's job is to prove its generated modules have not gone stale and
+that the four states a reader must be able to tell apart really are distinct.
 
 ### Full
 
@@ -265,6 +312,15 @@ For a change confined to `reference/`, the scoped verification is
 `npm --prefix reference run typecheck` plus `npm --prefix reference test`;
 add `npm --prefix reference run render:check` whenever `reference/ledger/`
 or `reference/render/` changed.
+
+For a change confined to `converter-site/`, the scoped verification is
+`npm --prefix converter-site run typecheck` plus
+`npm --prefix converter-site test`.
+
+A change to `reference/src/publish/guide-links.ts` or `reference/src/browser/`
+is confined to neither: both workspaces read them, so it needs **both**
+workspaces' scoped commands *plus* `npm --prefix reference run render:check`,
+because the renderer's anchors come from `guide-links.ts`.
 
 ### Focused
 
@@ -309,6 +365,13 @@ For an edit/refresh loop the publisher can watch the tree:
 
 ```powershell
 .\_gencontinuous.bat
+```
+
+The converter site has its own preview loop, which rebuilds on change and
+serves `converter-site/dist/`:
+
+```powershell
+npm --prefix converter-site run preview
 ```
 
 ---
@@ -387,8 +450,16 @@ These are decisions, not preferences. Violating one is a review Blocker.
   counterpart cites the *inventory* page of the standard that lacks it, so
   both citations stay real. `build.fhir.org` is never cited — a
   continuous-build snapshot is not a published specification.
+- **Guide links have one source.** The page a mapping is published on, the
+  category labels, the direction labels, and the anchor ids the renderer emits
+  live in `reference/src/publish/guide-links.ts`. A second copy — in the
+  renderer, in `converter-site/`, or hand-written into a page — is a Blocker.
+  A link may carry a **fragment only when the renderer actually publishes that
+  anchor**: `hasFieldTable()` is the single guard, and a `gaps`-category
+  mapping, for which no `mapping:` region is registered, links bare.
 - **Generated trees are never hand-edited** — `fsh-generated/`, `output/`,
-  `temp/`, `template/`, `input-cache/`. Fix the FSH or the config instead.
+  `temp/`, `template/`, `input-cache/`, `converter-site/src/generated/`,
+  `converter-site/dist/`. Fix the FSH, the config, or the generator instead.
 - **The HL7 build scripts are upstream files.** `_build.*`, `_genonce.*`,
   `_gencontinuous.*`, `_genclean.bat`, `_updatePublisher.*` come from
   `HL7/ig-publisher-scripts` and are overwritten by `_updatePublisher`.
@@ -410,9 +481,12 @@ These are decisions, not preferences. Violating one is a review Blocker.
   in GitHub Issues. Work with no ticket uses a plain imperative subject
   (`Add repository scaffold`, `Build fixes`, `Script updates`).
 
-  *Target convention.* The repository has no commit history yet, so there is
-  nothing to sample. Once history exists, re-derive this section from
-  `git log --format=%s -50` and correct it if practice diverges.
+  *Observed convention.* `git log --format=%s -50` shows that in practice
+  **every** commit so far uses a plain imperative subject naming what changed
+  — `Apply consistent grid styling and intact direction headers`, `Fix nested
+  adjacent emphasis continuation`, `Emit every ledger-owned table as final
+  HTML instead of markdown`. The `FHIR-#####` Jira prefix is reserved for work
+  that has a ticket, and none of the history so far does.
 - Subject in the past or imperative tense, matching neighbours; there is no
   enforced length limit, and subjects may exceed 72 characters when the
   ticket needs it. Clarity wins over brevity.
@@ -439,11 +513,17 @@ whose `Enabled` row says **`no`** is equally off. In either case no skill
 prompts about GitHub, and the `dev-*` loop behaves exactly as it did
 before this feature existed.
 
-This repository has **no `origin` remote** and tracks work in **HL7 Jira**
-rather than GitHub Issues, so the integration is deliberately disabled.
-`no` / `n/a` below are **resolved answers**, not gaps — do not re-prompt on
-them. If a GitHub remote is added later and the project decides to use
-GitHub Issues, re-run `dev-setup` and answer `yes`.
+This repository **has** an `origin` remote
+(`git@github.com:GinoCanessa/openehr-fhir-data-type-mapping.git`) but tracks
+work in **HL7 Jira** rather than GitHub Issues, so the integration is
+deliberately disabled. `no` / `n/a` below are **resolved answers**, not gaps —
+do not re-prompt on them. If the project later decides to use GitHub Issues,
+re-run `dev-setup` and answer `yes`.
+
+**This setting is about the `dev-*` skills, not about CI.**
+`.github/workflows/converter-site.yml` builds and deploys the hosted converter
+and has nothing to do with it; ordinary GitHub Actions runs while `Enabled`
+stays `no`.
 
 The block below is **machine-managed**. This section is the **normative
 definition** of both sentinel strings: every skill that reads or writes
