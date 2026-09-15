@@ -39,12 +39,12 @@ See [Conventions](conventions.html) for how to read the tables below, and
 <p><strong>Sources:</strong> <a href="https://specifications.openehr.org/releases/RM/latest/data_types.html#_dv_boolean_class">openEHR RM — DV_BOOLEAN</a> · <a href="https://hl7.org/fhir/R5/datatypes.html#boolean">FHIR R5 — boolean</a></p>
 
 <div style="max-width: 100%; overflow-x: auto;" tabindex="0" role="group" aria-label="Scrollable table">
-<table class="grid">
+<table class="grid" id="mapping-dv-boolean-to-boolean">
 <thead>
 <tr><th>openEHR field</th><th>FHIR target</th><th>→ FHIR</th><th style="white-space: nowrap;">→ openEHR</th><th>Maturity</th><th>Notes</th></tr>
 </thead>
 <tbody>
-<tr><td><a href="https://specifications.openehr.org/releases/RM/latest/data_types.html#_dv_boolean_class">DV_BOOLEAN.value</a> <code>1..1</code></td><td><a href="https://hl7.org/fhir/R5/datatypes.html#boolean">boolean</a></td><td><code>lossless</code></td><td><code>lossless</code></td><td><code>open</code></td><td>A direct 1:1 mapping with no transformation: neither side carries precision, accuracy, or auxiliary metadata. The one asymmetry is <strong>optionality</strong>. <code>DV_BOOLEAN.value</code> is <strong>mandatory</strong> in the Reference Model — a <code>DV_BOOLEAN</code> that exists has a value — while a FHIR <code>boolean</code> element may be absent, with the reason for its absence carried by an extension on the element rather than by a value. An absent FHIR <code>boolean</code> therefore has no <code>DV_BOOLEAN</code> to become; see <a href="mapping-coded.html">null_flavour</a> for how "why is this absent" is carried. This row is <code>open</code> because the section has not yet been reviewed from either side.</td></tr>
+<tr id="row-dv-boolean-to-boolean--dv-boolean-value"><td><a href="https://specifications.openehr.org/releases/RM/latest/data_types.html#_dv_boolean_class">DV_BOOLEAN.value</a> <code>1..1</code></td><td><a href="https://hl7.org/fhir/R5/datatypes.html#boolean">boolean</a></td><td><code>lossless</code></td><td><code>lossless</code></td><td><code>open</code></td><td>A direct 1:1 mapping with no transformation: neither side carries precision, accuracy, or auxiliary metadata. The one asymmetry is <strong>optionality</strong>. <code>DV_BOOLEAN.value</code> is <strong>mandatory</strong> in the Reference Model — a <code>DV_BOOLEAN</code> that exists has a value — while a FHIR <code>boolean</code> element may be absent, with the reason for its absence carried by an extension on the element rather than by a value. An absent FHIR <code>boolean</code> therefore has no <code>DV_BOOLEAN</code> to become; see <a href="mapping-coded.html">null_flavour</a> for how "why is this absent" is carried. This row is <code>open</code> because the section has not yet been reviewed from either side.</td></tr>
 </tbody>
 </table>
 </div>

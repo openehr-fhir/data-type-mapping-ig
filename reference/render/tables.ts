@@ -38,6 +38,14 @@ import {
   type Verdict,
 } from '../src/model/types.ts';
 import { aggregateVerdict, categories, ledger, mappingsFor } from '../src/model/load.ts';
+import {
+  CATEGORY_LABEL,
+  CATEGORY_PAGE,
+  DIRECTION_LABEL,
+  mappingAnchorId,
+  mappingHref,
+  rowAnchorId,
+} from '../src/publish/guide-links.ts';
 import { ISO8601_FORMS } from '../src/shared/iso8601-subset.ts';
 import { OPEN_ITEMS, type Side } from '../content/open-items.ts';
 import {
@@ -56,31 +64,16 @@ import {
 /** Where `example:` regions read their fixtures from. */
 export const FIXTURES_ROOT = new URL('../fixtures/', import.meta.url);
 
-/** The page each category's mappings are published on. */
-export const CATEGORY_PAGE: Readonly<Record<Category, string>> = {
-  quantity: 'mapping-quantity.html',
-  coded: 'mapping-coded.html',
-  boolean: 'mapping-boolean.html',
-  numeric: 'mapping-numeric.html',
-  textual: 'mapping-textual.html',
-  reference: 'mapping-reference.html',
-  temporal: 'mapping-temporal.html',
-  other: 'mapping-other.html',
-  gaps: 'gaps.html',
-};
-
-/** Human-readable category names, for table cells and headings. */
-export const CATEGORY_LABEL: Readonly<Record<Category, string>> = {
-  quantity: 'Quantities',
-  coded: 'Coded Data',
-  boolean: 'Boolean Data',
-  numeric: 'Numeric Primitives',
-  textual: 'Textual Data',
-  reference: 'Resource-Locator Data and References',
-  temporal: 'Temporal Data',
-  other: 'Other Data',
-  gaps: 'Gaps',
-};
+/**
+ * Re-exported for the call sites that read them from this module.
+ *
+ * They are **declared** in `../src/publish/guide-links.ts`, which is
+ * browser-safe and is the one place the guide's link surface lives. Re-exporting
+ * keeps a single declaration while leaving importers free to reach for either
+ * module; duplicating the tables here would be the drift channel that move was
+ * made to close.
+ */
+export { CATEGORY_LABEL, CATEGORY_PAGE, DIRECTION_LABEL };
 
 // ── cell helpers ─────────────────────────────────────────────────────────────
 
@@ -195,7 +188,14 @@ export function renderMappingTable(mapping: Mapping): string {
           notesCell(row),
         ]);
 
-  blocks.push(htmlTable(FIELD_HEADER, rows));
+  // The empty-rows placeholder is not a ledger row and gets no anchor: an id
+  // derived from a row that does not exist would be a link to nothing.
+  blocks.push(
+    htmlTable(FIELD_HEADER, rows, {
+      id: mappingAnchorId(mapping.id),
+      rowIds: mapping.rows.map((row) => rowAnchorId(mapping.id, row.id)),
+    }),
+  );
   return blocks.join('\n\n');
 }
 
@@ -218,8 +218,9 @@ export function mappingMaturity(mapping: Mapping): string {
 }
 
 function summaryRow(mapping: Mapping, withLink: boolean): readonly string[] {
-  const page = CATEGORY_PAGE[mapping.category];
-  const name = withLink ? anchor(page, mapping.openehrType) : code(mapping.openehrType);
+  const name = withLink
+    ? anchor(mappingHref(mapping), mapping.openehrType)
+    : code(mapping.openehrType);
   return [
     name,
     code(mapping.fhirType),
@@ -332,7 +333,7 @@ function gapTable(
     const feature = direction === 'toFhir' ? openehrCell(row.openehr) : fhirCell(row.fhir);
     const counterpart = direction === 'toFhir' ? fhirCell(row.fhir) : openehrCell(row.openehr);
     return [
-      `${feature}${BR}${em(anchor(CATEGORY_PAGE[mapping.category], mapping.title))}`,
+      `${feature}${BR}${em(anchor(mappingHref(mapping), mapping.title))}`,
       counterpart,
       fidelityCell(row[direction]),
       code(row.maturity),
@@ -417,7 +418,7 @@ export function renderReviewCoverage(): string {
       : `${escapeText('✓')} ${escapeText(reviewers.join(', '))}`;
 
   const rows = ledger().map((mapping) => [
-    anchor(CATEGORY_PAGE[mapping.category], mapping.title),
+    anchor(mappingHref(mapping), mapping.title),
     escapeText(CATEGORY_LABEL[mapping.category]),
     names(mapping.review.openehr),
     names(mapping.review.fhir),
@@ -511,12 +512,6 @@ export function rendererFor(
   }
   return undefined;
 }
-
-/** The direction labels, exported so tests and renderers agree on them. */
-export const DIRECTION_LABEL: Readonly<Record<Direction, string>> = {
-  toFhir: '→ FHIR',
-  toOpenehr: '→ openEHR',
-};
 
 /** Re-exported so `render-pages.ts` need not import the model directly. */
 export { endpointsOf };

@@ -73,6 +73,13 @@ export function paragraph(html: string): string {
  * as an indented code block, and each row is one line so the generated diff
  * stays reviewable.
  *
+ * `options` adds the **published anchor ids**: `id` on the `<table>`, and one
+ * `<tr id="…">` per defined entry of `rowIds`, positionally matched to `rows`.
+ * Both go through {@link escapeAttr}, like every other attribute value here.
+ * With `options` omitted the output is byte-identical to what it was before the
+ * parameter existed, which is what keeps every other renderer — and every
+ * already-published region body — unchanged.
+ *
  * @throws if any row's length differs from the header's, naming the row index.
  * The column count is therefore enforced at construction rather than asserted
  * after the fact.
@@ -80,6 +87,10 @@ export function paragraph(html: string): string {
 export function htmlTable(
   headers: readonly string[],
   rows: readonly (readonly string[])[],
+  options?: {
+    readonly id?: string;
+    readonly rowIds?: readonly (string | undefined)[];
+  },
 ): string {
   rows.forEach((row, index) => {
     if (row.length !== headers.length) {
@@ -92,14 +103,21 @@ export function htmlTable(
   const headerCells = headers.map((h) =>
     h === '→ openEHR' ? `<th style="white-space: nowrap;">${h}</th>` : `<th>${h}</th>`,
   );
+  const tableId = options?.id === undefined ? '' : ` id="${escapeAttr(options.id)}"`;
+  const rowId = (index: number): string => {
+    const id = options?.rowIds?.[index];
+    return id === undefined ? '' : ` id="${escapeAttr(id)}"`;
+  };
   const lines = [
     '<div style="max-width: 100%; overflow-x: auto;" tabindex="0" role="group" aria-label="Scrollable table">',
-    '<table class="grid">',
+    `<table class="grid"${tableId}>`,
     '<thead>',
     `<tr>${headerCells.join('')}</tr>`,
     '</thead>',
     '<tbody>',
-    ...rows.map((row) => `<tr>${row.map((c) => `<td>${c}</td>`).join('')}</tr>`),
+    ...rows.map(
+      (row, index) => `<tr${rowId(index)}>${row.map((c) => `<td>${c}</td>`).join('')}</tr>`,
+    ),
     '</tbody>',
     '</table>',
     '</div>',

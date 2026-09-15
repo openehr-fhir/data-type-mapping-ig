@@ -22,8 +22,18 @@ import {
   renderGapsFhirToOpenehr,
   renderGapsNotDiscussed,
   renderGapsOpenehrToFhir,
+  renderMappingTable,
   renderSummaryAll,
 } from '../render/tables.ts';
+import { ledger } from '../src/model/load.ts';
+import {
+  CATEGORY_PAGE,
+  hasFieldTable,
+  mappingAnchorId,
+  mappingHref,
+  rowAnchorId,
+  slugify,
+} from '../src/publish/guide-links.ts';
 
 /**
  * The managed-region machinery: bytes outside a sentinel pair are never
@@ -515,7 +525,11 @@ function assertGeneratedPresentation(id: string, body: string): number {
   assert.equal((body.match(/<\/div>/g) ?? []).length, tables.length, `${id}: closed wrappers`);
   let directionHeaders = 0;
   for (const table of tables) {
-    assert.ok(table[0].startsWith('<table class="grid">\n<thead>\n'), `${id}: native grid table`);
+    assert.match(
+      table[0],
+      /^<table class="grid"( id="[^"]+")?>\n<thead>\n/,
+      `${id}: native grid table`,
+    );
     assert.ok(table[0].endsWith('</tbody>\n</table>'), `${id}: native table body`);
     assert.ok(
       body.slice(0, table.index).endsWith(`${SCROLL_WRAPPER}\n`),
@@ -569,7 +583,7 @@ function generatedCell(id: string, heading: string, label: string, column: strin
     `${id} ${column} header`,
   );
   const [tbody] = only([...table.matchAll(/<tbody>[\s\S]*?<\/tbody>/g)], `${id} tbody`);
-  const rows = [...tbody.matchAll(/<tr>[\s\S]*?<\/tr>/g)].map(([row]) =>
+  const rows = [...tbody.matchAll(/<tr\b[^>]*>[\s\S]*?<\/tr>/g)].map(([row]) =>
     [...row.matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/g)].map((match) => match[1]),
   );
   const cells = only(
@@ -606,7 +620,7 @@ test('every generated table row has its header column count', () => {
       assert.ok(tbody !== undefined, `${id}: a table body`);
       checked.tables += 1;
       checked.headers += headers;
-      for (const row of tbody.match(/<tr>[\s\S]*?<\/tr>/g) ?? []) {
+      for (const row of tbody.match(/<tr\b[^>]*>[\s\S]*?<\/tr>/g) ?? []) {
         const cells = (row.match(/<td\b[^>]*>/g) ?? []).length;
         assert.equal(cells, headers, `${id}: ${row}`);
         checked.rows += 1;
@@ -972,4 +986,111 @@ test('a parameterised type name publishes as text, not as a tag', () => {
   const notDiscussed = renderGapsNotDiscussed();
   assert.ok(notDiscussed.includes('EVENT&lt;T&gt;'), 'EVENT<T> is escaped');
   assert.ok(!notDiscussed.includes('<T>'), 'EVENT<T> is not parsed as a tag');
+});
+
+// ── the published anchor contract ────────────────────────────────────────────
+
+/** Every mapping the guide publishes a field table for. */
+function anchoredMappings() {
+  return ledger().filter((mapping) => hasFieldTable(mapping));
+}
+
+test('a mapping table carries its mapping anchor and one anchor per row', () => {
+  let checkedRows = 0;
+  for (const mapping of anchoredMappings()) {
+    const body = renderMappingTable(mapping);
+    const [table] = only(
+      [...body.matchAll(/<table\b[^>]*>[\s\S]*?<\/table>/g)],
+      `${mapping.id}: one field table`,
+    );
+    assert.match(
+      table,
+      new RegExp(`^<table class="grid" id="${mappingAnchorId(mapping.id)}">`),
+      `${mapping.id}: the table carries its mapping anchor`,
+    );
+    const [, tbody] = only(
+      [...table.matchAll(/<tbody>([\s\S]*?)<\/tbody>/g)],
+      `${mapping.id} tbody`,
+    );
+    const ids = [...(tbody ?? '').matchAll(/<tr\b([^>]*)>/g)].map(([, attrs]) =>
+      /^ id="([^"]*)"$/.exec(attrs ?? '')?.[1],
+    );
+    assert.deepEqual(
+      ids,
+      mapping.rows.map((row) => rowAnchorId(mapping.id, row.id)),
+      `${mapping.id}: one row anchor per ledger row, in ledger order`,
+    );
+    checkedRows += ids.length;
+  }
+  assert.ok(checkedRows > 0, 'the guard actually inspected generated rows');
+});
+
+test('every anchor id is unique across the whole ledger', () => {
+  const seen = new Map<string, string>();
+  for (const mapping of anchoredMappings()) {
+    for (const id of [
+      mappingAnchorId(mapping.id),
+      ...mapping.rows.map((row) => rowAnchorId(mapping.id, row.id)),
+    ]) {
+      const owner = seen.get(id);
+      assert.equal(owner, undefined, `anchor '${id}' is claimed by both ${owner} and ${mapping.id}`);
+      assert.match(id, /^[a-z0-9-]+$/, `anchor '${id}' is URL-safe without escaping`);
+      seen.set(id, mapping.id);
+    }
+  }
+  assert.ok(seen.size > 0, 'the guard actually inspected anchors');
+});
+
+test('a link into the guide only carries a fragment the renderer publishes', () => {
+  const renderers = regionRenderers();
+  let fragments = 0;
+  let bare = 0;
+  for (const mapping of ledger()) {
+    const href = mappingHref(mapping);
+    if (href.includes('#')) {
+      assert.ok(
+        renderers.has(`mapping:${mapping.id}`),
+        `${mapping.id}: a fragment link needs a published mapping: region`,
+      );
+      assert.equal(
+        href,
+        `${CATEGORY_PAGE[mapping.category]}#${mappingAnchorId(mapping.id)}`,
+        `${mapping.id}: the fragment is the anchor the renderer emits`,
+      );
+      fragments += 1;
+    } else {
+      assert.equal(mapping.category, 'gaps', `${mapping.id}: only gaps mappings link bare`);
+      assert.ok(
+        !renderers.has(`mapping:${mapping.id}`),
+        `${mapping.id}: a bare link means no mapping: region is published`,
+      );
+      bare += 1;
+    }
+  }
+  assert.ok(fragments > 0 && bare > 0, 'both link shapes were inspected');
+});
+
+test('slugify collapses a row id to a single URL-safe token', () => {
+  assert.equal(slugify('DV_QUANTITY.magnitude'), 'dv-quantity-magnitude');
+  assert.equal(slugify('fhir:Quantity.value[x]'), 'fhir-quantity-value-x');
+  assert.equal(slugify('--already--'), 'already');
+  assert.ok(!slugify('DV_INTERVAL<T>.lower').includes('--'), 'no double separator inside a slug');
+});
+
+test('an unadorned table renders exactly as before', () => {
+  const table = htmlTable(['a', 'b'], [['1', '2']]);
+  assert.ok(table.includes('<table class="grid">'), 'no id attribute on the table');
+  assert.ok(!table.includes('id='), 'no id attribute anywhere');
+  assert.ok(table.includes('<tr><td>1</td><td>2</td></tr>'), 'no id attribute on a row');
+  assert.equal(htmlTable(['a', 'b'], [['1', '2']], {}), table, 'empty options change nothing');
+});
+
+test('an anchored table escapes its ids and skips undefined rows', () => {
+  const table = htmlTable(['a'], [['1'], ['2']], {
+    id: 'x"y',
+    rowIds: ['r&1', undefined],
+  });
+  assert.ok(table.includes('<table class="grid" id="x&quot;y">'), 'the table id is escaped');
+  assert.ok(table.includes('<tr id="r&amp;1"><td>1</td></tr>'), 'the row id is escaped');
+  assert.ok(table.includes('<tr><td>2</td></tr>'), 'an undefined row id emits no attribute');
 });
