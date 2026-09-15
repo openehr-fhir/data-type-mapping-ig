@@ -1070,6 +1070,174 @@ test('a link into the guide only carries a fragment the renderer publishes', () 
   assert.ok(fragments > 0 && bare > 0, 'both link shapes were inspected');
 });
 
+/**
+ * Every page, rendered in memory exactly as `render/render-pages.ts` renders
+ * it, keyed by the `*.html` name a link into the guide uses.
+ *
+ * Rendering rather than reading `input/pagecontent/*.md` off disk means the
+ * guards below test the **ledger**, not whether somebody remembered to run
+ * `npm --prefix reference run render` before running the suite.
+ */
+function renderedPages(): Map<string, string> {
+  const renderers = regionRenderers();
+  const pages = new Map<string, string>();
+  for (const file of readdirSync(PAGECONTENT).filter((f) => f.endsWith('.md'))) {
+    let text = readFileSync(join(PAGECONTENT, file), 'utf8');
+    for (const id of parseRegions(text).map((region) => region.id)) {
+      const renderer = rendererFor(id, renderers);
+      assert.ok(renderer !== undefined, `${file}: managed region '${id}' has no renderer`);
+      text = spliceRegion(text, id, renderer());
+    }
+    pages.set(file.replace(/\.md$/, '.html'), text);
+  }
+  return pages;
+}
+
+/**
+ * Every anchor a rendered page carries: each `id="…"` and each `<a name="…">`.
+ *
+ * Heading slugs are deliberately **not** included. The slug algorithm belongs
+ * to the HL7 template, not to this repository, so reproducing it here would
+ * pin a rule nobody here owns — and this repository's own convention for a
+ * linkable heading is an explicit `<a name>` beside it
+ * (`input/pagecontent/conventions.md`). The exclusion is a decision: a link
+ * that relies on a template-generated slug is one this guard will reject.
+ */
+function anchorsIn(text: string): Set<string> {
+  const anchors = new Set<string>();
+  for (const [, id] of text.matchAll(/\sid="([^"]*)"/g)) {
+    if (id !== undefined) anchors.add(id);
+  }
+  for (const [, name] of text.matchAll(/<a\b[^>]*\sname="([^"]*)"/g)) {
+    if (name !== undefined) anchors.add(name);
+  }
+  return anchors;
+}
+
+/**
+ * Every link in `body` the guide cannot resolve, each with the reason it fails.
+ *
+ * External schemes are somebody else's contract — `cite-local.test.ts` covers
+ * those. What is checked here is the guide's own surface: a link into it must
+ * name a page that exists and, where it carries a fragment, an anchor that page
+ * actually publishes.
+ */
+function unresolvedLinks(body: string, pages: Map<string, string>): string[] {
+  const failures: string[] = [];
+  for (const [, href] of body.matchAll(/href="([^"]*)"/g)) {
+    if (href === undefined) continue;
+    const target = href.replace(/&amp;/g, '&');
+    if (/^(?:https?:|mailto:)/i.test(target)) continue;
+    const hash = target.indexOf('#');
+    const path = hash === -1 ? target : target.slice(0, hash);
+    const fragment = hash === -1 ? undefined : target.slice(hash + 1);
+    if (path === '') {
+      failures.push(
+        `${href}: a bare fragment. A region body can be published on more than one ` +
+          `page, so a link into the guide must name its page.`,
+      );
+      continue;
+    }
+    const page = pages.get(path);
+    if (page === undefined) {
+      failures.push(`${href}: no input/pagecontent/${path.replace(/\.html$/, '.md')} exists.`);
+      continue;
+    }
+    if (fragment !== undefined && !anchorsIn(page).has(fragment)) {
+      failures.push(`${href}: ${path} publishes no anchor '${fragment}'.`);
+    }
+  }
+  return failures;
+}
+
+test('every guide link the ledger publishes resolves to an anchor that page carries', () => {
+  const pages = renderedPages();
+  const renderers = regionRenderers();
+  let links = 0;
+  let fragments = 0;
+  for (const file of readdirSync(PAGECONTENT).filter((f) => f.endsWith('.md'))) {
+    const source = readFileSync(join(PAGECONTENT, file), 'utf8');
+    for (const id of parseRegions(source).map((region) => region.id)) {
+      const renderer = rendererFor(id, renderers);
+      assert.ok(renderer !== undefined, `${file}: managed region '${id}' has no renderer`);
+      const body = renderer();
+      assert.deepEqual(
+        unresolvedLinks(body, pages),
+        [],
+        `input/pagecontent/${file}, region '${id}': the ledger publishes a link the guide cannot resolve`,
+      );
+      for (const [, href] of body.matchAll(/href="([^"]*)"/g)) {
+        if (href === undefined || /^(?:https?:|mailto:)/i.test(href)) continue;
+        links += 1;
+        if (href.includes('#')) fragments += 1;
+      }
+    }
+  }
+  assert.ok(links > 0, 'the guard actually inspected guide links');
+  assert.ok(fragments > 0, 'the guard actually inspected fragment-bearing guide links');
+});
+
+test('the link guard rejects a link the guide cannot resolve', () => {
+  const pages = renderedPages();
+  const reject = (html: string) => unresolvedLinks(html, pages);
+
+  assert.equal(
+    reject('<a href="#term-mapping">x</a>').length,
+    1,
+    'a bare fragment is rejected however plausible it looks',
+  );
+  assert.equal(
+    reject('<a href="mapping-coded.html#no-such-anchor">x</a>').length,
+    1,
+    'a fragment no page publishes is rejected',
+  );
+  assert.equal(
+    reject('<a href="no-such-page.html">x</a>').length,
+    1,
+    'a page with no pagecontent source is rejected',
+  );
+  assert.deepEqual(
+    reject('<a href="mapping-coded.html#mapping-code-phrase-to-coding">x</a>'),
+    [],
+    'a renderer-emitted anchor resolves',
+  );
+  assert.deepEqual(
+    reject('<a href="conventions.html#mandatory-attributes">x</a>'),
+    [],
+    'a hand-written <a name> anchor resolves',
+  );
+  assert.deepEqual(
+    reject('<a href="https://hl7.org/fhir/R5/datatypes.html#Coding">x</a>'),
+    [],
+    'an external citation is not this guard business',
+  );
+});
+
+test('no ledger prose hand-writes a guide link fragment', () => {
+  const LEDGER = fileURLToPath(new URL('../ledger/', import.meta.url));
+  const files = readdirSync(LEDGER).filter((f) => f.endsWith('.ts'));
+  let scanned = 0;
+  let markdownLinks = 0;
+  for (const file of files) {
+    const source = readFileSync(join(LEDGER, file), 'utf8');
+    scanned += 1;
+    markdownLinks += [...source.matchAll(/\]\(/g)].length;
+    for (const [pattern, why] of [
+      ['](#', 'a page-relative fragment resolves to nothing once the prose is published'],
+      ['.html#mapping-', 'a hand-copied mapping anchor is a second copy of the anchor scheme'],
+      ['.html#row-', 'a hand-copied row anchor is a second copy of the anchor scheme'],
+    ] as const) {
+      assert.ok(
+        !source.includes(pattern),
+        `reference/ledger/${file} writes '${pattern}': ${why}. Compose the link with ` +
+          `mappingHrefById() from reference/src/publish/guide-links.ts instead.`,
+      );
+    }
+  }
+  assert.ok(scanned > 0, 'the lint actually read ledger files');
+  assert.ok(markdownLinks > 0, 'the lint actually saw ledger markdown links');
+});
+
 test('slugify collapses a row id to a single URL-safe token', () => {
   assert.equal(slugify('DV_QUANTITY.magnitude'), 'dv-quantity-magnitude');
   assert.equal(slugify('fhir:Quantity.value[x]'), 'fhir-quantity-value-x');
