@@ -1,0 +1,65 @@
+# Build and deploy the hosted browser converter to GitHub Pages.
+#
+# This is **ordinary CI**. It has nothing to do with the `dev-*` GitHub
+# Integration recorded in `AGENTS.md`, which stays `Enabled: no`: that setting
+# governs whether the `dev-*` skills open issues and pull requests, not whether
+# this repository runs a workflow.
+#
+# One thing a workflow cannot do for itself: the repository owner must select
+# **Settings → Pages → Source: GitHub Actions** once. Until then `deploy` fails
+# while `build` still passes, so the failure is loud and confined to publication.
+
+name: converter-site
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: converter-site
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # >= 22.18: the floor for unflagged native TypeScript type stripping,
+          # which every generator, test and build script here depends on.
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: converter-site/package-lock.json
+
+      - run: npm --prefix converter-site ci
+
+      - run: npm --prefix converter-site run typecheck
+
+      - run: npm --prefix converter-site test
+
+      - run: npm --prefix converter-site run build
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: converter-site/dist
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
