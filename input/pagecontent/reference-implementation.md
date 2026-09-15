@@ -14,11 +14,35 @@ and no less — is a checked statement.
 
 That is the whole point of the reference implementation. It is not a product.
 
+#### Try it in your browser
+
+The same converters and the same ledger this page describes also run as a
+**hosted single page**:
+
+- [openEHR ↔ FHIR data type converter](https://ginocanessa.github.io/openehr-fhir-data-type-mapping/)
+
+Four things are worth knowing before you paste anything into it:
+
+- It runs the **same converters and the same ledger** this page describes, so a
+  verdict it shows you is the verdict the mapping tables publish, not a
+  re-implementation that might disagree with them.
+- **Everything you paste stays in your browser.** There is no backend, no
+  telemetry, and no network call after the page loads.
+- It **names the guide version and the source commit** it was built from, in
+  the footer, so you can tell whether you are looking at a current build.
+- The **published worked examples load into it** as starting points, so you can
+  edit a real instance rather than inventing one.
+
+When a conversion leaves something behind, each dropped field links back to the
+mapping row that declares the loss.
+
 #### What it is not
 
 - **Not a published package.** It is not on npm and is not versioned
   independently of this guide.
-- **Not a CLI, and not a service.**
+- **Not a CLI, and not a service.** The hosted converter above is neither: it is
+  a static page that runs in your own browser, with nothing behind it — read
+  this bullet and [Try it in your browser](#try-it-in-your-browser) together.
 - **Not a FHIR or openEHR type library.** It models only the fields the mappings
   actually touch.
 - **Not part of the IG build.** Neither SUSHI nor the IG Publisher reads it.

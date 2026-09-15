@@ -38,3 +38,8 @@ that substantiate this guide's fidelity claims live in the `reference/`
 directory of the guide's source repository. They are **not** published as a
 package: see [Reference Implementation](reference-implementation.html) for what
 they are, what they are not, and how to run them.
+
+If you want to run a conversion rather than download one, the same converters
+are hosted as a page you can paste an instance into —
+[openEHR ↔ FHIR data type converter](https://ginocanessa.github.io/openehr-fhir-data-type-mapping/)
+— which is a convenience, not a package download.

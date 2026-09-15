@@ -548,6 +548,38 @@ otherwise.
 
 **Compatible, Non-Substantive**
 
+*The hosted browser converter*
+
+- **A hosted converter runs this guide's own converters in the reader's
+  browser.** It lives beside the guide rather than inside it, in a
+  `converter-site/` workspace built by esbuild and deployed to GitHub Pages by
+  the repository's first GitHub Actions workflow, and it imports the mapping
+  ledger through a single browser-safe facade. Nothing you paste into it leaves
+  your browser: there is no backend, no telemetry, and no network call after the
+  page loads. The footer names the guide version and the source commit the
+  bundle was built from, so a stale deployment is visible rather than silent,
+  and the published worked examples load into it as starting points because they
+  are the same fixture files this guide publishes. Neither SUSHI nor the IG
+  Publisher reads the new workspace.
+
+- **`reference-implementation.html` and `downloads.html` link to it.** The
+  reference-implementation page gains a *Try it in your browser* section stating
+  what the tool runs, where what you paste goes, what the footer tells you, and
+  that the published examples load into it; its *Not a CLI, and not a service*
+  bullet now points at that section, because a static page in your own browser
+  is neither. The downloads page gains one sentence framing the tool as a
+  convenience rather than a package download.
+
+- **Mapping tables and their rows now carry stable `id` anchors.** Every
+  generated field table is emitted with `id="mapping-<mapping-id>"` and every
+  row with `id="row-<mapping-id>--<row-id>"`, and every summary, gap-inventory
+  and review-coverage link into a mapping now carries the matching fragment, so
+  a link can point at the row it is about rather than at the page it is on. The
+  category pages, category labels and anchor ids have one declaration, which the
+  renderer and the converter both read. **No verdict, fidelity, citation,
+  maturity, scope, owner, region id, mapping, or conformance verb changed** —
+  only the anchors and the link targets did.
+
 *Published table rendering*
 
 - **Narrative tables have consistent grid presentation and intact direction
