@@ -9,6 +9,7 @@
  */
 
 import type { Cite, Mapping, Review } from '../src/model/types.ts';
+import { mappingHrefById } from '../src/publish/guide-links.ts';
 
 const RM = 'https://specifications.openehr.org/releases/RM/latest/data_types.html';
 const RM_SUPPORT = 'https://specifications.openehr.org/releases/RM/latest/support.html';
@@ -75,6 +76,17 @@ const MANDATORY_RULE =
   'incoming instance that omits it cannot be converted: the reference implementation ' +
   'produces **nothing** rather than inventing a value. See ' +
   '[the mandatory-attribute rule](conventions.html#mandatory-attributes).';
+
+/**
+ * Links to the two mappings this file's prose cross-references.
+ *
+ * Composed through `mappingHrefById` so the page and the anchor come from the
+ * one module that owns them. They are module constants rather than expressions
+ * beside the objects they name because the prose at the `DV_CODED_TEXT` rows is
+ * evaluated before `termMappingToCoding` is declared.
+ */
+const TERM_MAPPING_TO_CODING = mappingHrefById('coded', 'term-mapping-to-coding');
+const CODE_PHRASE_TO_CODING = mappingHrefById('coded', 'code-phrase-to-coding');
 
 // ── CODE_PHRASE ↔ Coding ─────────────────────────────────────────────────────
 
@@ -444,7 +456,7 @@ const dvCodedTextToCodeableConcept = {
               'a `Coding` cannot source. The composed conversion carries the inner drop ' +
               'forward: `?` — the Reference Model\u2019s *"the kind of mapping is ' +
               'unknown"* — is written and reported on this result too. See the ' +
-              '[TERM_MAPPING ↔ Coding](#term-mapping) rows',
+              `[TERM_MAPPING ↔ Coding](${TERM_MAPPING_TO_CODING}) rows`,
           },
         ],
       },
@@ -456,11 +468,11 @@ const dvCodedTextToCodeableConcept = {
         '`TERM_MAPPING.match` is mandatory and a `Coding` has no degree of equivalence to ' +
         'source it from, an incoming coding is given the Reference Model\u2019s own ' +
         '`?` — *"the kind of mapping is unknown"* — **and the substitution is reported**. ' +
-        'See [TERM_MAPPING](#term-mapping) below. A conversion that ' +
+        `See [TERM_MAPPING](${TERM_MAPPING_TO_CODING}) below. A conversion that ` +
         'delegates to `CODE_PHRASE ↔ Coding` **carries that mapping\u2019s drops forward** ' +
         'rather than swallowing them, so a `Coding.version` or an absent `Coding.system` ' +
         'is reported on the composed result too; the rows that declare those drops are on ' +
-        '[CODE_PHRASE ↔ Coding](#code-phrase).',
+        `[CODE_PHRASE ↔ Coding](${CODE_PHRASE_TO_CODING}).`,
     },
   ],
 } satisfies Mapping;

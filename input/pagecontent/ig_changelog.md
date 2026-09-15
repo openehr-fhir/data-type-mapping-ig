@@ -605,9 +605,19 @@ otherwise.
   `cross-cutting.html`. **No mapping fact, fidelity verdict, citation, maturity,
   scope, region id, or conformance verb changed** — only the markup did.
 
-*Review remediation, third pass*
+*Review remediation, fourth pass*
 
-- **The reference implementation says which tests need the mirrors.** Both
+- **Four cross-references in the coded-data narrative now resolve.** The drop
+  reason on `DV_CODED_TEXT.mappings` and the `DV_CODED_TEXT ↔ CodeableConcept`
+  note carried page-relative fragments — `#term-mapping` and `#code-phrase` —
+  that the guide publishes no anchor for, and the first of them publishes onto
+  two different pages, where a page-relative fragment could not have been right
+  on both. All four now name the page and the anchor the renderer emits, built
+  from the one module that owns them. **No verdict, fidelity, citation,
+  maturity, scope, region id, mapping, or conformance verb changed** — only the
+  link targets did.
+
+*Review remediation, third pass*
   `reference/README.md` and `reference-implementation.html` described citation
   resolution as the single mirror-gated check. A second one now exists, and it
   needs the openEHR mirror alone. No verdict, no conformance verb, and no

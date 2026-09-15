@@ -347,8 +347,8 @@ test('inline converts the ledger markdown subset and escapes the rest', () => {
 
 test('inline turns a real ledger string into a working anchor', () => {
   assert.equal(
-    inline('See [TERM_MAPPING](#term-mapping) below.'),
-    'See <a href="#term-mapping">TERM_MAPPING</a> below.',
+    inline('See [TERM_MAPPING](mapping-coded.html#mapping-term-mapping-to-coding) below.'),
+    'See <a href="mapping-coded.html#mapping-term-mapping-to-coding">TERM_MAPPING</a> below.',
   );
 });
 

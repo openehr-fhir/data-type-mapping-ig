@@ -22,6 +22,13 @@
 
 import type { Category, Direction, Mapping } from '../model/types.ts';
 
+/**
+ * A category the guide publishes a per-mapping field table — and therefore an
+ * anchor — for. `gaps` is excluded, which makes "no fragment for a mapping the
+ * guide publishes no table for" a **compile** error rather than a review catch.
+ */
+export type AnchoredCategory = Exclude<Category, 'gaps'>;
+
 /** The page each category's mappings are published on. */
 export const CATEGORY_PAGE: Readonly<Record<Category, string>> = {
   quantity: 'mapping-quantity.html',
@@ -63,7 +70,9 @@ export const DIRECTION_LABEL: Readonly<Record<Direction, string>> = {
  * this guard a link would carry a fragment for an anchor the guide never
  * emits — a dead link that looks exactly like a working one.
  */
-export function hasFieldTable(mapping: Mapping): boolean {
+export function hasFieldTable(
+  mapping: Mapping,
+): mapping is Mapping & { readonly category: AnchoredCategory } {
   return mapping.category !== 'gaps';
 }
 
@@ -97,10 +106,23 @@ export function pageFor(mapping: Mapping): string {
   return CATEGORY_PAGE[mapping.category];
 }
 
+/**
+ * A link to a mapping named by **id** rather than by object.
+ *
+ * Ledger prose cannot reach the `Mapping` object it is embedded in, and may not
+ * reach a sibling mapping either — a module constant declared before the object
+ * it points at would be a temporal-dead-zone error. So prose names its target by
+ * id and lets this module own the page and the anchor. `AnchoredCategory` is
+ * what keeps a `gaps` mapping, for which no anchor is ever emitted, out of it.
+ */
+export function mappingHrefById(category: AnchoredCategory, mappingId: string): string {
+  return `${CATEGORY_PAGE[category]}#${mappingAnchorId(mappingId)}`;
+}
+
 /** A link to a mapping: its page, plus its table anchor where one is published. */
 export function mappingHref(mapping: Mapping): string {
   return hasFieldTable(mapping)
-    ? `${pageFor(mapping)}#${mappingAnchorId(mapping.id)}`
+    ? mappingHrefById(mapping.category, mapping.id)
     : pageFor(mapping);
 }
 
