@@ -19,7 +19,7 @@ That is the whole point of the reference implementation. It is not a product.
 The same converters and the same ledger this page describes also run as a
 **hosted single page**:
 
-- [openEHR ↔ FHIR data type converter](https://ginocanessa.github.io/openehr-fhir-data-type-mapping/)
+- [openEHR ↔ FHIR data type converter](https://openehr-fhir.github.io/data-type-mapping-ig/)
 
 Four things are worth knowing before you paste anything into it:
 

@@ -1,7 +1,7 @@
 # AGENTS.md
 
 Canonical, machine-readable conventions for automated agents working in
-**openehr-fhir-data-type-mapping** (the *openEHR to FHIR Data Type Mapping*
+**data-type-mapping-ig** (the *openEHR to FHIR Data Type Mapping*
 Implementation Guide). This file is the single source of truth that the
 `.github/skills/dev-*` skills read before naming any build, test, or lint
 command.
@@ -42,7 +42,7 @@ Because it is a spec, there is **no test suite** in the software sense. The
 build *is* the verification — see [Test](#test).
 
 **This repository has history and a remote.** `origin` is
-`git@github.com:GinoCanessa/openehr-fhir-data-type-mapping.git`, and `main`
+`git@github.com:openehr-fhir/data-type-mapping-ig.git`, and `main`
 carries commits; there is no published release yet. Where a convention below is
 stated as a *target* rather than an *observed* practice, it says so.
 
@@ -514,7 +514,7 @@ prompts about GitHub, and the `dev-*` loop behaves exactly as it did
 before this feature existed.
 
 This repository **has** an `origin` remote
-(`git@github.com:GinoCanessa/openehr-fhir-data-type-mapping.git`) but tracks
+(`git@github.com:openehr-fhir/data-type-mapping-ig.git`) but tracks
 work in **HL7 Jira** rather than GitHub Issues, so the integration is
 deliberately disabled. `no` / `n/a` below are **resolved answers**, not gaps —
 do not re-prompt on them. If the project later decides to use GitHub Issues,

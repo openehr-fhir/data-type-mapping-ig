@@ -1,5 +1,5 @@
 {
-  "name": "openehr-fhir-data-type-mapping-reference",
+  "name": "data-type-mapping-ig-reference",
   "private": true,
   "type": "module",
   "description": "Reference implementation and mapping ledger for the openEHR to FHIR Data Type Mapping IG. Not a published package.",

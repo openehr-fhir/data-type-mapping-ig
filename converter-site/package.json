@@ -1,5 +1,5 @@
 {
-  "name": "openehr-fhir-data-type-mapping-converter-site",
+  "name": "data-type-mapping-ig-converter-site",
   "private": true,
   "version": "0.0.0",
   "type": "module",
