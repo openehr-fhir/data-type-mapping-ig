@@ -548,6 +548,22 @@ otherwise.
 
 **Compatible, Non-Substantive**
 
+*Page branding*
+
+- **The openEHR logo now sits beside the HL7 International logo in the page
+  header.** The guide maps two standards and until now the header named only
+  one of them. The openEHR wordmark is published as `input/images/`, and the
+  header that places it is `input/includes/fragment-header.html` — a copy of
+  the HL7 template's own `fragment-header.html` with a single `#project-nav`
+  block added, because a file in `input/includes/` replaces the template
+  fragment of the same name rather than extending it. That makes the header a
+  fork that must be re-synced by hand when the template changes upstream, which
+  `AGENTS.md` now records as an invariant. The logo is reproduced from
+  openEHR's own published brand assets and links to `openehr.org`; it
+  identifies the standard this guide maps and implies no endorsement. **No
+  page, mapping, verdict, fidelity, citation, maturity, scope, region id, or
+  conformance verb changed** — only the header markup did.
+
 *The hosted browser converter*
 
 - **A hosted converter runs this guide's own converters in the reader's

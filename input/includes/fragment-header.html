@@ -1,0 +1,28 @@
+{% comment %}
+  Overrides the HL7 template's fragment-header.html so the openEHR logo sits
+  beside the HL7 International logo. Everything except the #project-nav block
+  is a verbatim copy of template/includes/fragment-header.html; when the
+  template's header changes upstream, re-sync this file against it.
+
+  The inline styles on #project-nav and #project-logo override the template's
+  rules for those ids, so the wordmark's height and spacing sit level with the
+  HL7 mark beside it.
+
+  The openEHR logo is a trademark of openEHR International, reproduced from
+  openEHR/specifications-AA_GLOBAL (CC BY-SA 3.0) to identify the standard
+  this guide maps. Its use does not imply endorsement.
+{% endcomment %}
+        <div id="hl7-nav">
+          <a id="hl7-logo" data-no-external="true" href="http://hl7.org">
+            <img height="50" alt="Visit the HL7 website" src="{{site.data.info.assets}}assets/images/hl7-logo-header.png"/>
+          </a>
+        </div>
+        <div id="project-nav" style="margin-top: 13px;">
+          <a id="project-logo" data-no-external="true" href="https://openehr.org" style="margin-left: 18px;"><img height="32" alt="Visit the openEHR website" src="{{site.data.info.assets}}openehr-logo.png"/> </a>
+        </div>
+        <div id="family-nav">
+          <a id="family-logo" data-no-external="true" href="http://hl7.org/fhir"><img height="50" alt="Visit the FHIR website" src="{{site.data.info.assets}}assets/images/fhir-logo-www.png"/> </a>
+        </div>
+        <div id="hl7-search">
+          <a id="hl7-search-lnk" data-no-external="true" href="searchform.html"><img alt="Search FHIR" src="{{site.data.info.assets}}assets/images/search.png"/></a>
+        </div>

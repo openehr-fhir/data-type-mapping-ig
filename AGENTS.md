@@ -57,6 +57,8 @@ stated as a *target* rather than an *observed* practice, it says so.
 | `input/pagecontent/ig_changelog.md` | The IG change log. See [Commit conventions](#commit-conventions). |
 | `input/resources/` | Hand-authored ("pre-defined") JSON resources that SUSHI copies through verbatim. **Not present yet** — create it with the first such resource. Do not add a placeholder file: SUSHI warns about every non-JSON/XML file it finds there. |
 | `input/images-source/` | PlantUML / SVG diagram sources. |
+| `input/images/` | Images copied verbatim into the published site, at the output root **and** into each language subdirectory, so a page references one by bare filename. Holds `openehr-logo.png`, the openEHR wordmark shown in the page header. |
+| `input/includes/` | Overrides for HL7 template fragments. A file here replaces the template's fragment of the same name outright, so it inherits nothing from upstream and must be re-synced by hand when the template changes. Holds `fragment-header.html`, a copy of `template/includes/fragment-header.html` plus a `#project-nav` block for the openEHR logo. |
 | `input/ignoreWarnings.txt` | Publisher QA messages that are reviewed and deliberately suppressed, each with a comment explaining why. |
 | `sushi-config.yaml` | IG metadata, dependencies, `pages`, and `menu`. The most important config file in the repo. |
 | `ig.ini` | Points the IG Publisher at the SUSHI-generated ImplementationGuide resource and names the HL7 template. |
@@ -464,6 +466,14 @@ These are decisions, not preferences. Violating one is a review Blocker.
   `_gencontinuous.*`, `_genclean.bat`, `_updatePublisher.*` come from
   `HL7/ig-publisher-scripts` and are overwritten by `_updatePublisher`.
   Changes belong upstream, not here.
+- **A template fragment override is a fork, not a patch.** A file in
+  `input/includes/` *replaces* the template fragment of the same name;
+  nothing is merged. `input/includes/fragment-header.html` therefore carries
+  a verbatim copy of `template/includes/fragment-header.html` around its one
+  addition, and when the HL7 template's header changes upstream that copy
+  has to be re-synced by hand or the change is silently lost. Keep the
+  divergence to the `#project-nav` block, and do not add a second override
+  without the same reckoning.
 
 ---
 

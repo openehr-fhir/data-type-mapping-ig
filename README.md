@@ -25,6 +25,8 @@ meaning.
 | `input/pagecontent/` | Markdown narrative pages, one per entry in `sushi-config.yaml` `pages:` |
 | `input/resources/` | Hand-authored JSON resources that SUSHI copies through verbatim (create it with the first one) |
 | `input/images-source/` | PlantUML / SVG diagram sources |
+| `input/images/` | Images copied verbatim into the published site — currently the openEHR header logo |
+| `input/includes/` | Overrides for HL7 template fragments — currently `fragment-header.html`, which adds the openEHR logo |
 | `input/ignoreWarnings.txt` | Publisher QA messages that are reviewed and deliberately suppressed |
 | `sushi-config.yaml` | IG metadata, dependencies, `pages`, and `menu` |
 | `ig.ini` | Points the IG Publisher at the SUSHI-generated ImplementationGuide |
