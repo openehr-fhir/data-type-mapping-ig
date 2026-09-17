@@ -202,6 +202,25 @@ export const ISO8601_FORMS: readonly Iso8601Form[] = [
   },
   {
     kind: 'dateTime',
+    example: '2026-03-01T14:30:00.123Z',
+    description: 'Fractional seconds, 3 digits',
+    openehr: true,
+    fhir: true,
+    action: 'Carried unchanged.',
+  },
+  {
+    kind: 'dateTime',
+    example: '2026-03-01T14:30:00.123456789Z',
+    description: 'Fractional seconds, up to 9 digits',
+    openehr: false,
+    fhir: true,
+    action:
+      'openEHR restricts fractional seconds to 3 digits. Excess precision SHALL be ' +
+      'truncated when mapping FHIR → openEHR, and that is a **named drop**. The same ' +
+      'rule applies to `time`; `dateTime` is not exempt.',
+  },
+  {
+    kind: 'dateTime',
     example: '2026-03-01T14:30',
     description: 'Date and time without seconds',
     openehr: true,

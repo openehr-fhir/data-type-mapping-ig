@@ -623,6 +623,18 @@ otherwise.
 
 *Review remediation, fourth pass*
 
+- **`DV_DATE_TIME` now truncates fractional seconds the same way `DV_TIME`
+  already does.** FHIR `dateTime` (like `time`) admits up to nine
+  fractional-second digits; openEHR's `Iso8601_date_time` restricts to three.
+  The guide's temporal introduction already stated that excess precision is
+  truncated, and `DV_TIME.value` already declared and implemented the drop, but
+  `dateTime → DV_DATE_TIME` passed a nine-digit value through unchanged and
+  reported `lossless`. The inbound direction of `DV_DATE_TIME.value` is now
+  `lossy`, naming `dateTime[fractional-seconds]`; the converter truncates and
+  reports that path; the ISO 8601 subset table gains the three-digit and
+  nine-digit `dateTime` rows; and a worked example covers the inbound case.
+  Values at or below millisecond precision are unchanged.
+
 - **Four cross-references in the coded-data narrative now resolve.** The drop
   reason on `DV_CODED_TEXT.mappings` and the `DV_CODED_TEXT ↔ CodeableConcept`
   note carried page-relative fragments — `#term-mapping` and `#code-phrase` —
