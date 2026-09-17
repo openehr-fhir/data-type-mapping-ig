@@ -31,6 +31,7 @@ import {
 /** Drop and unmapped paths, named once so the ledger and the code cannot drift. */
 export const TEMPORAL_PATH = {
   timeValue: 'time.value[fractional-seconds]',
+  dateTimeFractional: 'dateTime[fractional-seconds]',
   temporalAccuracy: 'DV_DATE_TIME.accuracy',
   durationValue: 'DV_DURATION.value',
   durationCode: 'Duration.code',
@@ -202,7 +203,22 @@ export function dvDateTimeToDateTime(source: DvDateTime): MappingResult<FhirDate
 }
 
 export function dateTimeToDvDateTime(source: FhirDateTime): MappingResult<DvDateTime> {
-  return resultFor({ _type: 'DV_DATE_TIME' as const, value: source }, []);
+  // Same precision rule as `timeToDvTime`: FHIR permits up to nine fractional-
+  // second digits and openEHR's `Iso8601_date_time` restricts to three. Excess
+  // precision is truncated and named, not passed through as a lossless claim.
+  const issues: Issue[] = [];
+  const { value, truncated } = truncateFractionalSeconds(source);
+
+  if (truncated) {
+    issues.push({
+      path: TEMPORAL_PATH.dateTimeFractional,
+      message:
+        'FHIR permits up to nine fractional-second digits and openEHR restricts to three, ' +
+        'so anything finer than a millisecond is truncated',
+    });
+  }
+
+  return resultFor({ _type: 'DV_DATE_TIME' as const, value }, issues);
 }
 
 register<DvDateTime, FhirDateTime>('dv-date-time-to-date-time', {

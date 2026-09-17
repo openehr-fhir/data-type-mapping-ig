@@ -1,0 +1,4 @@
+{
+  "directions": ["toOpenehr"],
+  "reason": "openEHR restricts fractional seconds to three digits, so a DV_DATE_TIME cannot produce the nine-digit FHIR value. The fixture demonstrates the inbound truncation the dv-date-time.value row declares — the same rule DV_TIME already publishes for time.value[fractional-seconds]."
+}

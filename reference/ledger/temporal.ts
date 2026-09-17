@@ -336,7 +336,17 @@ const dvDateTimeToDateTime = {
         },
       ],
       toFhir: { fidelity: 'lossless' },
-      toOpenehr: { fidelity: 'lossless' },
+      toOpenehr: {
+        fidelity: 'lossy',
+        drops: [
+          {
+            path: 'dateTime[fractional-seconds]',
+            reason:
+              'FHIR permits up to **nine** fractional-second digits and openEHR restricts ' +
+              'to **three**, so anything finer than a millisecond is truncated',
+          },
+        ],
+      },
       maturity: 'settled',
       note:
         'Unlike `time`, `dateTime` carries a UTC offset directly, and its R5 regex admits ' +
@@ -344,7 +354,9 @@ const dvDateTimeToDateTime = {
         'What the regex does *not* admit is a time without seconds; that sub-case is a ' +
         'named drop on the row below. R5 separately **requires** an offset once hours and ' +
         'minutes are present, so a source stating a time and no offset is **refused** ' +
-        'rather than padded with `Z` — the row after next.',
+        'rather than padded with `Z` — the row after next. What this row drops inbound is ' +
+        '**only the sub-second precision beyond three digits**, not the value: the ' +
+        'date-time itself carries in both directions.',
     },
     {
       id: 'dv-date-time.value.minute-precision',

@@ -165,6 +165,12 @@ test('fractional seconds truncate to the three digits openEHR permits', () => {
   const offset = truncateFractionalSeconds('14:30:00.123456789+01:00');
   assert.equal(offset.value, '14:30:00.123+01:00');
   assert.equal(offset.truncated, true);
+
+  // The same helper serves `dateTime`: the zone designator is the tail, not part
+  // of the fractional-second run.
+  const dateTime = truncateFractionalSeconds('2026-03-01T14:30:00.123456789Z');
+  assert.equal(dateTime.value, '2026-03-01T14:30:00.123Z');
+  assert.equal(dateTime.truncated, true);
 });
 
 test('every form the table marks as needing action says what the action is', () => {
@@ -305,6 +311,11 @@ const EXPECTED: Readonly<
   '2026-03-01T14:30:00Z': { out: '2026-03-01T14:30:00Z', issues: [] },
   '20260301T143000Z': { out: '2026-03-01T14:30:00Z', issues: [] },
   '2026-03-01T14:30:00+01:00': { out: '2026-03-01T14:30:00+01:00', issues: [] },
+  '2026-03-01T14:30:00.123Z': { out: '2026-03-01T14:30:00.123Z', issues: [] },
+  '2026-03-01T14:30:00.123456789Z': {
+    out: '2026-03-01T14:30:00.123Z',
+    issues: ['dateTime[fractional-seconds]'],
+  },
   // Completion to seconds happens, and then the offset rule refuses: R5 requires
   // a UTC offset once hours and minutes are present, and nothing here supplies
   // one. The refusal is the head issue; the completion is still reported.
