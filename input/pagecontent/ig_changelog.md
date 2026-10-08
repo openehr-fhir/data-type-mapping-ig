@@ -565,6 +565,13 @@ otherwise.
     anchor, or conformance claim changed. Earlier entries remain the history
     of the previously combined repository.
 
+- **Corrected the browser converter's displayed provenance description.**
+  - `reference-implementation.html` now names only the displayed guide version
+    and independent RI source commit, and points to the browser-converter
+    documentation for the separate compatible-guide revision. A matching
+    guide version alone does not establish revision parity.
+  - RI behavior and mapping/citation requirements are unchanged.
+
 **Compatible, Non-Substantive**
 
 *Page branding*

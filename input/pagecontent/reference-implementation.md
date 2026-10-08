@@ -30,11 +30,12 @@ Four things are worth knowing before you paste anything into it:
   guide snapshot; agreement is not automatic across revisions.
 - **Everything you paste stays in your browser.** There is no backend, no
   telemetry, and no network call after the page loads.
-- Its displayed **provenance** distinguishes the guide version, the independent
-  RI source revision, and the supported guide revision recorded by the build.
-  Consult that provenance and the
+- Its displayed **provenance** names the guide version and the independent
+  RI source commit. See the
   [browser-converter documentation](https://github.com/openehr-fhir/data-type-mapping-ri/blob/main/converter-site/README.md)
-  when comparing it with a guide snapshot.
+  for the separate compatible-guide revision, which is not displayed in
+  that provenance. A matching guide version alone does not establish
+  revision parity with a guide snapshot.
 - The **RI build's worked examples load into it** as starting points, so you
   can edit a real instance rather than inventing one. They correspond to the
   examples published from that RI revision, not necessarily every guide version.
