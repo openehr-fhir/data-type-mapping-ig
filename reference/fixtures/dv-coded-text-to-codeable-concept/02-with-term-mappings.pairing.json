@@ -1,4 +1,0 @@
-{
-  "directions": ["toFhir"],
-  "reason": "TERM_MAPPING.purpose has no FHIR representation, so a CodeableConcept cannot carry it back. The DV_CODED_TEXT.mappings row declares the drop in the outbound direction."
-}

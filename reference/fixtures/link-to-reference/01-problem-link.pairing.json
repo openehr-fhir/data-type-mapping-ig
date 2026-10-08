@@ -1,4 +1,0 @@
-{
-  "directions": ["toFhir"],
-  "reason": "LINK.type is mandatory and a plain FHIR Reference has no field that can source it, so no LINK is produced coming back. The link.type row states that gap, and it is what makes LINK to Reference a one-way mapping at data-type level."
-}

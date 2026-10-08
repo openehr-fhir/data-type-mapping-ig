@@ -1,9 +1,11 @@
 ### Reference implementation
 
-Every fidelity claim in this guide is backed by runnable code. The `reference/`
-directory of this guide's source repository holds a TypeScript **mapping
-ledger** and a set of reference converters, together with the tests that
-substantiate what the mapping tables assert.
+Every fidelity claim in this guide is backed by runnable code. The separate
+[reference implementation repository](https://github.com/openehr-fhir/data-type-mapping-ri)
+holds a TypeScript **mapping ledger** and a set of reference converters,
+together with the tests that substantiate what the mapping tables assert.
+Their [source](https://github.com/openehr-fhir/data-type-mapping-ri/tree/main/reference)
+is maintained independently of this guide's committed publication inputs.
 
 #### Why it exists
 
@@ -19,27 +21,31 @@ That is the whole point of the reference implementation. It is not a product.
 The same converters and the same ledger this page describes also run as a
 **hosted single page**:
 
-- [openEHR ↔ FHIR data type converter](https://openehr-fhir.github.io/data-type-mapping-ig/)
+- [openEHR ↔ FHIR data type converter](https://openehr-fhir.github.io/data-type-mapping-ri/)
 
 Four things are worth knowing before you paste anything into it:
 
-- It runs the **same converters and the same ledger** this page describes, so a
-  verdict it shows you is the verdict the mapping tables publish, not a
-  re-implementation that might disagree with them.
+- It runs the **RI's converters and ledger**, not a separate re-implementation.
+  Its build may use a different RI revision from the one behind a particular
+  guide snapshot; agreement is not automatic across revisions.
 - **Everything you paste stays in your browser.** There is no backend, no
   telemetry, and no network call after the page loads.
-- It **names the guide version and the source commit** it was built from, in
-  the footer, so you can tell whether you are looking at a current build.
-- The **published worked examples load into it** as starting points, so you can
-  edit a real instance rather than inventing one.
+- Its displayed **provenance** distinguishes the guide version, the independent
+  RI source revision, and the supported guide revision recorded by the build.
+  Consult that provenance and the
+  [browser-converter documentation](https://github.com/openehr-fhir/data-type-mapping-ri/blob/main/converter-site/README.md)
+  when comparing it with a guide snapshot.
+- The **RI build's worked examples load into it** as starting points, so you
+  can edit a real instance rather than inventing one. They correspond to the
+  examples published from that RI revision, not necessarily every guide version.
 
 When a conversion leaves something behind, each dropped field links back to the
 mapping row that declares the loss.
 
 #### What it is not
 
-- **Not a published package.** It is not on npm and is not versioned
-  independently of this guide.
+- **Not a published package.** It is not on npm. Its source revision is
+  independent of the guide's version and revision.
 - **Not a CLI, and not a service.** The hosted converter above is neither: it is
   a static page that runs in your own browser, with nothing behind it — read
   this bullet and [Try it in your browser](#try-it-in-your-browser) together.
@@ -49,13 +55,19 @@ mapping row that declares the loss.
 
 #### How the guide relates to it
 
-The mapping tables on the category pages are **generated** from the ledger and
-written into sentinel-delimited managed regions in the guide's markdown source.
-The worked examples are the very test fixtures the converters are exercised
-against, so a published example cannot drift from the code that produced it.
+The mapping tables on the category pages are **generated** from the external
+RI's ledger and committed in sentinel-delimited managed regions in the guide's
+markdown source. The worked examples are the test fixtures the converters are
+exercised against at the corresponding RI revision. These committed tables and
+examples are not automatically synchronized with the RI's current source or
+the hosted converter.
 
-Editing a generated region by hand is detected and rejected; the fix is to edit
-the ledger and re-render.
+Generated regions remain owned by the RI's ledger and renderer, not by hand
+edits in this repository. The RI's documented authoring and compatibility
+process includes rendering and drift checking; an updated guide is reviewed
+separately. Every guide region has an external renderer definition, and every
+renderer output has a guide home. Publishing the committed guide needs no RI
+checkout and runs none of those implementation checks.
 
 #### The converter contract
 
@@ -79,7 +91,7 @@ instance that claims to be a valid `DV_QUANTITY`, `CODE_PHRASE`, or
 `DV_MULTIMEDIA` while carrying a value nobody sent. The rule and its two
 recorded exceptions are stated in full under
 [the mandatory-attribute rule](conventions.html#mandatory-attributes), and
-`reference/test/contract.test.ts` holds every converter to it.
+the external RI's `reference/test/contract.test.ts` holds every converter to it.
 
 A converter that **composes** another carries the inner result's issues
 forward, so a declared drop cannot vanish behind a composition boundary. The
@@ -109,56 +121,35 @@ definitions. Those citations are taken on the working group's authority, and are
 marked as such. Citations to openEHR RM pages and to FHIR R5 core pages are held
 to two separate rules. A citation sitting on a **real endpoint** SHALL name an
 anchor rather than a bare page, with one written-down exception where the
-specification offers no anchor at all; that rule is part of the ledger's own
-validation and runs on every build. Resolving those anchors against a local copy
-of the specification is a **second** check, and it runs only when
-`OPENEHR_SPEC_DIR` and `FHIR_R5_DIR` are configured — it is part of the release
-gate and skips silently otherwise.
+specification offers no anchor at all; that rule is part of the external RI
+ledger's structural validation. Resolving those anchors against local copies
+of both specifications is a **second**, mirror-dependent check in the RI's
+release gate, and it skips when the mirrors are not configured. The RI's
+documentation owns execution of both checks; neither runs automatically when
+the guide is published.
 
 #### The commands
 
-Run from the repository root. These are the same commands the repository's
-`AGENTS.md` documents under *Build → Track 3*, and `reference/README.md`
-repeats them:
+Implementation commands run in the separate RI checkout, not in this guide
+repository. Its maintained documentation supplies setup, invocation, and
+release requirements:
 
-```
-npm --prefix reference install
-npm --prefix reference run typecheck
-npm --prefix reference test
-npm --prefix reference run render
-npm --prefix reference run render:check
-```
+- [RI operations and guide-content authoring](https://github.com/openehr-fhir/data-type-mapping-ri/blob/main/reference/README.md)
+  — ledger validation, conversion tests, rendering, drift checking, and guide
+  compatibility.
+- [Browser-converter operations](https://github.com/openehr-fhir/data-type-mapping-ri/blob/main/converter-site/README.md)
+  — building, previewing, and understanding the hosted converter's provenance.
 
-- `typecheck` is the primary gate on **ledger content**, because the ledger's
-  invariants are compile errors: a `lossy` verdict that names nothing it drops,
-  a row with a verdict in only one direction, and an endpoint with no citation
-  all fail to compile.
-- `test` runs the whole suite: the validator's negative cases, the five hard
-  mapping shapes, the page inventory, the region machinery, the coverage gate,
-  the round-trip matrix, the converter contract, the two ISO 8601 tables, and
-  the open-items register.
-- `render` writes the managed regions into `input/pagecontent/`.
-- `render:check` re-renders in memory and fails on any difference. That is the
-  drift gate.
-
-Citation resolution is opt-in, because it needs local mirrors of the two
-specifications:
-
-```
-$env:OPENEHR_SPEC_DIR = '…'
-$env:FHIR_R5_DIR = '…'
-npm --prefix reference test
-```
-
-With both set, every `spec-local` citation in the ledger is resolved to a real
-**anchor** on a real page in the specification it claims to cite — not merely to
-a file. The same configuration runs a second check: the openEHR vocabulary
-literals the converters write and the fixtures carry — code-set identifiers,
-`DV_TEXT.formatting` values, and the ISO 8601 lexical forms the guide flags as
-openEHR-accepted — are resolved against the published openEHR specification,
-which needs the openEHR mirror alone. Without the mirrors, those tests skip and
-the rest of the suite runs unchanged, which is why **the publication gate is the
-form above**, expecting zero skipped tests, rather than the bare run.
+Citation resolution needs local mirrors of **both** specifications: every
+`spec-local` citation is resolved to a real **anchor** on a real page, not merely
+to a file. The separate vocabulary check needs the **openEHR mirror alone**. It
+resolves the openEHR vocabulary literals the converters write and the fixtures
+carry — code-set identifiers, `DV_TEXT.formatting` values, and the ISO 8601
+lexical forms the guide flags as openEHR-accepted — against the published
+openEHR specification. Missing mirrors cause those tests to skip rather than
+prove their claims; the external RI documentation defines the configured,
+zero-skipped release gate. Guide publication consumes committed inputs and
+does not execute these suites or require their mirrors.
 
 #### What the tests actually prove
 

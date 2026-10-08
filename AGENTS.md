@@ -68,16 +68,14 @@ stated as a *target* rather than an *observed* practice, it says so.
 | `fsh-generated/` | SUSHI output. **Ignored, and never hand-edited.** |
 | `output/`, `temp/`, `template/`, `translations/` | IG Publisher output and scratch. **Ignored, and never hand-edited.** |
 | `scratch/` | `dev-*` skill slots. **Ignored.** |
-| `reference/` | The **mapping ledger** and the TypeScript reference implementation. Outside `input/`, so neither SUSHI nor the IG Publisher walks it. `ledger/` holds the mapping facts, `src/model/` their single shape declaration, `src/convert/` the converters, `fixtures/` the paired instances, `render/` the projection into `input/pagecontent/`, `test/` the suite. See [Track 3](#track-3--reference-implementation) and `reference/README.md`. |
-| `reference/fixtures/<mapping-id>/NN-<name>.pairing.json` | The **pairing marker** for a fixture pair that is deliberately one-directional: `{ "directions": ["toFhir"], "reason": "…" }`. `reference/test/pairs.test.ts` asserts only the directions it names, and asserts that every direction it does *not* name genuinely fails to produce the partner, so a marker cannot outlive the defect it documents. A marker with no reason is a failure. |
-| `reference/src/publish/guide-links.ts` | A deliberate **public boundary**: the single declaration of where a mapping and a row are published in the guide — category pages, category labels, direction labels, anchor ids, and hrefs. Browser-safe by construction (types only, no `node:` builtin), so the renderer and any consuming site read the same facts. A second copy anywhere is a Blocker. |
-| `reference/src/browser/` | The other deliberate **public boundary**: `contract.ts` and `convert.ts` are the only modules a browser consumer imports from `reference/`. They expose catalogue discovery, conversion, and issue-to-guide links as plain JSON-serialisable data; `Mapping`, `Row`, the registry, and the renderer stay private. |
-| `reference/node_modules/` | npm install tree. **Ignored** by the existing unrooted `node_modules/` rule. |
-| `converter-site/` | The **hosted browser converter**: a static single page that runs the reference converters in the reader's browser. Outside `input/`, so neither SUSHI nor the IG Publisher walks it. See [Track 4](#track-4--converter-site) and `converter-site/README.md`. |
-| `converter-site/scripts/` | The two generators (fixture catalogue, provenance) and the esbuild build. |
-| `converter-site/src/generated/` | Generated browser modules. **Ignored, and never hand-edited** — run `npm --prefix converter-site run generate`. |
-| `converter-site/dist/` | esbuild output. **Ignored, and never hand-edited.** |
-| `.github/workflows/` | CI. `converter-site.yml` builds the converter and deploys it to GitHub Pages. Ordinary CI — unrelated to the `dev-*` [GitHub Integration](#github-integration) below, which stays `Enabled: no`. |
+
+The [separate reference implementation (RI)](https://github.com/openehr-fhir/data-type-mapping-ri)
+owns the mapping ledger, converters, fixtures, renderer, implementation checks,
+and browser converter with its deployment. See its
+[RI operational documentation](https://github.com/openehr-fhir/data-type-mapping-ri/blob/main/reference/README.md)
+and [browser-converter documentation](https://github.com/openehr-fhir/data-type-mapping-ri/blob/main/converter-site/README.md)
+for work in that repository. This guide owns the committed publication inputs;
+publishing them requires no RI checkout or RI dependencies.
 
 Ignored paths are listed in `.gitignore`. Anything under `fsh-generated/`,
 `output/`, `temp/`, `template/`, or `input-cache/` is a build artifact:
@@ -91,38 +89,20 @@ editing it is always wrong, and the edit is destroyed on the next build.
   checked in; the repository tracks the current SUSHI release. Verified
   working with **SUSHI v3.20.1** (FSH spec v3.0.0). Requires Node.js.
 - **Node.js** — no `.nvmrc` and no pin. Verified working with **Node
-  v26.7.0**. Needed to run SUSHI, and to run the `reference/` workspace,
-  which relies on Node's **native TypeScript type stripping** to execute
-  `.ts` sources and `.ts` tests with no build step and no loader flag.
-- **npm** — no pin. Verified working with **npm 11.19.0**. Only needed for
-  the `reference/` workspace.
-- **`reference/` dependencies** — three **devDependencies** only, declared as
-  caret ranges in `reference/package.json` and pinned exactly by the
-  committed `reference/package-lock.json`: `typescript` and `@types/node`
-  serve `typecheck`, and `yaml` serves `reference/test/pages.test.ts`, which
-  reads `sushi-config.yaml`. The ledger, the converters, the renderer, and
-  every other test have **no** dependency at all — Node runs them directly —
-  so a failed `npm install` degrades the workspace to "type-check and
-  `pages.test.ts` unavailable", never to "nothing runs".
-- **`converter-site/` dependencies** — four **devDependencies**, declared as
-  caret ranges in `converter-site/package.json` and pinned exactly by the
-  committed `converter-site/package-lock.json`: `esbuild` produces the bundle,
-  `typescript` and `@types/node` serve `typecheck`, and `yaml` serves the
-  provenance generator and `converter-site/test/workflow.test.ts`. The site
-  needs **Node ≥ 22.18** — the floor at which native TypeScript type stripping
-  is unflagged — because its generators, tests and build script are all `.ts`
-  run directly. **esbuild, not `tsc`, produces the bundle**; `tsc --noEmit`
-  remains the type gate and emits nothing.
+  v26.7.0**. Needed to run SUSHI.
+- **npm** — no pin. Verified working with **npm 11.19.0**. Used to install
+  SUSHI globally.
 - **Java** — required to run the IG Publisher. `INSTALLATION.md` states JRE 8
   is a floor and JDK 11+ is recommended (heap headroom). Verified working
   with **OpenJDK 25.0.4.1**. The build scripts set
   `JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8`; keep that, the publisher needs
   UTF-8.
-- **IG Publisher** — `publisher.jar`, not checked in and **not currently
-  present in this clone**. Fetch it with `_updatePublisher.bat` (latest
-  release of `HL7/fhir-ig-publisher`) into `input-cache/`; the scripts also
-  accept it in the **parent** directory (`..\publisher.jar`). There is no
-  version pin — the scripts always take *latest*.
+- **IG Publisher** — `publisher.jar`, not checked in. The scripts look in
+  `input-cache/` first, then in the **parent** directory
+  (`..\publisher.jar`). If neither exists, `_updatePublisher.bat` fetches
+  the latest release of `HL7/fhir-ig-publisher` into `input-cache/`; that
+  interactive setup belongs to the user, not an agent shell. There is no
+  version pin — the update scripts always take *latest*.
 - **IG template** — `hl7.fhir.template#current` in `ig.ini`. A floating pin;
   template changes can alter rendering without any repo change.
 - **FHIR version** — `fhirVersion: 5.0.0` in `sushi-config.yaml`. R5 only;
@@ -143,8 +123,9 @@ explaining why**.
 
 ## Build
 
-There are three build tracks. They catch different things, and the fast ones
-do not subsume the slow one.
+There are two IG build tracks. They catch different things, and the fast one
+does not subsume the slow one. Both consume committed guide inputs; neither
+runs the external RI's renderer or checks.
 
 ### Track 1 — SUSHI only (fast inner loop)
 
@@ -187,9 +168,10 @@ java -jar input-cache\publisher.jar -ig .
 ```
 
 If `publisher.jar` is not in `input-cache/`, the scripts fall back to
-`..\publisher.jar`; use whichever exists. **Neither exists in this clone
-yet** — run `.\_updatePublisher.bat` (interactive, so hand it to the user)
-to fetch it.
+`..\publisher.jar`; use whichever exists, substituting that path in the
+command above. If neither exists, ask the user to fetch it with
+`.\_updatePublisher.bat` (interactive); never invoke that script from an
+agent shell.
 
 Offline, or when `tx.fhir.org` is unreachable, append `-tx n/a` — that is
 exactly what the scripts do when their connectivity probe fails. Expect
@@ -204,80 +186,6 @@ absolute warning count as the bar — compare against a clean checkout before
 calling anything a regression, because template and terminology drift can
 move it without any change in this repo.
 
-### Track 3 — reference implementation
-
-The `reference/` workspace is built and verified independently of the IG.
-Nothing in the SUSHI or IG Publisher path reads it, and it emits no files
-into `input/` except the **managed regions** the renderer owns. All commands
-run from the repository root:
-
-```powershell
-npm --prefix reference install
-npm --prefix reference run typecheck
-npm --prefix reference test
-npm --prefix reference run render
-npm --prefix reference run render:check
-```
-
-- `install` — restores the three devDependencies. Required before
-  `typecheck` and before `test` can run `pages.test.ts`.
-- `typecheck` — `tsc --noEmit`. The ledger's invariants are **compile**
-  errors, so this is the primary gate on ledger content. Expected: exit 0,
-  no diagnostics.
-- `test` — `node --test`, which discovers `reference/**/*.test.ts`
-  recursively, skips `node_modules`, and executes them under native type
-  stripping. Expected: `fail 0`.
-- `render` — projects the ledger into the managed regions in
-  `input/pagecontent/*.md`. **It writes to those files.**
-- `render:check` — re-renders in memory and exits non-zero if any managed
-  region on disk differs. This is the drift gate; run it after any
-  `reference/ledger/` change.
-
-`reference/test/cite-local.test.ts` resolves every `spec-local` citation
-against local mirrors of the two specifications — to a real **anchor**, not
-merely to a file — and **skips** unless both `OPENEHR_SPEC_DIR` and
-`FHIR_R5_DIR` are set. Because it skips silently, the bare `npm --prefix
-reference test` is **not** the release gate; this is:
-
-```powershell
-$env:OPENEHR_SPEC_DIR = 'C:\ai\support\openEHR'
-$env:FHIR_R5_DIR = 'C:\ai\support\fhir-r5'
-npm --prefix reference test
-```
-
-A publication run SHALL use the form above and expect **0 skipped**. The bare
-form stays available for contributors without the mirrors.
-
-Citations in the ledger are always **published URLs**; a machine-local path
-must never be written into one.
-
-### Track 4 — converter site
-
-The `converter-site/` workspace is built and verified independently of both the
-IG and the reference suite. Nothing in the SUSHI or IG Publisher path reads it —
-**Track 4 is not part of Track 1 or Track 2** — and it writes nothing into
-`input/`. All commands run from the repository root:
-
-```powershell
-npm --prefix converter-site install
-npm --prefix converter-site run generate
-npm --prefix converter-site run typecheck
-npm --prefix converter-site test
-npm --prefix converter-site run build
-```
-
-- `install` — restores the four devDependencies and writes
-  `converter-site/package-lock.json`. CI uses `npm --prefix converter-site ci`.
-- `generate` — writes `converter-site/src/generated/`: the fixture catalogue
-  from `reference/fixtures/`, and provenance from `sushi-config.yaml`,
-  `git rev-parse --short HEAD`, and `GUIDE_BASE_URL`. It runs **automatically**
-  before the other three through the `pretypecheck`, `pretest` and `prebuild`
-  hooks, so it rarely needs to be typed.
-- `typecheck` — `tsc --noEmit -p .`. Expected: exit 0, no diagnostics.
-- `test` — `node --test`. Expected: `fail 0`.
-- `build` — esbuild. Expected: exit 0, and `converter-site/dist/` holding
-  `index.html`, `main.js` and `styles.css`.
-
 ---
 
 ## Test
@@ -291,15 +199,13 @@ one, and do not add one.** Verification for the guide is:
 4. The rendered pages under `output/` say what the change intended, read in
    a browser.
 
-The `reference/` and `converter-site/` workspaces **do** have test suites, and
-they are the only two places in this repository that have one. Both are scoped
-to their own directory and add no tooling to the IG: `npm --prefix reference
-test` and `npm --prefix converter-site test` both run the Node built-in test
-runner with no test-runner dependency. The reference suite's job is to
-substantiate the guide's fidelity claims — a `lossless` mapping must
-round-trip, and a `lossy` mapping must drop exactly what the ledger says it
-drops. The site's job is to prove its generated modules have not gone stale and
-that the four states a reader must be able to tell apart really are distinct.
+The external RI's suites substantiate the fidelity claims and converter
+behavior; its documentation owns their execution and release gates, including
+renderer drift and mirror-dependent citation resolution. Ordinary guide
+publication runs none of these checks and does not prove an RI-suite result.
+The guide's citation and generated-content requirements remain unchanged:
+citations are published URLs, never machine-local paths, and managed regions
+are not hand-authored.
 
 ### Full
 
@@ -309,20 +215,6 @@ Track 2 above, then open `output/qa.html`.
 
 Track 1 above (`sushi .`). This is the smallest meaningful verification and
 covers every FSH-only change up to the point of validation.
-
-For a change confined to `reference/`, the scoped verification is
-`npm --prefix reference run typecheck` plus `npm --prefix reference test`;
-add `npm --prefix reference run render:check` whenever `reference/ledger/`
-or `reference/render/` changed.
-
-For a change confined to `converter-site/`, the scoped verification is
-`npm --prefix converter-site run typecheck` plus
-`npm --prefix converter-site test`.
-
-A change to `reference/src/publish/guide-links.ts` or `reference/src/browser/`
-is confined to neither: both workspaces read them, so it needs **both**
-workspaces' scoped commands *plus* `npm --prefix reference run render:check`,
-because the renderer's anchors come from `guide-links.ts`.
 
 ### Focused
 
@@ -369,13 +261,6 @@ For an edit/refresh loop the publisher can watch the tree:
 .\_gencontinuous.bat
 ```
 
-The converter site has its own preview loop, which rebuilds on change and
-serves `converter-site/dist/`:
-
-```powershell
-npm --prefix converter-site run preview
-```
-
 ---
 
 ## Code style
@@ -395,19 +280,21 @@ That instruction is the rule here, not a fallback.
   generated `*.html` name, not the `.md` source. Pages start at heading
   level `###` — the template supplies the page title.
 - **Managed regions** inside `input/pagecontent/*.md` — content between a
-  pair of `mapping ledger` sentinels is **generated from
-  `reference/ledger/`**. Do not hand-edit it: edit the ledger, then run
-  `npm --prefix reference run render`. The sentinels are the pattern this
-  file already uses for its own `## GitHub Integration` block, and this
-  section is their **normative definition**. Every tool that reads or
-  writes one reproduces both strings byte-for-byte from here and never
-  re-derives, paraphrases, or reformats them:
+  pair of `mapping ledger` sentinels is **generated from the external RI's
+  `reference/ledger/`**. Do not hand-edit it: use the RI's documented
+  authoring and compatibility process, then review the generated guide update
+  separately. The sentinels are the pattern this file already uses for its own
+  `## GitHub Integration` block, and this section is their **normative
+  definition**. Every tool that reads or writes one reproduces both strings
+  byte-for-byte from here and never re-derives, paraphrases, or reformats them:
 
   ```
   <!-- >>> mapping ledger: <region-id> (generated by npm --prefix reference run render) >>> -->
   <!-- <<< mapping ledger: <region-id> (generated by npm --prefix reference run render) <<< -->
   ```
 
+  The embedded command text is a **serialization contract**, not a command to
+  run in this checkout. Ledger and renderer ownership stays in the RI.
   Hand-written prose **outside** the sentinels is never touched by a
   render. A region id is one of `mapping:<mapping-id>`,
   `summary:<category>`, `summary:all`, `gaps:*`, `review-coverage`,
@@ -438,15 +325,17 @@ These are decisions, not preferences. Violating one is a review Blocker.
 - **A new page means two edits.** Adding `input/pagecontent/foo.md` requires
   adding `foo.md` to **both** `pages:` and `menu:` in `sushi-config.yaml`.
   A page missing from `pages:` is not rendered at all.
-  `reference/test/pages.test.ts` enforces this in both directions.
+  The external RI's `reference/test/pages.test.ts` checks this in both
+  directions; that check is not part of the IG build.
 - **A managed region is generated, and hand-editing one is a Blocker.**
-  Content between a `mapping ledger` sentinel pair belongs to
-  `reference/ledger/`; edit the ledger and re-render. A hand edit is
-  detected by `npm --prefix reference run render:check`, which fails, and
-  the edit is destroyed by the next `render`.
-- **A region and its renderer land in the same commit.** A page may not
-  carry a region no renderer can fill, and the renderer may not produce a
-  region no page has a home for. Both are errors in `render-pages.ts`.
+  Content between a `mapping ledger` sentinel pair belongs to the external
+  RI's ledger and renderer. Its drift check rejects hand edits, and the next
+  render destroys them; guide publication does not run that check.
+- **A guide region and its external renderer must correspond.** Every guide
+  region has a renderer definition in the RI, and every renderer output has a
+  guide home. Future changes use the RI's existing authoring and compatibility
+  process and a separately reviewed IG update, not local replacement
+  automation.
 - **Every mapping row cites both specifications.** The openEHR RM attribute
   it maps from and the FHIR R5 element it maps to. A row whose side has no
   counterpart cites the *inventory* page of the standard that lacks it, so
@@ -454,14 +343,15 @@ These are decisions, not preferences. Violating one is a review Blocker.
   continuous-build snapshot is not a published specification.
 - **Guide links have one source.** The page a mapping is published on, the
   category labels, the direction labels, and the anchor ids the renderer emits
-  live in `reference/src/publish/guide-links.ts`. A second copy — in the
-  renderer, in `converter-site/`, or hand-written into a page — is a Blocker.
+  live in the external RI's `reference/src/publish/guide-links.ts`. A second
+  declaration — in this guide, the renderer, or the browser converter — is a
+  Blocker.
   A link may carry a **fragment only when the renderer actually publishes that
-  anchor**: `hasFieldTable()` is the single guard, and a `gaps`-category
+  anchor**: the RI's `hasFieldTable()` is the single guard, and a `gaps`-category
   mapping, for which no `mapping:` region is registered, links bare.
 - **Generated trees are never hand-edited** — `fsh-generated/`, `output/`,
-  `temp/`, `template/`, `input-cache/`, `converter-site/src/generated/`,
-  `converter-site/dist/`. Fix the FSH, the config, or the generator instead.
+  `temp/`, `template/`, `input-cache/`. Fix the FSH, the config, or the
+  responsible external generator instead.
 - **The HL7 build scripts are upstream files.** `_build.*`, `_genonce.*`,
   `_gencontinuous.*`, `_genclean.bat`, `_updatePublisher.*` come from
   `HL7/ig-publisher-scripts` and are overwritten by `_updatePublisher`.
@@ -531,9 +421,9 @@ do not re-prompt on them. If the project later decides to use GitHub Issues,
 re-run `dev-setup` and answer `yes`.
 
 **This setting is about the `dev-*` skills, not about CI.**
-`.github/workflows/converter-site.yml` builds and deploys the hosted converter
-and has nothing to do with it; ordinary GitHub Actions runs while `Enabled`
-stays `no`.
+CI settings do not authorize skill publication. The hosted converter's build
+and deployment belong to the separate RI repository, not this guide; this
+integration stays `Enabled: no`.
 
 The block below is **machine-managed**. This section is the **normative
 definition** of both sentinel strings: every skill that reads or writes
