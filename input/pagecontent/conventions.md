@@ -205,25 +205,27 @@ rather than a core element, the citation is to the extension pack.
 
 Extension-pack citations are marked with a dagger — <sup>†</sup>. They are the
 one class of citation this guide cannot verify mechanically: the specification
-mirrors its tests resolve citations against hold the openEHR Reference Model and
-the FHIR R5 **core** specification, and neither contains extension definitions.
+mirrors the external RI's tests resolve citations against hold the openEHR
+Reference Model and the FHIR R5 **core** specification, and neither contains
+extension definitions.
 A dagger therefore means *"this citation is taken on the working group's
 authority"*. Citations to openEHR RM pages and to FHIR R5 core pages carry no
 dagger. Where such a citation sits on a **real endpoint** — a field, an
 extension, or a resource element — it SHALL name a real **anchor** on the page,
-not merely the page; that rule is enforced whenever the guide is built. Its one
-exception is written down as data with a reason: `RelativeTime` is cited to the
-R5 data-type inventory page precisely because R5 defines no such type and there
-is no anchor to point at. Separately, and **conditionally on the specification
-mirrors being configured**, each of those anchors is resolved against a local
-copy of the specification before the guide is published: that check is part of
-the release gate, and it skips silently for a contributor who has not set the
-mirrors up.
+not merely the page; that rule is enforced by the external RI's ledger
+validation. Its one exception is written down as data with a reason:
+`RelativeTime` is cited to the R5 data-type inventory page precisely because R5
+defines no such type and there is no anchor to point at. Separately, and
+**conditionally on the specification mirrors being configured**, each of those
+anchors is resolved against a local copy of the specification by the RI's
+citation suite. That check belongs to the external RI's documented release
+gate and skips for a contributor who has not set the mirrors up. Publishing
+this guide does not execute or prove either check.
 
 Citations to [terminology.hl7.org](https://terminology.hl7.org) and to
 [jira.hl7.org](https://jira.hl7.org) are likewise verified as well-formed and
-host-allow-listed only; they exist in neither mirror. Citations to
-`build.fhir.org` are **not permitted** anywhere in this guide, because a
+host-allow-listed only by the RI's validation; they exist in neither mirror.
+Citations to `build.fhir.org` are **not permitted** anywhere in this guide, because a
 continuous-build snapshot is not a published specification.
 
 #### Conformance language
@@ -244,19 +246,23 @@ HTML comments of the form:
 ```
 
 Everything between those two lines comes from the mapping ledger in the
-[reference implementation](reference-implementation.html). **An edit made
-inside a region is lost on the next render.** To change a table, change the
-ledger and re-render; to add prose, put it outside the sentinels, where nothing
-will touch it.
+external [reference implementation](reference-implementation.html). **An edit
+made inside a region is lost on the next render.** To change a table, change
+the RI's ledger and follow its
+[authoring and compatibility process](https://github.com/openehr-fhir/data-type-mapping-ri/blob/main/reference/README.md),
+then review the generated guide update separately. To add prose, put it outside
+the sentinels, where nothing will touch it. The embedded command text in the
+delimiters is a serialization contract, not a command to run in this checkout.
 
 The drift check turns a hand edit into a loud failure rather than a silent loss,
-but it only helps if it is run. It is named in the repository's contributor
-guidance for that reason.
+but it only helps if it is run. That check belongs to the external RI's
+documented process, not to the guide build.
 
-Generated table presentation is maintained in `reference\render\html.ts`;
-mapping content remains owned by the ledger. For hand-authored tables outside
-managed regions, retain the Markdown rows and give each table the `grid` class
-inside its own named, keyboard-focusable scrolling wrapper:
+Generated table presentation is maintained in the RI's
+`reference\render\html.ts`; mapping content remains owned by its ledger.
+For hand-authored tables outside managed regions, retain the Markdown rows and
+give each table the `grid` class inside its own named, keyboard-focusable
+scrolling wrapper:
 
 ```markdown
 <div markdown="1" style="max-width: 100%; overflow-x: auto;" tabindex="0" role="group" aria-label="Scrollable table">

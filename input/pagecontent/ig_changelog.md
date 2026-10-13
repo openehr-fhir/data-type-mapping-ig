@@ -546,6 +546,32 @@ otherwise.
     shared closers, alternating ancestors, code and link labels; existing
     generated-cell baselines and guards are unchanged.
 
+*Separate reference implementation ownership*
+
+- **The guide repository now owns only the IG and its publication inputs.**
+  - Removed the duplicate `reference/` and `converter-site/` workspaces and the
+    guide-owned converter deployment workflow; their implementation, ledger,
+    fixtures, renderer, checks, and deployment belong to the
+    [separate RI repository](https://github.com/openehr-fhir/data-type-mapping-ri).
+  - `reference-implementation.html`, `downloads.html`, and editor/contributor
+    guidance now direct readers to the RI's source, operational documentation,
+    and browser converter. The retained explanation distinguishes guide and RI
+    revisions rather than promising automatic synchronization.
+  - Guide publication consumes committed content independently of any RI
+    checkout, dependencies, renderer, or test suite. Future generated-content
+    updates follow the RI's authoring and compatibility process and a
+    separately reviewed guide update.
+  - No mapping, citation requirement, generated-region content, sentinel,
+    anchor, or conformance claim changed. Earlier entries remain the history
+    of the previously combined repository.
+
+- **Corrected the browser converter's displayed provenance description.**
+  - `reference-implementation.html` now names only the displayed guide version
+    and independent RI source commit, and points to the browser-converter
+    documentation for the separate compatible-guide revision. A matching
+    guide version alone does not establish revision parity.
+  - RI behavior and mapping/citation requirements are unchanged.
+
 **Compatible, Non-Substantive**
 
 *Page branding*
