@@ -94,6 +94,7 @@ Both FHIR and openEHR commonly add terms like 'unknown' or 'not applicable' to V
 
 2. Allow the FHIR Valueset to be used directly as an extensible binding. Use the opportunity to revisit how we handle some 'null' situations e.g. Observation exclusions e.g Observation absentReason in OBSERVATION.event..data  **RECOMMENDED Option**. 
 
+3. Is `null_reason` used, should it be deprecated or better used in openEHR.
 
 
 ### FHIR options for discussion
