@@ -782,6 +782,14 @@ otherwise.
   `open-items.html` records a proposal to map through the shared v3 basis;
   nothing is adopted, and the mapping stays *not discussed*.
 
+- **`DV_STATE ↔ CodeableConcept` is reviewed from the FHIR side.** No fidelity
+  or citation changed: FHIR has no data type for a state-machine value, as the
+  rows say. `mapping-other.html`: the note records that a code from openEHR's
+  own terminology reaches `Coding.system` as the bare `openehr`, which R5 does
+  not accept as a system, and `open-items.html` records openEHR's newly
+  published per-vocabulary FHIR CodeSystems as the answer, for the working
+  group to adopt.
+
 *Page branding*
 
 - **The openEHR logo now sits beside the HL7 International logo in the page
