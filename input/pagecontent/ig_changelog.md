@@ -746,6 +746,24 @@ otherwise.
     formalism: a `Coding` whose `system` names the syntax, and an `Attachment`
     whose `contentType` does.
 
+- **Which coding is a `DV_CODED_TEXT`'s defining code is now declared as
+  carried only by order.** R5 says the *"ordering of codings is undefined and
+  SHALL NOT be used to infer meaning"*.
+  - `mapping-coded.html`: a new `DV_CODED_TEXT.defining_code[with-mappings]`
+    sub-case, `open`, is `lossy` both ways. Outbound, once `mappings` add
+    codings, the defining code is marked only by coming first, because
+    `userSelected` would claim that a user chose it. Inbound, where not exactly
+    one coding is marked `userSelected`, the first coding is taken and the
+    choice is reported. The "Choosing the defining code" prose says the same.
+  - `mapping-other.html`: `DV_STATE.value` now declares the drops it inherits
+    from `DV_CODED_TEXT ↔ CodeableConcept` in both directions, including the
+    mapping drops it had left undeclared outbound, so it is `lossy` outbound
+    rather than `lossless`.
+  - `gaps.html` lists the new `lossy` rows in its generated summaries.
+  - `open-items.html`: HTA-170 is recorded as mis-filed, because
+    `coding-purpose` is FHIR-I's code system in the Extensions Registry, and
+    this guide now recommends keeping it rather than withdrawing it.
+
 **Compatible, Non-Substantive**
 
 *Reviewer coverage*
