@@ -574,6 +574,16 @@ otherwise.
 
 **Compatible, Non-Substantive**
 
+*Reviewer coverage*
+
+- **The review-coverage table on `open-items.html` gains a Notes column.** It
+  records, per side, what a review checked a mapping against and anything it
+  left open, so a ✓ carries its evidence and an **unchecked** side can say why.
+  The notes are authored with each mapping's reviewer list in the RI ledger and
+  rendered into the existing `review-coverage` region. **No mapping, verdict,
+  fidelity, citation, maturity, scope, reviewer, region id, or conformance verb
+  changed** — only the table gained a column.
+
 *Page branding*
 
 - **The openEHR logo now sits beside the HL7 International logo in the page
