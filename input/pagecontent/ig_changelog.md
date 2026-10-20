@@ -831,6 +831,19 @@ otherwise.
   several types were never reviewed from the FHIR side; it names
   `DV_MULTIMEDIA` and `DV_PARSABLE` as reviewed from the FHIR side only.
 
+*FHIR-side actions*
+
+- **FHIR-56000 is recorded as applied in R6.** `open-items.html`: `~`
+  *Approximately* is in the published R6 drafts 6.0.0-ballot5 and
+  6.0.0-snapshot1, so the item is no longer "not applied". `mapping-quantity.html`
+  and `mapping-temporal.html`, and their rows on `gaps.html`: the
+  `magnitude_status[~]` rows now quote R6's own
+  guidance — a recommended, not default, 10% approximation, and a SHOULD to use
+  the `quantity-confidenceInterval` extension — and say why that extension,
+  though published for R5, is not used to carry `~`: it needs a confidence level
+  and interval bounds that `~` does not state. No verdict changed; both rows stay
+  `unmapped` in R5.
+
 *Page branding*
 
 - **The openEHR logo now sits beside the HL7 International logo in the page
