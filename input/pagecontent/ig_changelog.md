@@ -804,6 +804,15 @@ otherwise.
   on `open-items.html`, R5 `Expression` — the structural twin of `DV_PARSABLE`
   — is added as a third partial route for the formalism.
 
+- **The inventory of openEHR constructs not yet discussed is reviewed from the
+  FHIR side**, which completes FHIR-side coverage: every mapping now has a
+  FHIR-side review. Each entry still asserts no FHIR target, and the review
+  note lists the R5 candidates the working group can examine without adopting
+  any of them. `gaps.html`: `EVENT<T>` now cites the `EVENT` class rather than
+  `HISTORY`. `mapping-other.html`: the coverage paragraph no longer says
+  several types were never reviewed from the FHIR side; it names
+  `DV_MULTIMEDIA` and `DV_PARSABLE` as reviewed from the FHIR side only.
+
 *Page branding*
 
 - **The openEHR logo now sits beside the HL7 International logo in the page

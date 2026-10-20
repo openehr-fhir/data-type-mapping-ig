@@ -48,8 +48,8 @@ also noted here. The openEHR Reference Model is the authority for its
 definition, and this guide cites the RM rather than any downstream
 representation of it.
 
-Reviewer coverage in this category is uneven — several of these types were never
-reviewed from the FHIR side. That is published in full on
+Reviewer coverage in this category is uneven — `DV_MULTIMEDIA` and `DV_PARSABLE`
+have been reviewed from the FHIR side only. That is published in full on
 [Open Items](open-items.html) rather than smoothed over, and rows the
 specifications do not clearly support are recorded `open` rather than asserted.
 
