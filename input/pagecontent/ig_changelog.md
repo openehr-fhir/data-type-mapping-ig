@@ -764,6 +764,23 @@ otherwise.
     `coding-purpose` is FHIR-I's code system in the Extensions Registry, and
     this guide now recommends keeping it rather than withdrawing it.
 
+- **Compressed `DV_MULTIMEDIA` data is decompressed during conversion.**
+  FHIR-56003 is still in discussion, and `Attachment` cannot say its data is
+  compressed, so copying compressed bytes under the content's own media type let
+  `contentType` misdescribe them — R5 defines it as what lets a method be chosen
+  to interpret the data.
+  - `mapping-other.html`: inline data compressed with `gzip`, `zlib`, or
+    `deflate` is decompressed, and new sub-cases declare what that costs. The
+    compressed form is not carried. A stated size that is not the content's is
+    replaced by the content's. An integrity check, and its algorithm, are not
+    carried, because openEHR does not say which bytes the check covers. Content
+    compressed with `compress` or `other`, data that does not decompress, and
+    content held by reference are refused rather than copied. The page prose
+    says the same.
+  - `gaps.html` lists the new rows in its generated summaries, and
+    `open-items.html` records FHIR-56003 as in discussion and notes that
+    decompression does not remove the need for the field entirely.
+
 **Compatible, Non-Substantive**
 
 *Reviewer coverage*
