@@ -730,6 +730,22 @@ otherwise.
     for `DV_URI`.
   - `open-items.html`: FHIR-55422 is now recorded as published.
 
+- **`DV_PARSABLE ↔ string` is reviewed from the FHIR side.** The `formalism`
+  gap and the one-directional verdict stand.
+  - `mapping-other.html`: a new `DV_PARSABLE.value[empty]` sub-case states that
+    an empty value, which the RM allows "in some syntaxes", has no FHIR
+    `string` form; the reference converter had emitted an empty string.
+  - `DV_PARSABLE` now states the `language` and `charset` it inherits from
+    `DV_ENCAPSULATED`: `language` travels in the `language` extension, as for
+    `DV_TEXT`, and `charset` is not carried, because a FHIR `string` is always
+    UTF-8. Both record why they differ from `DV_MULTIMEDIA`. The
+    `DV_MULTIMEDIA` language row now names its path on `DV_MULTIMEDIA`, so the
+    inherited-attribute check covers both heirs.
+  - The HGVS note now cites THO's HGVS identifier rather than the Genomics
+    Reporting IG, and `open-items.html` records two partial routes for the
+    formalism: a `Coding` whose `system` names the syntax, and an `Attachment`
+    whose `contentType` does.
+
 **Compatible, Non-Substantive**
 
 *Reviewer coverage*
