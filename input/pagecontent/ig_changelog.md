@@ -647,6 +647,11 @@ otherwise.
   fidelity, citation, maturity, scope, reviewer, region id, or conformance verb
   changed** — only the table gained a column.
 
+- **`DV_BOOLEAN ↔ boolean` is reviewed from the FHIR side.** No fidelity or
+  citation changed. `mapping-boolean.html`: the note's link to the null-flavour
+  mapping now targets its table, and the row is `open` pending the openEHR-side
+  review only.
+
 *Page branding*
 
 - **The openEHR logo now sits beside the HL7 International logo in the page
