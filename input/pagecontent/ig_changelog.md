@@ -683,6 +683,18 @@ otherwise.
     reported every ordinary URI read back as losing an `ehr:` reference.
   - The `ehr:` worked example is now syntax-conformant (`ehr:/ehr_id`).
 
+- **`LINK ↔ Reference / CodeableReference` is reviewed from the FHIR side.**
+  - `mapping-reference.html`: R5 defines `Reference.reference` as the location
+    of "the other resource", which an `ehr:` URI is not. `LINK.target` now maps
+    to `Reference.identifier`, with the system `urn:ietf:rfc:3986` that R5
+    requires of a URI identifier, until the target is resolved to the FHIR
+    resource it was converted to; `Reference.reference` is the home after that,
+    with `targetElement` or `targetPath` for a sub-element. The outbound verdict
+    is therefore `lossless`. A new row records that `Reference.type` cannot be
+    derived from a `LINK`.
+  - The reference converter emits `Reference.identifier` instead of the
+    unresolvable `ehr:` URI in `Reference.reference`.
+
 **Compatible, Non-Substantive**
 
 *Reviewer coverage*
