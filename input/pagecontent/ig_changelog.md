@@ -658,6 +658,17 @@ otherwise.
     the open `value[x]` elements that admit it. The 64-bit width cites the
     Foundation Types cross-reference.
 
+- **`Real / Double ↔ decimal` is reviewed from the FHIR side.**
+  - `mapping-numeric.html`: the inbound drop now also names the digits a
+    32-bit `Real` or 64-bit `Double` cannot hold, since a `decimal` carries
+    up to 18. A new `Real[non-finite]` sub-case states that FHIR allows no
+    `INF`, `-INF`, or `NaN` in a `decimal`, and names the data-absent-reason
+    codes FHIR provides for them; it is `archetype` scope, because that
+    extension sits on the element. The summary's aggregate outbound verdict is
+    therefore `lossy`. The widths cite the Foundation Types cross-reference.
+  - The reference converter had emitted a non-finite value as `null`, reported
+    `lossless`; it now refuses one and reports the sub-case.
+
 **Compatible, Non-Substantive**
 
 *Reviewer coverage*
