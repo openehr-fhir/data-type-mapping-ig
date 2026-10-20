@@ -646,6 +646,18 @@ otherwise.
   - The 32-bit claim now cites the Foundation Types cross-reference, where
     openEHR states its primitive widths; `#_integer_class` states none.
 
+- **`Integer64 ↔ integer64` is reviewed from the FHIR side.**
+  - The reference converter emitted the `integer64` JSON String but refused
+    any value beyond 32 bits, which `integer64` carries — a 4 GB
+    `Attachment.size`, for one. It now carries the full 64-bit range, and the
+    `beyond-32-bit` example pairs in both directions.
+  - `mapping-numeric.html`: `Integer64[overflow]` is now `archetype` scope,
+    because only an element typed `integer` imposes the 32-bit limit, and it
+    names `valueInteger64` as the value an over-range extension can take. The
+    "rare in practice" claim now names the R5 elements typed `integer64` and
+    the open `value[x]` elements that admit it. The 64-bit width cites the
+    Foundation Types cross-reference.
+
 **Compatible, Non-Substantive**
 
 *Reviewer coverage*
