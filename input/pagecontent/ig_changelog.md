@@ -669,6 +669,20 @@ otherwise.
   - The reference converter had emitted a non-finite value as `null`, reported
     `lossless`; it now refuses one and reports the sub-case.
 
+- **`DV_URI / DV_EHR_URI ↔ uri / url` is reviewed from the FHIR side.**
+  - `mapping-reference.html`: a new `DV_URI.value[plain-text]` sub-case states
+    that an openEHR plain-text URI — which the RM allows to contain characters
+    RFC 3986 forbids — is percent-encoded into a valid FHIR `uri`, and reads
+    back encoded. The reference converter had passed one through as an invalid
+    `uri`, reported `lossless`.
+  - `oid`, `uuid`, and `canonical` are now targets in their own right, with
+    their forms stated, and new `archetype`-scope `[not-oid]` and `[not-uuid]`
+    sub-cases cover values in neither form.
+  - `DV_EHR_URI` maps to an opaque `uri`, `lossless` both ways; resolving it to
+    a `Reference` is `LINK.target`'s, on `LINK ↔ Reference`. The converter had
+    reported every ordinary URI read back as losing an `ehr:` reference.
+  - The `ehr:` worked example is now syntax-conformant (`ehr:/ehr_id`).
+
 **Compatible, Non-Substantive**
 
 *Reviewer coverage*
