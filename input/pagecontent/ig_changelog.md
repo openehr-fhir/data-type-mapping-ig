@@ -599,6 +599,26 @@ otherwise.
   - `gaps.html` lists the new `unmapped` rows; `open-items.html` records the
     review and its note.
 
+- **`DV_QUANTITY ↔ SimpleQuantity` is reviewed from the FHIR side and states
+  every `DV_QUANTITY` attribute.** Its prose claimed every field but
+  `magnitude_status` maps as `DV_QUANTITY ↔ Quantity` does; the reference
+  converter in fact dropped `precision` and `accuracy` in both directions
+  without reporting it, and the reference-range attributes have no home.
+  - `mapping-quantity.html`: rows for `units`, `units_system`,
+    `units_display_name`, `precision` (`quantity-precision`), and `accuracy`
+    (`quantity-accuracy`), all as for `Quantity`, plus the same
+    `accuracy_is_percent[percent-unit]` sub-case.
+  - `normal_range`, `other_reference_ranges`, and `normal_status` are
+    `unmapped` with a recorded divergence: R5 types `Observation.value[x]` as
+    `Quantity`, and no element typed `SimpleQuantity` is an `Observation`
+    value.
+  - A `magnitude_status` of `=` (the point value) is no longer reported as a
+    modelling error, and the row now says a bound is reported rather than —
+    as it wrongly said — refused. The mapping's maturity is now `open`,
+    because the accuracy rows are, as they are for `Quantity`.
+  - The `Range` bounds share the reverse converter and still drop both
+    extensions; that is recorded for `DV_INTERVAL ↔ Range`.
+
 **Compatible, Non-Substantive**
 
 *Reviewer coverage*
