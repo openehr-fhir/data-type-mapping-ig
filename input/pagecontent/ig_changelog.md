@@ -572,6 +572,33 @@ otherwise.
     guide version alone does not establish revision parity.
   - RI behavior and mapping/citation requirements are unchanged.
 
+*FHIR-side review*
+
+- **`DV_QUANTITY ↔ Money / MoneyQuantity` is reviewed from the FHIR side and
+  states every `DV_QUANTITY` attribute.** It had three rows; eight attributes
+  were silently absent, and the reference converter dropped them without
+  reporting it.
+  - `mapping-quantity.html`: `precision` maps to `quantity-precision` on
+    `Money.value`, and `units_display_name` to `rendered-value` on
+    `Money.currency` — both extensions declare those primitive types among
+    their contexts — `lossless` in both directions.
+  - `magnitude_status`, `accuracy` (with `accuracy_is_percent`),
+    `normal_range`, `other_reference_ranges`, and `normal_status` are
+    `unmapped` with a recorded divergence: `Money` has no comparator,
+    `quantity-accuracy`'s contexts do not admit it, and R5
+    `Observation.value[x]` does not admit `Money`. Each row points to
+    `MoneyQuantity`, which carries them as `DV_QUANTITY ↔ Quantity` does.
+  - `units_system` is now `lossless`: the ISO 4217 system is entailed by
+    `Money.currency`'s required binding. A new
+    `units_system[not-iso-4217]` sub-case states that a `DV_QUANTITY` in any
+    other system — including an absent one, which openEHR reads as UCUM —
+    produces **no** `Money`, rather than a `currency` that breaks the binding.
+  - `MoneyQuantity` is cited and its `mtqy-1` constraint stated. The prose now
+    says `MoneyQuantity`, not `Money`, carries `system = urn:iso:std:iso:4217`,
+    and that `Money` reaches the same code system through its binding.
+  - `gaps.html` lists the new `unmapped` rows; `open-items.html` records the
+    review and its note.
+
 **Compatible, Non-Substantive**
 
 *Reviewer coverage*
