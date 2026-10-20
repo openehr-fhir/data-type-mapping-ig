@@ -619,6 +619,22 @@ otherwise.
   - The `Range` bounds share the reverse converter and still drop both
     extensions; that is recorded for `DV_INTERVAL ↔ Range`.
 
+- **`null_flavour ↔ data-absent-reason` is reviewed from the FHIR side.**
+  - `mapping-coded.html`: the inbound code note claimed that L2
+    data-absent-reason codes inherit their L1 parent's mapping. THO's
+    hierarchy gives only `unknown` and `error` children, so the assignments
+    are now stated as the working group's semantic choices. Several disagree
+    with THO — `asked-declined`, `not-a-number` and the two infinities,
+    `not-permitted`, `unsupported` — and are **kept** pending a re-review now
+    recorded on `open-items.html`.
+  - The `iso21090-nullFlavor` row follows every other FHIR-origin row: no
+    openEHR attribute maps to it, and inbound it is `unmapped` rather than
+    `lossy`, because the reference converter never read it. It is reported
+    only when an instance carries one, so a `253` ↔ `unknown` conversion is no
+    longer reported as lossy.
+  - The reverse converter reads only data-absent-reason codings, and a missing
+    `text` takes the openEHR rubric of the assigned code.
+
 **Compatible, Non-Substantive**
 
 *Reviewer coverage*
