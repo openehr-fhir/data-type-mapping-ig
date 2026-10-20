@@ -695,6 +695,24 @@ otherwise.
   - The reference converter emits `Reference.identifier` instead of the
     unresolvable `ehr:` URI in `Reference.reference`.
 
+- **`DV_DURATION ↔ Duration` is reviewed from the FHIR side and states the
+  attributes `DV_DURATION` inherits.** `cross-cutting.html` already said
+  `DV_DURATION` follows the `DV_AMOUNT` pattern; the ledger stated none of it,
+  and the reference converter dropped a comparator and an accuracy unreported.
+  - `mapping-temporal.html`: `magnitude_status` ↔ `Duration.comparator`, with
+    the same `[~]` gap and the same `comparator = ad` gap as `Quantity`;
+    `accuracy` and `accuracy_is_percent` ↔ `quantity-accuracy`, whose context
+    `Quantity` a `Duration` is, without `Quantity`'s `%`-unit ambiguity,
+    because a duration's unit is never `%`; and the reference-range attributes
+    ↔ `Observation.referenceRange` and `Observation.interpretation`, at
+    `archetype` scope.
+  - The unit row reported every inbound conversion as losing a unit that the
+    ISO 8601 designator carries; it is now `DV_DURATION.value[designator]` ↔
+    `Duration.code`, `lossless`. The millisecond gap names both the magnitude
+    and the unit.
+  - The value row's note now says that UCUM `a` and `mo` are fixed Julian
+    lengths while ISO `Y` and `M` are calendar units.
+
 **Compatible, Non-Substantive**
 
 *Reviewer coverage*
