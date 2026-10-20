@@ -790,6 +790,20 @@ otherwise.
   published per-vocabulary FHIR CodeSystems as the answer, for the working
   group to adopt.
 
+- **The inventory of FHIR features with no openEHR counterpart is reviewed
+  from the FHIR side.** Every entry is a real R5 feature (or, for the R6-era
+  `RelativeTime`, a stated absence from R5). `gaps.html`: an example that no
+  longer appears in the inventory, `Duration.code`, is replaced by
+  `Reference.type`, and the page now states that FHIR's metadata types and the
+  special types `ElementDefinition`, `Extension`, `MarketingStatus`, and
+  `ProductShelfLife` are out of scope, naming `Dosage` as the deferred
+  scheduling problem. Two R5 facts the check turned up are recorded where they
+  apply: on `mapping-temporal.html`, a new `archetype`-scope
+  `DV_DURATION.value[not-positive-age]` sub-case states that R5 `Age` requires
+  a positive value, so openEHR's own `-P3M` age example has no `Age` form; and
+  on `open-items.html`, R5 `Expression` — the structural twin of `DV_PARSABLE`
+  — is added as a third partial route for the formalism.
+
 *Page branding*
 
 - **The openEHR logo now sits beside the HL7 International logo in the page
