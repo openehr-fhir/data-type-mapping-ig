@@ -739,6 +739,16 @@ otherwise.
   proposal to map through that replacement; nothing is adopted, and the
   mapping stays *not discussed*.
 
+- **`Time specifications ↔ Timing` is reviewed from the FHIR side**, which
+  checks the candidate target rather than a mapping. `mapping-temporal.html`:
+  the reasons no longer say nobody has examined how the two relate — R5's own
+  RIM mappings give `Timing` as v3 GTS and `Timing.repeat` as PIVL or EIVL,
+  the types the openEHR classes are based on, and `Timing.code` accepts the v3
+  `GTSAbbreviation` codes. The note names the parser any mapping needs and the
+  archetype-level scheduling deferred on `DV_DURATION ↔ Duration`.
+  `open-items.html` records a proposal to map through the shared v3 basis;
+  nothing is adopted, and the mapping stays *not discussed*.
+
 *Page branding*
 
 - **The openEHR logo now sits beside the HL7 International logo in the page
