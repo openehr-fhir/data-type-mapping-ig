@@ -263,6 +263,13 @@ padding it.
 
 <p><strong>Sources:</strong> <a href="https://specifications.openehr.org/releases/RM/latest/data_types.html#_time_specification_package">openEHR RM — Time specification package</a> · <a href="https://hl7.org/fhir/R5/datatypes.html#Timing">FHIR R5 — Timing</a></p>
 
+#### openEHR Options for discussion
+
+1. Find out if these HL7v3 constructs are in use in any existing systems, or can they be deprecated. They have been replaced by structural archetypes for daily and non-dialy-timing, used bot for servie requests and medication orders.
+2. Consider deprecating INSTRUCTION.timing in RM
+
+RECOMMENDATION: deprecate and out-of-scope
+
 <div style="max-width: 100%; overflow-x: auto;" tabindex="0" role="group" aria-label="Scrollable table">
 <table class="grid" id="mapping-dv-time-specification-to-timing">
 <thead>
