@@ -4,9 +4,6 @@ Boolean is the simplest mapping in this guide: openEHR's `DV_BOOLEAN` and FHIR's
 `boolean` primitive each carry a single true/false value, with no precision,
 accuracy, or auxiliary metadata to negotiate.
 
- That asymmetry is where the direction-specific fidelity of this
-category lives, and it is recorded row by row rather than summarised away.
-
 See [Conventions](conventions.html) for how to read the tables below, and
 [Coded Data](mapping-coded.html) for the `null_flavour` and
 `data-absent-reason` correspondences that carry "why is this absent".
