@@ -844,6 +844,10 @@ otherwise.
   and interval bounds that `~` does not state. No verdict changed; both rows stay
   `unmapped` in R5.
 
+- **FHIR-55422 records that R6 keeps SHA-1.** `open-items.html`: the R6 drafts
+  still define `Attachment.hash` as SHA-1, so the published `alternate-hash`
+  extension remains the route for any other algorithm in R6 as well.
+
 *Page branding*
 
 - **The openEHR logo now sits beside the HL7 International logo in the page
