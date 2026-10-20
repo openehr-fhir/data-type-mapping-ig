@@ -686,6 +686,15 @@ otherwise.
   mapping now targets its table, and the row is `open` pending the openEHR-side
   review only.
 
+- **`DV_PARAGRAPH ↔ markdown / string` is reviewed from the FHIR side**, which
+  checks the two candidate targets rather than a mapping, because none has been
+  discussed. `mapping-textual.html`: the openEHR side now cites the
+  `DV_PARAGRAPH` class rather than the Text package overview, the sources add
+  FHIR `string`, and the note quotes the Reference Model's deprecation and its
+  replacement, markdown-formatted `DV_TEXT`. `open-items.html` records a
+  proposal to map through that replacement; nothing is adopted, and the
+  mapping stays *not discussed*.
+
 *Page branding*
 
 - **The openEHR logo now sits beside the HL7 International logo in the page
