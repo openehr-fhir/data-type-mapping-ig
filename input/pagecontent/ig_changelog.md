@@ -713,6 +713,23 @@ otherwise.
   - The value row's note now says that UCUM `a` and `mo` are fixed Julian
     lengths while ISO `Y` and `M` are calendar units.
 
+- **`DV_MULTIMEDIA ↔ Attachment` is reviewed from the FHIR side.**
+  - `mapping-other.html`: R5 defines `Attachment.hash` as SHA-1, and the
+    reference converter had written a SHA-256 hash into it. A hash computed
+    with any other algorithm now travels, with its algorithm, in the core
+    `alternate-hash` extension, published in the Extensions Registry 5.3.0 as
+    the outcome of FHIR-55422, whose `integrity-check-algorithms` code system
+    holds exactly openEHR's seven algorithms; `integrity_check_algorithm` is
+    therefore `lossless`. A hash whose algorithm is not stated, and an
+    `Attachment` with both a SHA-1 `hash` and an `alternate-hash`, are new
+    sub-cases.
+  - `charset` is carried as `contentType`'s `charset` parameter, which R5 says
+    `contentType` includes, and split back out of an incoming one; the row is
+    `lossless`. `cross-cutting.html` says so.
+  - A plain-text `DV_MULTIMEDIA.uri` is percent-encoded into a valid `url`, as
+    for `DV_URI`.
+  - `open-items.html`: FHIR-55422 is now recorded as published.
+
 **Compatible, Non-Substantive**
 
 *Reviewer coverage*
