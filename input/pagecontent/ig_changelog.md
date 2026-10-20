@@ -635,6 +635,17 @@ otherwise.
   - The reverse converter reads only data-absent-reason codings, and a missing
     `text` takes the openEHR rubric of the assigned code.
 
+- **`Integer ↔ integer` is reviewed from the FHIR side.**
+  - `mapping-numeric.html`: the row now names `unsignedInt` and `positiveInt` —
+    `integer` restricted to 0.. and 1.. — as targets, and new
+    `Integer[negative]` and `Integer[non-positive]` sub-cases state that a
+    value below those ranges has no form in an element of either type. Both
+    are `archetype` scope, because the element decides its type. The
+    summary's aggregate verdict is therefore `lossy`, as it is for every
+    mapping with an `unmapped` sub-case.
+  - The 32-bit claim now cites the Foundation Types cross-reference, where
+    openEHR states its primitive widths; `#_integer_class` states none.
+
 **Compatible, Non-Substantive**
 
 *Reviewer coverage*
