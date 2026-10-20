@@ -781,6 +781,20 @@ otherwise.
     `open-items.html` records FHIR-56003 as in discussion and notes that
     decompression does not remove the need for the field entirely.
 
+- **A `pk_fraction` or `pk_integer_fraction` now carries its rendering in
+  `rendered-value`.** FHIR-56001 has extended `rendered-value` to `Ratio` in
+  the Extensions Registry's source. The context is **not yet in a published
+  release**: 5.3.0 does not allow it, so a validator using 5.3.0 rejects these
+  instances until the next release.
+  - `mapping-quantity.html`: a new `DV_PROPORTION.type[fraction]` sub-case is
+    `lossy` outbound. The rendering is carried — `1/2`, or `1 1/2` for an
+    integer fraction whose numerator exceeds its denominator — but the kind is
+    not. It is `unmapped` inbound, because the two kinds render alike when the
+    numerator does not exceed the denominator. The `DV_PROPORTION.type` row no
+    longer says the fraction kinds have no FHIR home.
+  - `gaps.html` lists the new row, and `open-items.html` records FHIR-56001 as
+    applied in source and awaiting publication.
+
 **Compatible, Non-Substantive**
 
 *Reviewer coverage*
