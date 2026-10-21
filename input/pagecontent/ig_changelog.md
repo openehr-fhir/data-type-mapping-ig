@@ -795,6 +795,23 @@ otherwise.
   - `gaps.html` lists the new row, and `open-items.html` records FHIR-56001 as
     applied in source and awaiting publication.
 
+- **`DV_MULTIMEDIA.thumbnail` now travels in `attachment-thumbnail`.**
+  FHIR-56002 has added the extension, whose value is itself an `Attachment`,
+  to the Extensions Registry's source. It is **not yet in a published
+  release**: 5.3.0 does not define it, so a validator using 5.3.0 rejects these
+  instances until the next release.
+  - `mapping-other.html`: the thumbnail row is now `lossless` both ways, and a
+    thumbnail converts through the same mapping as its parent, with its own
+    drops reported alongside.
+  - New rows state the edges. A thumbnail that cannot itself be converted, in
+    either direction, is left out and its parent is still converted. Only the
+    first of several FHIR thumbnails is carried, because openEHR holds one.
+    `attachment-isThumbnail`, which FHIR-56002 added alongside, has no openEHR
+    counterpart. The page prose no longer says the thumbnail has no home.
+  - `gaps.html` lists the new rows, and `open-items.html` records FHIR-56002 as
+    applied in source and awaiting publication, with `documentreference-thumbnail`
+    retired.
+
 **Compatible, Non-Substantive**
 
 *Reviewer coverage*
