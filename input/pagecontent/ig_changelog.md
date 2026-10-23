@@ -814,6 +814,38 @@ otherwise.
 
 **Compatible, Non-Substantive**
 
+*Gaps and Open Items ownership*
+
+- **Gaps and Open Items are now edited in this guide.** `gaps.html` and
+  `open-items.html` carry no managed region. Their nine tables — the gap
+  summary, the four gap inventories, reviewer coverage, and the three register
+  tables — keep their rows, text, and HTML presentation exactly, and are
+  maintained by hand from now on, so a contributor changes them with an
+  ordinary edit and no RI checkout. The seven region ids `summary:gaps`,
+  `gaps:openehr-to-fhir`, `gaps:fhir-to-openehr`, `gaps:fhir-no-counterpart`,
+  `gaps:not-discussed`, `review-coverage`, and `open-items` are retired, and the
+  external RI no longer holds the register, the two gap-inventory
+  pseudo-mappings, or reviewer coverage.
+  - `mapping.html`: the Mapping Summary no longer lists *FHIR features with no
+    openEHR counterpart* and *openEHR constructs not yet discussed*. They are
+    inventories rather than mappings, and *What is not mapped* already links
+    Gaps.
+  - The mechanical guarantees that went with the generated tables are retired
+    and named rather than replaced: gap rows derived from mapping verdicts; the
+    register listing every owner a mapping row names; a coverage row for every
+    mapping; the rule that a mapped FHIR type is not also listed as having no
+    counterpart; fidelity and citation validation, and mirror resolution, of
+    the inventory rows; RI-checked links inside these tables; and non-empty
+    review notes. `conventions.html` now states the gap sync and register sync
+    duties that take their place.
+  - `conventions.html` (*Citations*, *A note for editors*),
+    `reference-implementation.html` (*How the guide relates to it*, *A caveat
+    on citations*), `gaps.html`, `open-items.html`, and `mapping.html` (*Where
+    the tables come from*) now say which tables are generated and what the RI
+    checks. The `RelativeTime` citation exception is stated on Gaps.
+  - **No mapping, fidelity, maturity, citation, conformance verb, page, anchor,
+    canonical, or id changed.**
+
 *Reviewer coverage*
 
 - **The review-coverage table on `open-items.html` gains a Notes column.** It

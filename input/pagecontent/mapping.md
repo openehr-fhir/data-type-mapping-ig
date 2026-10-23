@@ -70,8 +70,6 @@ pages are the normative statement.
 <tr><td><a href="mapping-other.html#mapping-dv-multimedia-to-attachment">DV_MULTIMEDIA</a></td><td><code>Attachment</code></td><td><code>lossy</code></td><td><code>lossy</code></td><td><code>open</code></td><td><code>datatype</code></td></tr>
 <tr><td><a href="mapping-other.html#mapping-dv-parsable-to-string">DV_PARSABLE</a></td><td><code>string</code></td><td><code>lossy</code></td><td><code>unmapped</code></td><td><code>open</code></td><td><code>datatype</code></td></tr>
 <tr><td><a href="mapping-other.html#mapping-dv-state-to-codeable-concept">DV_STATE</a></td><td><code>CodeableConcept</code></td><td><code>lossy</code></td><td><code>lossy</code></td><td><code>open</code></td><td><code>datatype</code></td></tr>
-<tr><td><a href="gaps.html">(none)</a></td><td><code>Address, HumanName, ContactPoint, and others</code></td><td><code>unmapped</code></td><td><code>unmapped</code></td><td><code>open</code></td><td><code>datatype</code></td></tr>
-<tr><td><a href="gaps.html">EVENT, DV_ENCAPSULATED, CLUSTER.media_file, COMPOSITION, PARTY_RELATED</a></td><td><code>(not determined)</code></td><td><code>unmapped</code></td><td><code>unmapped</code></td><td><code>not-discussed</code></td><td><code>datatype</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -99,3 +97,8 @@ reports.
 
 Reviewing a change to a table therefore means reviewing the ledger, not the
 markdown. The markdown churn is a consequence, not the change itself.
+
+The tables on [Gaps](gaps.html) and [Open Items](open-items.html) are the
+exception: they are maintained by hand in this guide rather than generated,
+and [Conventions](conventions.html#editing-gaps-and-open-items) says how
+editors keep them in step with the mapping tables.
