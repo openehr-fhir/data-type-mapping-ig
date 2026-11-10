@@ -572,7 +572,373 @@ otherwise.
     guide version alone does not establish revision parity.
   - RI behavior and mapping/citation requirements are unchanged.
 
+*FHIR-side review*
+
+- **`DV_QUANTITY ↔ Money / MoneyQuantity` is reviewed from the FHIR side and
+  states every `DV_QUANTITY` attribute.** It had three rows; eight attributes
+  were silently absent, and the reference converter dropped them without
+  reporting it.
+  - `mapping-quantity.html`: `precision` maps to `quantity-precision` on
+    `Money.value`, and `units_display_name` to `rendered-value` on
+    `Money.currency` — both extensions declare those primitive types among
+    their contexts — `lossless` in both directions.
+  - `magnitude_status`, `accuracy` (with `accuracy_is_percent`),
+    `normal_range`, `other_reference_ranges`, and `normal_status` are
+    `unmapped` with a recorded divergence: `Money` has no comparator,
+    `quantity-accuracy`'s contexts do not admit it, and R5
+    `Observation.value[x]` does not admit `Money`. Each row points to
+    `MoneyQuantity`, which carries them as `DV_QUANTITY ↔ Quantity` does.
+  - `units_system` is now `lossless`: the ISO 4217 system is entailed by
+    `Money.currency`'s required binding. A new
+    `units_system[not-iso-4217]` sub-case states that a `DV_QUANTITY` in any
+    other system — including an absent one, which openEHR reads as UCUM —
+    produces **no** `Money`, rather than a `currency` that breaks the binding.
+  - `MoneyQuantity` is cited and its `mtqy-1` constraint stated. The prose now
+    says `MoneyQuantity`, not `Money`, carries `system = urn:iso:std:iso:4217`,
+    and that `Money` reaches the same code system through its binding.
+  - `gaps.html` lists the new `unmapped` rows; `open-items.html` records the
+    review and its note.
+
+- **`DV_QUANTITY ↔ SimpleQuantity` is reviewed from the FHIR side and states
+  every `DV_QUANTITY` attribute.** Its prose claimed every field but
+  `magnitude_status` maps as `DV_QUANTITY ↔ Quantity` does; the reference
+  converter in fact dropped `precision` and `accuracy` in both directions
+  without reporting it, and the reference-range attributes have no home.
+  - `mapping-quantity.html`: rows for `units`, `units_system`,
+    `units_display_name`, `precision` (`quantity-precision`), and `accuracy`
+    (`quantity-accuracy`), all as for `Quantity`, plus the same
+    `accuracy_is_percent[percent-unit]` sub-case.
+  - `normal_range`, `other_reference_ranges`, and `normal_status` are
+    `unmapped` with a recorded divergence: R5 types `Observation.value[x]` as
+    `Quantity`, and no element typed `SimpleQuantity` is an `Observation`
+    value.
+  - A `magnitude_status` of `=` (the point value) is no longer reported as a
+    modelling error, and the row now says a bound is reported rather than —
+    as it wrongly said — refused. The mapping's maturity is now `open`,
+    because the accuracy rows are, as they are for `Quantity`.
+  - The `Range` bounds share the reverse converter and still drop both
+    extensions; that is recorded for `DV_INTERVAL ↔ Range`.
+
+- **`null_flavour ↔ data-absent-reason` is reviewed from the FHIR side.**
+  - `mapping-coded.html`: the inbound code note claimed that L2
+    data-absent-reason codes inherit their L1 parent's mapping. THO's
+    hierarchy gives only `unknown` and `error` children, so the assignments
+    are now stated as the working group's semantic choices. Several disagree
+    with THO — `asked-declined`, `not-a-number` and the two infinities,
+    `not-permitted`, `unsupported` — and are **kept** pending a re-review now
+    recorded on `open-items.html`.
+  - The `iso21090-nullFlavor` row follows every other FHIR-origin row: no
+    openEHR attribute maps to it, and inbound it is `unmapped` rather than
+    `lossy`, because the reference converter never read it. It is reported
+    only when an instance carries one, so a `253` ↔ `unknown` conversion is no
+    longer reported as lossy.
+  - The reverse converter reads only data-absent-reason codings, and a missing
+    `text` takes the openEHR rubric of the assigned code.
+
+- **`Integer ↔ integer` is reviewed from the FHIR side.**
+  - `mapping-numeric.html`: the row now names `unsignedInt` and `positiveInt` —
+    `integer` restricted to 0.. and 1.. — as targets, and new
+    `Integer[negative]` and `Integer[non-positive]` sub-cases state that a
+    value below those ranges has no form in an element of either type. Both
+    are `archetype` scope, because the element decides its type. The
+    summary's aggregate verdict is therefore `lossy`, as it is for every
+    mapping with an `unmapped` sub-case.
+  - The 32-bit claim now cites the Foundation Types cross-reference, where
+    openEHR states its primitive widths; `#_integer_class` states none.
+
+- **`Integer64 ↔ integer64` is reviewed from the FHIR side.**
+  - The reference converter emitted the `integer64` JSON String but refused
+    any value beyond 32 bits, which `integer64` carries — a 4 GB
+    `Attachment.size`, for one. It now carries the full 64-bit range, and the
+    `beyond-32-bit` example pairs in both directions.
+  - `mapping-numeric.html`: `Integer64[overflow]` is now `archetype` scope,
+    because only an element typed `integer` imposes the 32-bit limit, and it
+    names `valueInteger64` as the value an over-range extension can take. The
+    "rare in practice" claim now names the R5 elements typed `integer64` and
+    the open `value[x]` elements that admit it. The 64-bit width cites the
+    Foundation Types cross-reference.
+
+- **`Real / Double ↔ decimal` is reviewed from the FHIR side.**
+  - `mapping-numeric.html`: the inbound drop now also names the digits a
+    32-bit `Real` or 64-bit `Double` cannot hold, since a `decimal` carries
+    up to 18. A new `Real[non-finite]` sub-case states that FHIR allows no
+    `INF`, `-INF`, or `NaN` in a `decimal`, and names the data-absent-reason
+    codes FHIR provides for them; it is `archetype` scope, because that
+    extension sits on the element. The summary's aggregate outbound verdict is
+    therefore `lossy`. The widths cite the Foundation Types cross-reference.
+  - The reference converter had emitted a non-finite value as `null`, reported
+    `lossless`; it now refuses one and reports the sub-case.
+
+- **`DV_URI / DV_EHR_URI ↔ uri / url` is reviewed from the FHIR side.**
+  - `mapping-reference.html`: a new `DV_URI.value[plain-text]` sub-case states
+    that an openEHR plain-text URI — which the RM allows to contain characters
+    RFC 3986 forbids — is percent-encoded into a valid FHIR `uri`, and reads
+    back encoded. The reference converter had passed one through as an invalid
+    `uri`, reported `lossless`.
+  - `oid`, `uuid`, and `canonical` are now targets in their own right, with
+    their forms stated, and new `archetype`-scope `[not-oid]` and `[not-uuid]`
+    sub-cases cover values in neither form.
+  - `DV_EHR_URI` maps to an opaque `uri`, `lossless` both ways; resolving it to
+    a `Reference` is `LINK.target`'s, on `LINK ↔ Reference`. The converter had
+    reported every ordinary URI read back as losing an `ehr:` reference.
+  - The `ehr:` worked example is now syntax-conformant (`ehr:/ehr_id`).
+
+- **`LINK ↔ Reference / CodeableReference` is reviewed from the FHIR side.**
+  - `mapping-reference.html`: R5 defines `Reference.reference` as the location
+    of "the other resource", which an `ehr:` URI is not. `LINK.target` now maps
+    to `Reference.identifier`, with the system `urn:ietf:rfc:3986` that R5
+    requires of a URI identifier, until the target is resolved to the FHIR
+    resource it was converted to; `Reference.reference` is the home after that,
+    with `targetElement` or `targetPath` for a sub-element. The outbound verdict
+    is therefore `lossless`. A new row records that `Reference.type` cannot be
+    derived from a `LINK`.
+  - The reference converter emits `Reference.identifier` instead of the
+    unresolvable `ehr:` URI in `Reference.reference`.
+
+- **`DV_DURATION ↔ Duration` is reviewed from the FHIR side and states the
+  attributes `DV_DURATION` inherits.** `cross-cutting.html` already said
+  `DV_DURATION` follows the `DV_AMOUNT` pattern; the ledger stated none of it,
+  and the reference converter dropped a comparator and an accuracy unreported.
+  - `mapping-temporal.html`: `magnitude_status` ↔ `Duration.comparator`, with
+    the same `[~]` gap and the same `comparator = ad` gap as `Quantity`;
+    `accuracy` and `accuracy_is_percent` ↔ `quantity-accuracy`, whose context
+    `Quantity` a `Duration` is, without `Quantity`'s `%`-unit ambiguity,
+    because a duration's unit is never `%`; and the reference-range attributes
+    ↔ `Observation.referenceRange` and `Observation.interpretation`, at
+    `archetype` scope.
+  - The unit row reported every inbound conversion as losing a unit that the
+    ISO 8601 designator carries; it is now `DV_DURATION.value[designator]` ↔
+    `Duration.code`, `lossless`. The millisecond gap names both the magnitude
+    and the unit.
+  - The value row's note now says that UCUM `a` and `mo` are fixed Julian
+    lengths while ISO `Y` and `M` are calendar units.
+
+- **`DV_MULTIMEDIA ↔ Attachment` is reviewed from the FHIR side.**
+  - `mapping-other.html`: R5 defines `Attachment.hash` as SHA-1, and the
+    reference converter had written a SHA-256 hash into it. A hash computed
+    with any other algorithm now travels, with its algorithm, in the core
+    `alternate-hash` extension, published in the Extensions Registry 5.3.0 as
+    the outcome of FHIR-55422, whose `integrity-check-algorithms` code system
+    holds exactly openEHR's seven algorithms; `integrity_check_algorithm` is
+    therefore `lossless`. A hash whose algorithm is not stated, and an
+    `Attachment` with both a SHA-1 `hash` and an `alternate-hash`, are new
+    sub-cases.
+  - `charset` is carried as `contentType`'s `charset` parameter, which R5 says
+    `contentType` includes, and split back out of an incoming one; the row is
+    `lossless`. `cross-cutting.html` says so.
+  - A plain-text `DV_MULTIMEDIA.uri` is percent-encoded into a valid `url`, as
+    for `DV_URI`.
+  - `open-items.html`: FHIR-55422 is now recorded as published.
+
+- **`DV_PARSABLE ↔ string` is reviewed from the FHIR side.** The `formalism`
+  gap and the one-directional verdict stand.
+  - `mapping-other.html`: a new `DV_PARSABLE.value[empty]` sub-case states that
+    an empty value, which the RM allows "in some syntaxes", has no FHIR
+    `string` form; the reference converter had emitted an empty string.
+  - `DV_PARSABLE` now states the `language` and `charset` it inherits from
+    `DV_ENCAPSULATED`: `language` travels in the `language` extension, as for
+    `DV_TEXT`, and `charset` is not carried, because a FHIR `string` is always
+    UTF-8. Both record why they differ from `DV_MULTIMEDIA`. The
+    `DV_MULTIMEDIA` language row now names its path on `DV_MULTIMEDIA`, so the
+    inherited-attribute check covers both heirs.
+  - The HGVS note now cites THO's HGVS identifier rather than the Genomics
+    Reporting IG, and `open-items.html` records two partial routes for the
+    formalism: a `Coding` whose `system` names the syntax, and an `Attachment`
+    whose `contentType` does.
+
+- **Which coding is a `DV_CODED_TEXT`'s defining code is now declared as
+  carried only by order.** R5 says the *"ordering of codings is undefined and
+  SHALL NOT be used to infer meaning"*.
+  - `mapping-coded.html`: a new `DV_CODED_TEXT.defining_code[with-mappings]`
+    sub-case, `open`, is `lossy` both ways. Outbound, once `mappings` add
+    codings, the defining code is marked only by coming first, because
+    `userSelected` would claim that a user chose it. Inbound, where not exactly
+    one coding is marked `userSelected`, the first coding is taken and the
+    choice is reported. The "Choosing the defining code" prose says the same.
+  - `mapping-other.html`: `DV_STATE.value` now declares the drops it inherits
+    from `DV_CODED_TEXT ↔ CodeableConcept` in both directions, including the
+    mapping drops it had left undeclared outbound, so it is `lossy` outbound
+    rather than `lossless`.
+  - `gaps.html` lists the new `lossy` rows in its generated summaries.
+  - `open-items.html`: HTA-170 is recorded as mis-filed, because
+    `coding-purpose` is FHIR-I's code system in the Extensions Registry, and
+    this guide now recommends keeping it rather than withdrawing it.
+
+- **Compressed `DV_MULTIMEDIA` data is decompressed during conversion.**
+  FHIR-56003 is still in discussion, and `Attachment` cannot say its data is
+  compressed, so copying compressed bytes under the content's own media type let
+  `contentType` misdescribe them — R5 defines it as what lets a method be chosen
+  to interpret the data.
+  - `mapping-other.html`: inline data compressed with `gzip`, `zlib`, or
+    `deflate` is decompressed, and new sub-cases declare what that costs. The
+    compressed form is not carried. A stated size that is not the content's is
+    replaced by the content's. An integrity check, and its algorithm, are not
+    carried, because openEHR does not say which bytes the check covers. Content
+    compressed with `compress` or `other`, data that does not decompress, and
+    content held by reference are refused rather than copied. The page prose
+    says the same.
+  - `gaps.html` lists the new rows in its generated summaries, and
+    `open-items.html` records FHIR-56003 as in discussion and notes that
+    decompression does not remove the need for the field entirely.
+
+- **A `pk_fraction` or `pk_integer_fraction` now carries its rendering in
+  `rendered-value`.** FHIR-56001 has extended `rendered-value` to `Ratio` in
+  the Extensions Registry's source. The context is **not yet in a published
+  release**: 5.3.0 does not allow it, so a validator using 5.3.0 rejects these
+  instances until the next release.
+  - `mapping-quantity.html`: a new `DV_PROPORTION.type[fraction]` sub-case is
+    `lossy` outbound. The rendering is carried — `1/2`, or `1 1/2` for an
+    integer fraction whose numerator exceeds its denominator — but the kind is
+    not. It is `unmapped` inbound, because the two kinds render alike when the
+    numerator does not exceed the denominator. The `DV_PROPORTION.type` row no
+    longer says the fraction kinds have no FHIR home.
+  - `gaps.html` lists the new row, and `open-items.html` records FHIR-56001 as
+    applied in source and awaiting publication.
+
+- **`DV_MULTIMEDIA.thumbnail` now travels in `attachment-thumbnail`.**
+  FHIR-56002 has added the extension, whose value is itself an `Attachment`,
+  to the Extensions Registry's source. It is **not yet in a published
+  release**: 5.3.0 does not define it, so a validator using 5.3.0 rejects these
+  instances until the next release.
+  - `mapping-other.html`: the thumbnail row is now `lossless` both ways, and a
+    thumbnail converts through the same mapping as its parent, with its own
+    drops reported alongside.
+  - New rows state the edges. A thumbnail that cannot itself be converted, in
+    either direction, is left out and its parent is still converted. Only the
+    first of several FHIR thumbnails is carried, because openEHR holds one.
+    `attachment-isThumbnail`, which FHIR-56002 added alongside, has no openEHR
+    counterpart. The page prose no longer says the thumbnail has no home.
+  - `gaps.html` lists the new rows, and `open-items.html` records FHIR-56002 as
+    applied in source and awaiting publication, with `documentreference-thumbnail`
+    retired.
+
 **Compatible, Non-Substantive**
+
+*Gaps and Open Items ownership*
+
+- **Gaps and Open Items are now edited in this guide.** `gaps.html` and
+  `open-items.html` carry no managed region. Their nine tables — the gap
+  summary, the four gap inventories, reviewer coverage, and the three register
+  tables — keep their rows, text, and HTML presentation exactly, and are
+  maintained by hand from now on, so a contributor changes them with an
+  ordinary edit and no RI checkout. The seven region ids `summary:gaps`,
+  `gaps:openehr-to-fhir`, `gaps:fhir-to-openehr`, `gaps:fhir-no-counterpart`,
+  `gaps:not-discussed`, `review-coverage`, and `open-items` are retired, and the
+  external RI no longer holds the register, the two gap-inventory
+  pseudo-mappings, or reviewer coverage.
+  - `mapping.html`: the Mapping Summary no longer lists *FHIR features with no
+    openEHR counterpart* and *openEHR constructs not yet discussed*. They are
+    inventories rather than mappings, and *What is not mapped* already links
+    Gaps.
+  - The mechanical guarantees that went with the generated tables are retired
+    and named rather than replaced: gap rows derived from mapping verdicts; the
+    directional gap tables containing only what their headings promise; the
+    register listing every owner a mapping row names; register entries having
+    non-empty owners and statuses, unique item ids, and HL7 Jira ticket URLs;
+    every side of the register being populated; a coverage row for every
+    mapping; the rule that a mapped FHIR type is not also listed as having no
+    counterpart; fidelity and citation validation, and mirror resolution, of
+    the inventory rows; RI-checked links inside these tables; and non-empty
+    review notes. `conventions.html` now states the gap sync and register sync
+    duties that take their place.
+  - `conventions.html` (*Citations*, *A note for editors*),
+    `reference-implementation.html` (*How the guide relates to it*, *A caveat
+    on citations*), `gaps.html`, `open-items.html`, and `mapping.html` (*Where
+    the tables come from*) now say which tables are generated and what the RI
+    checks. The `RelativeTime` citation exception is stated on Gaps.
+  - **No mapping, fidelity, maturity, citation, conformance verb, page, anchor,
+    canonical, or id changed.**
+
+- **Clarified the remaining checks and editor verification.** The RI no longer
+  generates or checks the content of Gaps and Open Items, but page-wide
+  presentation and link checks still apply. The editor note now requires a
+  Publisher build and reading the rendered page after HTML-table edits, names
+  the Publisher's link inspection for hand-written fragments, and tells editors
+  to copy published row anchors rather than reconstruct them. The citation
+  caveat is scoped to generated tables, and agent guidance distinguishes retired
+  region ids from registered ids that could silently re-couple a page.
+
+*Reviewer coverage*
+
+- **The review-coverage table on `open-items.html` gains a Notes column.** It
+  records, per side, what a review checked a mapping against and anything it
+  left open, so a ✓ carries its evidence and an **unchecked** side can say why.
+  The notes are authored with each mapping's reviewer list in the RI ledger and
+  rendered into the existing `review-coverage` region. **No mapping, verdict,
+  fidelity, citation, maturity, scope, reviewer, region id, or conformance verb
+  changed** — only the table gained a column.
+
+- **`DV_BOOLEAN ↔ boolean` is reviewed from the FHIR side.** No fidelity or
+  citation changed. `mapping-boolean.html`: the note's link to the null-flavour
+  mapping now targets its table, and the row is `open` pending the openEHR-side
+  review only.
+
+- **`DV_PARAGRAPH ↔ markdown / string` is reviewed from the FHIR side**, which
+  checks the two candidate targets rather than a mapping, because none has been
+  discussed. `mapping-textual.html`: the openEHR side now cites the
+  `DV_PARAGRAPH` class rather than the Text package overview, the sources add
+  FHIR `string`, and the note quotes the Reference Model's deprecation and its
+  replacement, markdown-formatted `DV_TEXT`. `open-items.html` records a
+  proposal to map through that replacement; nothing is adopted, and the
+  mapping stays *not discussed*.
+
+- **`Time specifications ↔ Timing` is reviewed from the FHIR side**, which
+  checks the candidate target rather than a mapping. `mapping-temporal.html`:
+  the reasons no longer say nobody has examined how the two relate — R5's own
+  RIM mappings give `Timing` as v3 GTS and `Timing.repeat` as PIVL or EIVL,
+  the types the openEHR classes are based on, and `Timing.code` accepts the v3
+  `GTSAbbreviation` codes. The note names the parser any mapping needs and the
+  archetype-level scheduling deferred on `DV_DURATION ↔ Duration`.
+  `open-items.html` records a proposal to map through the shared v3 basis;
+  nothing is adopted, and the mapping stays *not discussed*.
+
+- **`DV_STATE ↔ CodeableConcept` is reviewed from the FHIR side.** No fidelity
+  or citation changed: FHIR has no data type for a state-machine value, as the
+  rows say. `mapping-other.html`: the note records that a code from openEHR's
+  own terminology reaches `Coding.system` as the bare `openehr`, which R5 does
+  not accept as a system, and `open-items.html` records openEHR's newly
+  published per-vocabulary FHIR CodeSystems as the answer, for the working
+  group to adopt.
+
+- **The inventory of FHIR features with no openEHR counterpart is reviewed
+  from the FHIR side.** Every entry is a real R5 feature (or, for the R6-era
+  `RelativeTime`, a stated absence from R5). `gaps.html`: an example that no
+  longer appears in the inventory, `Duration.code`, is replaced by
+  `Reference.type`, and the page now states that FHIR's metadata types and the
+  special types `ElementDefinition`, `Extension`, `MarketingStatus`, and
+  `ProductShelfLife` are out of scope, naming `Dosage` as the deferred
+  scheduling problem. Two R5 facts the check turned up are recorded where they
+  apply: on `mapping-temporal.html`, a new `archetype`-scope
+  `DV_DURATION.value[not-positive-age]` sub-case states that R5 `Age` requires
+  a positive value, so openEHR's own `-P3M` age example has no `Age` form; and
+  on `open-items.html`, R5 `Expression` — the structural twin of `DV_PARSABLE`
+  — is added as a third partial route for the formalism.
+
+- **The inventory of openEHR constructs not yet discussed is reviewed from the
+  FHIR side**, which completes FHIR-side coverage: every mapping now has a
+  FHIR-side review. Each entry still asserts no FHIR target, and the review
+  note lists the R5 candidates the working group can examine without adopting
+  any of them. `gaps.html`: `EVENT<T>` now cites the `EVENT` class rather than
+  `HISTORY`. `mapping-other.html`: the coverage paragraph no longer says
+  several types were never reviewed from the FHIR side; it names
+  `DV_MULTIMEDIA` and `DV_PARSABLE` as reviewed from the FHIR side only.
+
+*FHIR-side actions*
+
+- **FHIR-56000 is recorded as applied in R6.** `open-items.html`: `~`
+  *Approximately* is in the published R6 drafts 6.0.0-ballot5 and
+  6.0.0-snapshot1, so the item is no longer "not applied". `mapping-quantity.html`
+  and `mapping-temporal.html`, and their rows on `gaps.html`: the
+  `magnitude_status[~]` rows now quote R6's own
+  guidance — a recommended, not default, 10% approximation, and a SHOULD to use
+  the `quantity-confidenceInterval` extension — and say why that extension,
+  though published for R5, is not used to carry `~`: it needs a confidence level
+  and interval bounds that `~` does not state. No verdict changed; both rows stay
+  `unmapped` in R5.
+
+- **FHIR-55422 records that R6 keeps SHA-1.** `open-items.html`: the R6 drafts
+  still define `Attachment.hash` as SHA-1, so the published `alternate-hash`
+  extension remains the route for any other algorithm in R6 as well.
 
 *Page branding*
 
