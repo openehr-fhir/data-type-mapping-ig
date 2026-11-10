@@ -832,7 +832,10 @@ otherwise.
     Gaps.
   - The mechanical guarantees that went with the generated tables are retired
     and named rather than replaced: gap rows derived from mapping verdicts; the
-    register listing every owner a mapping row names; a coverage row for every
+    directional gap tables containing only what their headings promise; the
+    register listing every owner a mapping row names; register entries having
+    non-empty owners and statuses, unique item ids, and HL7 Jira ticket URLs;
+    every side of the register being populated; a coverage row for every
     mapping; the rule that a mapped FHIR type is not also listed as having no
     counterpart; fidelity and citation validation, and mirror resolution, of
     the inventory rows; RI-checked links inside these tables; and non-empty
@@ -845,6 +848,15 @@ otherwise.
     checks. The `RelativeTime` citation exception is stated on Gaps.
   - **No mapping, fidelity, maturity, citation, conformance verb, page, anchor,
     canonical, or id changed.**
+
+- **Clarified the remaining checks and editor verification.** The RI no longer
+  generates or checks the content of Gaps and Open Items, but page-wide
+  presentation and link checks still apply. The editor note now requires a
+  Publisher build and reading the rendered page after HTML-table edits, names
+  the Publisher's link inspection for hand-written fragments, and tells editors
+  to copy published row anchors rather than reconstruct them. The citation
+  caveat is scoped to generated tables, and agent guidance distinguishes retired
+  region ids from registered ids that could silently re-couple a page.
 
 *Reviewer coverage*
 

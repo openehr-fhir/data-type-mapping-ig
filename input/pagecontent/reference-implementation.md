@@ -65,7 +65,8 @@ the hosted converter.
 
 The tables on [Gaps](gaps.html) and [Open Items](open-items.html) are not
 generated: they are maintained by hand in this guide, and the RI neither
-renders nor checks them.
+renders nor checks their content. Page-wide presentation and link checks still
+apply.
 [Conventions](conventions.html#editing-gaps-and-open-items) says how editors
 keep them in step.
 

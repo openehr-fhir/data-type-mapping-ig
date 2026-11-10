@@ -203,11 +203,10 @@ rather than a core element, the citation is to the extension pack.
 
 <a name="citation-tiers"></a>
 
-Extension-pack citations are marked with a dagger — <sup>†</sup>. They are the
-one class of citation this guide cannot verify mechanically: the specification
-mirrors the external RI's tests resolve citations against hold the openEHR
-Reference Model and the FHIR R5 **core** specification, and neither contains
-extension definitions.
+Extension-pack citations are marked with a dagger — <sup>†</sup>. In the
+generated tables, these citations cannot be resolved against the RI's
+specification mirrors: those hold the openEHR Reference Model and the FHIR R5
+**core** specification, and neither contains extension definitions.
 A dagger therefore means *"this citation is taken on the working group's
 authority"*. Citations to openEHR RM pages and to FHIR R5 core pages carry no
 dagger. Where such a citation sits on a **real endpoint** — a field, an
@@ -289,10 +288,14 @@ actual column header, not for explanatory body labels such as those above.
 
 **Gaps and Open Items are hand-authored.** [Gaps](gaps.html) and
 [Open Items](open-items.html) carry no managed region, and the external RI
-neither generates nor checks them: edit their tables directly here. Their
-tables are HTML rather than Markdown. Keep each table's `grid` class and its
+neither generates nor checks their content: edit their tables directly in this
+guide. Page-wide presentation and link checks still apply.
+Their tables are HTML rather than Markdown. Keep each table's `grid` class and its
 scroll wrapper, and write HTML rather than Markdown inside the cells — the
 wrapper carries no `markdown="1"`, so `**bold**` would publish literally.
+After editing, run the IG Publisher build (Track 2 in the repository's build
+instructions) and read the rendered page to check table structure, escaping,
+and links.
 Two duties replace the automation that used to keep these pages in step with
 the mapping tables:
 
@@ -305,9 +308,10 @@ the mapping tables:
   Open Items lists it. When a mapping is added, the reviewer-coverage table
   gains its row.
 
-A hand-written link to a mapping table uses the anchor exactly as the
-category page publishes it — `mapping-<mapping-id>` on a table and
-`row-<mapping-id>--<row>` on a row — and names a category exactly as its page
-is titled. These are consumed, never declared: the RI's link surface remains
-their one source, and nothing checks a hand-written copy, so copy it from the
-published page.
+A hand-written link to a mapping table or row copies the anchor exactly as the
+category page publishes it, rather than reconstructing it from the mapping or
+row id, and names a category exactly as its page is titled. These are consumed,
+never declared: the RI's link surface remains their one source. The IG
+Publisher's Track 2 link inspection reports broken targets, including
+hand-written fragments, in its `broken-links` QA results; it does not keep a
+copy synchronized when RI mapping or row ids change.
