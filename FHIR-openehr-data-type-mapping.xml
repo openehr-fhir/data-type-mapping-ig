@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<specification xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ciUrl="" defaultVersion="current" defaultWorkgroup="fhir-i" url="http://hl7.org/fhir/uv/openehr-data-type-mapping">
+<version code="current" url=""/>
+<artifactPageExtension value="-definitions"/>
+<artifactPageExtension value="-examples"/>
+<artifactPageExtension value="-mappings"/>
+<page key="NA" name="(NA)"/>
+<page key="many" name="(many)"/>
+<page key="artifacts" name="Artifacts Summary"/>
+<page key="mapping-boolean" name="Boolean Data"/>
+<page key="ig_changelog" name="Change Log"/>
+<page key="mapping-coded" name="Coded Data"/>
+<page key="conventions" name="Conventions"/>
+<page key="cross-cutting" name="Cross-Cutting Concerns"/>
+<page key="mapping" name="Data Type Mapping"/>
+<page key="downloads" name="Downloads"/>
+<page key="gaps" name="Gaps"/>
+<page key="index" name="Home"/>
+<page key="mapping-numeric" name="Numeric Primitives"/>
+<page key="open-items" name="Open Items"/>
+<page key="mapping-other" name="Other Data"/>
+<page key="mapping-quantity" name="Quantities"/>
+<page key="reference-implementation" name="Reference Implementation"/>
+<page key="mapping-reference" name="Resource-Locator Data and References"/>
+<page key="toc" name="Table of Contents"/>
+<page key="mapping-temporal" name="Temporal Data"/>
+<page key="mapping-textual" name="Textual Data"/>
+<page key="type-systems" name="Type Systems"/>
+</specification>

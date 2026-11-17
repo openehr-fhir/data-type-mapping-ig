@@ -110,10 +110,10 @@ editing it is always wrong, and the edit is destroyed on the next build.
   template changes can alter rendering without any repo change.
 - **FHIR version** — `fhirVersion: 5.0.0` in `sushi-config.yaml`. R5 only;
   there is no `generate-version` cross-version generation in this IG.
-- **Package dependencies** — the `dependencies:` block in
-  `sushi-config.yaml` is currently commented out. When a dependency is
-  added it **must be pinned to an exact version**: a floating dependency can
-  move generated URLs and QA output without any change in this repo.
+- **Package dependencies** — `sushi-config.yaml` depends on the openEHR Base
+  package, `openehr.base#0.1.0-snapshot`. Every dependency **must be pinned to
+  an exact version**: a floating dependency can move generated URLs and QA
+  output without any change in this repo.
 - **Ruby + Jekyll** — only needed for the publisher's local page rendering;
   see `INSTALLATION.md`. Not needed to run SUSHI alone.
 

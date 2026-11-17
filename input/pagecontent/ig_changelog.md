@@ -20,6 +20,12 @@ data-type mapping between the openEHR Reference Model and FHIR R5, stated at
 **field level** and in **both directions**, with every claim backed by runnable
 code.
 
+*Dependencies*
+
+- Added the openEHR Base FHIR package, pinned to `openehr.base#0.1.0-snapshot`, as a
+  dependency so its openEHR Reference Model definitions are available to
+  guide tooling.
+
 *Structure*
 
 - **Eighteen pages**, up from four. Added `type-systems.html`,

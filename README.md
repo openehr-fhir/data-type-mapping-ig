@@ -30,6 +30,11 @@ page describes.
 - publisher: HL7 International / FHIR Infrastructure
 - license: [CC0-1.0](LICENSE)
 
+The guide depends on the openEHR Base FHIR package, `openehr.base#0.1.0-snapshot`,
+which represents the openEHR Reference Model for FHIR tooling. The dependency
+is pinned in `sushi-config.yaml` and resolved through the FHIR package
+registry; no local `base-spec` checkout is required.
+
 ## Repository layout
 
 | Path | Contents |
