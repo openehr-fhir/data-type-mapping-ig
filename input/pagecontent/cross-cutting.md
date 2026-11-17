@@ -4,6 +4,114 @@ Some questions are not about any one data type. They apply across the whole
 mapping, and answering them once here keeps the per-type tables from repeating
 themselves — or, worse, from answering them inconsistently.
 
+### Handling empty values
+
+
+One aspect that does not appear to completely align, is the handling of empty values.
+
+
+**openEHR**
+
+In openEHR the ELEMENT class always contains Null_flavour and null_reason attributes
+
+ELEMENT
+  value        : DATA_VALUE    [0..1]
+  null_flavour : DV_CODED_TEXT [0..1]
+  null_reason  : DV_TEXT       [0..1]
+
+
+Where an ELEMENT is made mandatory, the value remains optional, but with the rule that if `value' is empty, 'null_flavour must be populated.
+
+Invariant: `Inv_null_flavour_valid: is_null() implies null_flavour /= Void`
+
+Some openEHR formats like FLAT, do allow empty values like  
+
+FLAT: `.../smoker|value = ''` but the CDR strips out the whole node and does not persist it at all.
+
+
+**FHIR**
+
+In FHIR the data value itself is optional and the reason for absence is handled by an extension optional
+```
+"_flag": {
+  "extension": [{
+    "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+    "valueCode": "unknown"
+  }]
+}
+```
+
+Some resources have explicit dataAbsentReason elements For example, Observation.value[x] is 0..1, and missing values go in Observation.dataAbsentReason. Invariant obs-6 says it is present only if value[x] is absent. So for an Observation you would normally use this instead of the extension.
+
+There are 15 codes from **FHIR R4 (4.0.1) onwards**. In R4B and R5 the code system is published in HL7 Terminology (THO), which currently lists CodeSystem version 2.0.0 (THO release 7.4.0) with the same 15 codes and none deprecated.
+
+Canonical URL: `http://terminology.hl7.org/CodeSystem/data-absent-reason`
+
+| Code | Display | Parent |
+|---|---|---|
+| `unknown` | Unknown | — |
+| `asked-unknown` | Asked But Unknown | unknown |
+| `temp-unknown` | Temporarily Unknown | unknown |
+| `not-asked` | Not Asked | unknown |
+| `asked-declined` | Asked But Declined | unknown |
+| `masked` | Masked | — |
+| `not-applicable` | Not Applicable | — |
+| `unsupported` | Unsupported | — |
+| `as-text` | As Text (value is only in the narrative) | — |
+| `error` | Error | — |
+| `not-a-number` | Not a Number (NaN) | error |
+| `negative-infinity` | Negative Infinity (NINF) | error |
+| `positive-infinity` | Positive Infinity (PINF) | error |
+| `not-performed` | Not Performed | — |
+| `not-permitted` | Not Permitted | — |
+
+That's 9 top-level codes and 6 child codes. The hierarchy matters for mapping, because each child rolls up to its parent.
+
+**STU3 (3.0.x) was different.** It had only 10 codes with different spellings, under the old canonical `http://hl7.org/fhir/data-absent-reason`:
+- `unknown`, `asked`, `temp`, `not-asked`, `masked`, `unsupported`, `astext`, `error`, `NaN`, `not-performed`
+- `asked-declined`, `not-applicable`, the infinity codes and `not-permitted` didn't exist yet.
+- If you have STU3-era data, map `asked`→`asked-unknown`, `temp`→`temp-unknown`, `astext`→`as-text` and `NaN`→`not-a-number`.
+
+**A rough mapping to the 4 openEHR null flavours:**
+- **`253` unknown:** `unknown` and its children `asked-unknown`, `temp-unknown`, `not-asked` and `asked-declined`.
+- **`272` masked:** `masked`.
+- **`273` not applicable:** `not-applicable`.
+- **`271` no information:** the rest (`unsupported`, `as-text`, `error` and its children, `not-performed`, `not-permitted`).
+
+Some codes are borderline: `asked-declined` arguably fits `271` better than `253`. To keep the original detail, carry the DAR code as a mapping on `null_flavour` or put it in `null_reason`.
+
+## Summary
+
+Although there are some subtle structural differences, the FHIR and openEHR approach to empty values/ nulls is very similar.
+
+THe main difference is FHIR's more extensive DAR and list and nested terms (not supported in openEHR) and that openEHR has an additonal `null_reason` Text/CodedText attribute, though this is almost certainly largely unused.
+
+Both FHIR and openEHR commonly add terms like 'unknown' or 'not applicable' to Valuesets, so the use of DAR/null_flavours is intended for situations where 
+
+### openEHR options for discussion.
+
+1. Maintain the existing openEHR Codeset binding and map incoming FHIR codes to the more limited codes, carrying the original FHIR terms as TERM_MAPPINGS. 
+
+2. Allow the FHIR Valueset to be used directly as an extensible binding. Use the opportunity to revisit how we handle some 'null' situations e.g. Observation exclusions e.g Observation absentReason in OBSERVATION.event..data  **RECOMMENDED Option**. 
+
+3. Is `null_reason` used, should it be deprecated or better used in openEHR.
+
+
+### FHIR options for discussion
+
+1. ? Add a Data absent `reasonText` CodeableConcept to DataAbsentReason for situations like
+
+"_flag": {
+  "extension": [{
+    "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+    "valueCode": "not-performed"
+    "reasonText: "Too unwell to complete the test"
+  }]
+}
+
+
+
+
 ### Terminology URI and `terminology_id`
 
 FHIR names a terminology system with a full URI — `http://snomed.info/sct`.
