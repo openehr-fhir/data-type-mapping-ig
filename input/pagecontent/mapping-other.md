@@ -10,9 +10,9 @@ around them. A hash computed with an algorithm other than SHA-1, which
 `Attachment.hash` is defined as, travels in the core `alternate-hash`
 extension, which FHIR-55422 added and the Extensions Registry 5.3.0 publishes.
 A thumbnail travels in the core `attachment-thumbnail` extension, whose value
-is itself an `Attachment`. FHIR-56002 added it, but it is **not yet in a
-published release** of the Extensions Registry, so a validator using 5.3.0
-rejects it until the next release.
+is itself an `Attachment`. FHIR-56002 added it, and the Extensions Registry
+5.4.0 publishes it; a validator using 5.3.0, which does not define it, rejects
+it.
 `DV_MULTIMEDIA` also carries a compression algorithm;
 `Attachment` carries a creation timestamp, height, width, frames, duration, and
 pages. Neither set has a home on the other side, and **each is recorded as its

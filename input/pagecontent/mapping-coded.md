@@ -87,7 +87,8 @@ user chose the code, so it cannot mark an openEHR `defining_code`, and once
 `mappings` add further codings nothing but their order says which one is the
 defining code. Both directions are declared on the
 `DV_CODED_TEXT.defining_code[with-mappings]` row below. A `coding-purpose` code
-that would mark the defining code is the subject of HTA-170 on
+that would mark the defining code is the subject of FHIR-59729, which replaces
+HTA-170, on
 [Open Items](open-items.html).
 
 #### What lives here

@@ -940,6 +940,20 @@ otherwise.
   still define `Attachment.hash` as SHA-1, so the published `alternate-hash`
   extension remains the route for any other algorithm in R6 as well.
 
+- **HTA-170 is replaced by FHIR-59729.** `open-items.html`: HTA-170 was
+  archived and refiled as FHIR-59729 against the Extensions Registry, which is
+  triaged and waiting for work group review. `mapping-coded.html`: the
+  "Choosing the defining code" prose names the new ticket.
+
+- **FHIR-56001 and FHIR-56002 are recorded as published.** `open-items.html`
+  and `mapping-other.html`: the Extensions Registry 5.4.0 (October 2026)
+  publishes `rendered-value` on `Ratio`, `attachment-thumbnail`, and
+  `attachment-isThumbnail`, so only a validator still using 5.3.0 rejects the
+  instances that carry them.
+
+- **FHIR-56003 awaits a drafted resolution.** `open-items.html`: the ticket is
+  waiting on a resolution to be drafted for re-discussion.
+
 *Page branding*
 
 - **The openEHR logo now sits beside the HL7 International logo in the page
