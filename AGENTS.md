@@ -75,7 +75,10 @@ and browser converter with its deployment. See its
 [RI operational documentation](https://github.com/openehr-fhir/data-type-mapping-ri/blob/main/reference/README.md)
 and [browser-converter documentation](https://github.com/openehr-fhir/data-type-mapping-ri/blob/main/converter-site/README.md)
 for work in that repository. This guide owns the committed publication inputs;
-publishing them requires no RI checkout or RI dependencies.
+publishing them requires no RI checkout or RI dependencies. The Gaps and Open
+Items pages (`input/pagecontent/gaps.md`, `input/pagecontent/open-items.md`)
+are guide content: the RI neither generates nor checks their content.
+Page-wide presentation and link checks still apply.
 
 Ignored paths are listed in `.gitignore`. Anything under `fsh-generated/`,
 `output/`, `temp/`, `template/`, or `input-cache/` is a build artifact:
@@ -297,8 +300,22 @@ That instruction is the rule here, not a fallback.
   run in this checkout. Ledger and renderer ownership stays in the RI.
   Hand-written prose **outside** the sentinels is never touched by a
   render. A region id is one of `mapping:<mapping-id>`,
-  `summary:<category>`, `summary:all`, `gaps:*`, `review-coverage`,
-  `open-items`, `iso8601-subset`, or `example:<fixture-path>`.
+  `summary:<category>`, `summary:all`, `iso8601-subset`, or
+  `example:<fixture-path>`.
+- **Gaps and Open Items** (`gaps.md`, `open-items.md`) — hand-authored, with
+  no managed region. Their tables are final HTML carried over from the
+  retired renderers. Keep each table's `grid` class and its scroll wrapper,
+  and write HTML, not Markdown, inside the cells: the wrapper has no
+  `markdown="1"`. After editing, run the Track 2 build and read the rendered
+  page to check table structure, escaping, and links. Two editorial duties
+  replace the retired automation, and
+  `conventions.html` states them for editors:
+  - the **gap sync duty**: a generated mapping table that gains, loses, or
+    changes a `lossy` / `unmapped` verdict updates the matching Gaps row in
+    the same commit, and the field table is normative;
+  - the **register sync duty**: every owner a mapping row names (an HL7
+    Jira ticket, `openehr-modelling`, `working-group`, or a session item) is
+    listed in the register, and a new mapping gains a reviewer-coverage row.
 - **YAML** (`sushi-config.yaml`) — two-space indent. The decorative
   box-drawing comment banners are SUSHI scaffolding; leave them alone.
 - **JSON** (`input/resources/*.json`) — two-space indent.
@@ -336,6 +353,12 @@ These are decisions, not preferences. Violating one is a review Blocker.
   guide home. Future changes use the RI's existing authoring and compatibility
   process and a separately reviewed IG update, not local replacement
   automation.
+- **Gaps and Open Items are guide-owned, and carry no managed region.**
+  Planting a `mapping ledger` sentinel on either page is a Blocker. A retired
+  region id fails the RI's render and drift check; reusing a registered id
+  can silently re-couple the page, so review must reject either case. The RI
+  may link to `gaps.html` and `open-items.html`; it neither authors nor checks
+  their content, but page-wide presentation and link checks still apply.
 - **Every mapping row cites both specifications.** The openEHR RM attribute
   it maps from and the FHIR R5 element it maps to. A row whose side has no
   counterpart cites the *inventory* page of the standard that lacks it, so
@@ -346,9 +369,14 @@ These are decisions, not preferences. Violating one is a review Blocker.
   live in the external RI's `reference/src/publish/guide-links.ts`. A second
   declaration — in this guide, the renderer, or the browser converter — is a
   Blocker.
-  A link may carry a **fragment only when the renderer actually publishes that
-  anchor**: the RI's `hasFieldTable()` is the single guard, and a `gaps`-category
-  mapping, for which no `mapping:` region is registered, links bare.
+  A link may carry a **fragment only when the renderer actually publishes
+  that anchor**. Every ledger mapping has a field table, so every
+  RI-emitted mapping link carries one. Hand-authored tables (Gaps and Open
+  Items) **consume** the RI's anchors and category labels as text and never
+  declare them: a hand-written link to a mapping table copies the anchor
+  exactly as the category page publishes it. The IG Publisher's Track 2 link
+  inspection reports broken targets, including hand-written fragments; it
+  does not keep the copy synchronized when RI mapping or row ids change.
 - **Generated trees are never hand-edited** — `fsh-generated/`, `output/`,
   `temp/`, `template/`, `input-cache/`. Fix the FSH, the config, or the
   responsible external generator instead.

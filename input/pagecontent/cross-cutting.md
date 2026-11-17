@@ -61,10 +61,10 @@ UTF-16, US-ASCII, the ISO-8859 family, and UTF-7 among them.
 
 The rule is therefore one-directional and settled: **the sender converts.**
 Non-UTF-8 content SHALL be converted to UTF-8 before mapping, and the original
-encoding is not preserved on the FHIR side. `DV_TEXT.encoding` and
-`DV_ENCAPSULATED.charset` are `unmapped` for this reason, and the rows say so.
-Where a charset applies to attached binary content rather than to text, it
-belongs in the MIME type as a `charset` parameter — see
+encoding is not preserved on the FHIR side. `DV_TEXT.encoding` is `unmapped`
+for this reason, and the row says so. Where a charset applies to attached
+binary content rather than to text — `DV_MULTIMEDIA.charset` — it is carried
+as the MIME type's `charset` parameter, which R5's `contentType` includes — see
 [Other Data](mapping-other.html).
 
 ### The `DV_AMOUNT` pattern
@@ -241,8 +241,8 @@ extension is worse than a recorded gap, because it looks like conformance.
 archetype and template the value is destined for, because they decide the
 terminology and the units; map the value; supply the mandatory openEHR fields
 that FHIR leaves optional, and record which ones were supplied rather than
-carried; and treat an inference — a defaulted `TERM_MAPPING.match`, an inferred
-`DV_PROPORTION.type`, an assumed SHA-1 hash algorithm — as exactly that.
+carried; and treat an inference — a defaulted `TERM_MAPPING.match` or an
+inferred `DV_PROPORTION.type` — as exactly that.
 
 In both directions, the guide's fidelity columns are the contract: a `lossless`
 row round-trips, and a `lossy` row drops exactly what it says it drops.

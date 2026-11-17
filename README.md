@@ -17,6 +17,9 @@ and [browser-converter documentation](https://github.com/openehr-fhir/data-type-
 Guide publication needs no RI checkout or RI tooling. Future generated-content
 changes follow the RI's authoring and compatibility process and arrive here as
 separately reviewed guide updates; managed regions are not hand-edited.
+The Gaps and Open Items pages are the exception: they carry no managed
+region and are edited here directly, as the editor note on the Conventions
+page describes.
 
 ## About this guide
 

@@ -46,7 +46,7 @@ pages are the normative statement.
 <tr><td><a href="mapping-quantity.html#mapping-dv-proportion-to-ratio">DV_PROPORTION</a></td><td><code>Ratio</code></td><td><code>lossy</code></td><td><code>unmapped</code></td><td><code>open</code></td><td><code>datatype</code></td></tr>
 <tr><td><a href="mapping-quantity.html#mapping-dv-interval-to-range">DV_INTERVAL&lt;T&gt;</a></td><td><code>Range | Period | Quantity</code></td><td><code>lossy</code></td><td><code>lossy</code></td><td><code>settled</code></td><td><code>datatype</code></td></tr>
 <tr><td><a href="mapping-quantity.html#mapping-dv-quantity-to-money">DV_QUANTITY</a></td><td><code>Money</code></td><td><code>lossy</code></td><td><code>lossy</code></td><td><code>open</code></td><td><code>datatype</code></td></tr>
-<tr><td><a href="mapping-quantity.html#mapping-dv-quantity-to-simple-quantity">DV_QUANTITY</a></td><td><code>SimpleQuantity</code></td><td><code>lossy</code></td><td><code>lossy</code></td><td><code>settled</code></td><td><code>datatype</code></td></tr>
+<tr><td><a href="mapping-quantity.html#mapping-dv-quantity-to-simple-quantity">DV_QUANTITY</a></td><td><code>SimpleQuantity</code></td><td><code>lossy</code></td><td><code>lossy</code></td><td><code>open</code></td><td><code>datatype</code></td></tr>
 <tr><td><a href="mapping-quantity.html#mapping-dv-ordinal-to-observation-component">DV_ORDINAL</a></td><td><code>Observation.component</code></td><td><code>lossless</code></td><td><code>lossy</code></td><td><code>open</code></td><td><code>archetype</code></td></tr>
 <tr><td><a href="mapping-quantity.html#mapping-dv-scale-to-observation-component">DV_SCALE</a></td><td><code>Observation.component</code></td><td><code>lossless</code></td><td><code>lossy</code></td><td><code>open</code></td><td><code>archetype</code></td></tr>
 <tr><td><a href="mapping-coded.html#mapping-code-phrase-to-coding">CODE_PHRASE</a></td><td><code>Coding</code></td><td><code>lossy</code></td><td><code>lossy</code></td><td><code>open</code></td><td><code>datatype</code></td></tr>
@@ -54,13 +54,13 @@ pages are the normative statement.
 <tr><td><a href="mapping-coded.html#mapping-term-mapping-to-coding">TERM_MAPPING</a></td><td><code>CodeableConcept.coding</code></td><td><code>lossy</code></td><td><code>lossy</code></td><td><code>open</code></td><td><code>datatype</code></td></tr>
 <tr><td><a href="mapping-coded.html#mapping-null-flavour-to-data-absent-reason">NULL_FLAVOUR</a></td><td><code>data-absent-reason</code></td><td><code>lossy</code></td><td><code>lossy</code></td><td><code>open</code></td><td><code>datatype</code></td></tr>
 <tr><td><a href="mapping-boolean.html#mapping-dv-boolean-to-boolean">DV_BOOLEAN</a></td><td><code>boolean</code></td><td><code>lossless</code></td><td><code>lossless</code></td><td><code>open</code></td><td><code>datatype</code></td></tr>
-<tr><td><a href="mapping-numeric.html#mapping-integer-to-integer">Integer</a></td><td><code>integer</code></td><td><code>lossless</code></td><td><code>lossless</code></td><td><code>settled</code></td><td><code>datatype</code></td></tr>
+<tr><td><a href="mapping-numeric.html#mapping-integer-to-integer">Integer</a></td><td><code>integer</code></td><td><code>lossy</code></td><td><code>lossy</code></td><td><code>settled</code></td><td><code>datatype</code></td></tr>
 <tr><td><a href="mapping-numeric.html#mapping-integer64-to-integer64">Integer64</a></td><td><code>integer64</code></td><td><code>lossy</code></td><td><code>lossy</code></td><td><code>open</code></td><td><code>datatype</code></td></tr>
-<tr><td><a href="mapping-numeric.html#mapping-real-to-decimal">Real / Double</a></td><td><code>decimal</code></td><td><code>lossless</code></td><td><code>lossy</code></td><td><code>settled</code></td><td><code>datatype</code></td></tr>
+<tr><td><a href="mapping-numeric.html#mapping-real-to-decimal">Real / Double</a></td><td><code>decimal</code></td><td><code>lossy</code></td><td><code>lossy</code></td><td><code>settled</code></td><td><code>datatype</code></td></tr>
 <tr><td><a href="mapping-textual.html#mapping-dv-text-to-string">DV_TEXT</a></td><td><code>string | markdown</code></td><td><code>lossy</code></td><td><code>lossy</code></td><td><code>open</code></td><td><code>datatype</code></td></tr>
 <tr><td><a href="mapping-textual.html#mapping-dv-paragraph-to-markdown">DV_PARAGRAPH</a></td><td><code>markdown | string</code></td><td><code>unmapped</code></td><td><code>unmapped</code></td><td><code>not-discussed</code></td><td><code>datatype</code></td></tr>
 <tr><td><a href="mapping-reference.html#mapping-dv-identifier-to-identifier">DV_IDENTIFIER</a></td><td><code>Identifier</code></td><td><code>lossy</code></td><td><code>lossy</code></td><td><code>open</code></td><td><code>datatype</code></td></tr>
-<tr><td><a href="mapping-reference.html#mapping-dv-uri-to-uri">DV_URI / DV_EHR_URI</a></td><td><code>uri | url</code></td><td><code>lossless</code></td><td><code>lossy</code></td><td><code>open</code></td><td><code>datatype</code></td></tr>
+<tr><td><a href="mapping-reference.html#mapping-dv-uri-to-uri">DV_URI / DV_EHR_URI</a></td><td><code>uri | url</code></td><td><code>lossy</code></td><td><code>lossy</code></td><td><code>open</code></td><td><code>datatype</code></td></tr>
 <tr><td><a href="mapping-reference.html#mapping-link-to-reference">LINK</a></td><td><code>Reference | CodeableReference</code></td><td><code>lossy</code></td><td><code>unmapped</code></td><td><code>open</code></td><td><code>datatype</code></td></tr>
 <tr><td><a href="mapping-temporal.html#mapping-dv-date-to-date">DV_DATE</a></td><td><code>date | dateTime</code></td><td><code>lossless</code></td><td><code>lossless</code></td><td><code>settled</code></td><td><code>datatype</code></td></tr>
 <tr><td><a href="mapping-temporal.html#mapping-dv-time-to-time">DV_TIME</a></td><td><code>time</code></td><td><code>lossy</code></td><td><code>lossy</code></td><td><code>open</code></td><td><code>datatype</code></td></tr>
@@ -70,8 +70,6 @@ pages are the normative statement.
 <tr><td><a href="mapping-other.html#mapping-dv-multimedia-to-attachment">DV_MULTIMEDIA</a></td><td><code>Attachment</code></td><td><code>lossy</code></td><td><code>lossy</code></td><td><code>open</code></td><td><code>datatype</code></td></tr>
 <tr><td><a href="mapping-other.html#mapping-dv-parsable-to-string">DV_PARSABLE</a></td><td><code>string</code></td><td><code>lossy</code></td><td><code>unmapped</code></td><td><code>open</code></td><td><code>datatype</code></td></tr>
 <tr><td><a href="mapping-other.html#mapping-dv-state-to-codeable-concept">DV_STATE</a></td><td><code>CodeableConcept</code></td><td><code>lossy</code></td><td><code>lossy</code></td><td><code>open</code></td><td><code>datatype</code></td></tr>
-<tr><td><a href="gaps.html">(none)</a></td><td><code>Address, HumanName, ContactPoint, and others</code></td><td><code>unmapped</code></td><td><code>unmapped</code></td><td><code>open</code></td><td><code>datatype</code></td></tr>
-<tr><td><a href="gaps.html">EVENT, DV_ENCAPSULATED, CLUSTER.media_file, COMPOSITION, PARTY_RELATED</a></td><td><code>(not determined)</code></td><td><code>unmapped</code></td><td><code>unmapped</code></td><td><code>not-discussed</code></td><td><code>datatype</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -99,3 +97,8 @@ reports.
 
 Reviewing a change to a table therefore means reviewing the ledger, not the
 markdown. The markdown churn is a consequence, not the change itself.
+
+The tables on [Gaps](gaps.html) and [Open Items](open-items.html) are the
+exception: they are maintained by hand in this guide rather than generated,
+and [Conventions](conventions.html#editing-gaps-and-open-items) says how
+editors keep them in step with the mapping tables.

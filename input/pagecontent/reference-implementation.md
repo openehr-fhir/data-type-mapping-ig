@@ -63,6 +63,13 @@ exercised against at the corresponding RI revision. These committed tables and
 examples are not automatically synchronized with the RI's current source or
 the hosted converter.
 
+The tables on [Gaps](gaps.html) and [Open Items](open-items.html) are not
+generated: they are maintained by hand in this guide, and the RI neither
+renders nor checks their content. Page-wide presentation and link checks still
+apply.
+[Conventions](conventions.html#editing-gaps-and-open-items) says how editors
+keep them in step.
+
 Generated regions remain owned by the RI's ledger and renderer, not by hand
 edits in this repository. The RI's documented authoring and compatibility
 process includes rendering and drift checking; an updated guide is reviewed
@@ -122,8 +129,11 @@ definitions. Those citations are taken on the working group's authority, and are
 marked as such. Citations to openEHR RM pages and to FHIR R5 core pages are held
 to two separate rules. A citation sitting on a **real endpoint** SHALL name an
 anchor rather than a bare page, with one written-down exception where the
-specification offers no anchor at all; that rule is part of the external RI
-ledger's structural validation. Resolving those anchors against local copies
+specification offers no anchor at all. For the generated mapping tables that
+rule is part of the external RI ledger's structural validation; the
+hand-maintained tables on [Gaps](gaps.html) — where that one exception is
+stated — and [Open Items](open-items.html) are held to it by review.
+Resolving those anchors against local copies
 of both specifications is a **second**, mirror-dependent check in the RI's
 release gate, and it skips when the mirrors are not configured. The RI's
 documentation owns execution of both checks; neither runs automatically when
