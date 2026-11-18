@@ -28,6 +28,24 @@ code.
 
 *Structure*
 
+- Added six draft, experimental ConceptMaps: separate directions for openEHR
+  null flavours and FHIR `data-absent-reason`, null flavours and v3
+  `NullFlavor`, and the documented `H` / `L` / `N` normal-status subset and
+  `ObservationInterpretation`. Resources reference versioned openEHR and THO
+  CodeSystems, declare directional fidelity and maturity, and distinguish
+  exact correspondences from lossy semantic choices. The v3 resources
+  describe planned code support, not a change to the RI's unmapped extension
+  handling. Structural transforms and unresolved terminology choices remain
+  unchanged.
+- Added two further draft ConceptMaps for logical-model and FHIR
+  type/resource element correspondences, authored independently in each
+  direction using versioned StructureDefinition implicit code systems and
+  exact snapshot element IDs. They retain directional losses, archetype
+  context, applicability conditions and explicit unmapped cases. Missing
+  Foundation definitions and interval-bound IDs are documented rather than
+  invented. The current R5 publisher's rejection of the StructureDefinition
+  group canonicals remains an unsuppressed validation limitation; the maps
+  do not execute conversions or settle open mapping decisions.
 - **Eighteen pages**, up from four. Added `type-systems.html`,
   `conventions.html`, eight category pages (`mapping-boolean.html`,
   `mapping-numeric.html`, `mapping-reference.html`, `mapping-textual.html`,
@@ -133,8 +151,8 @@ code.
 
 *Not in this release*
 
-- No FHIR profile, extension, code system, value set, concept map, or
-  StructureMap is defined. `input/fsh/` is intentionally empty. Terminology
+- No FHIR profile, extension, code system, value set, or executable
+  StructureMap is defined. The ConceptMaps reference existing vocabularies. Terminology
   stays anchored in `terminology.hl7.org` or in openEHR's own published
   terminology. No archetype is authored; the guide links the ones a gap depends
   on and names who owns them.

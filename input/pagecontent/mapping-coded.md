@@ -98,11 +98,19 @@ correspondences. `DV_ORDINAL` and `DV_SCALE` are coded values but are mapped in
 [Quantities](mapping-quantity.html), because their FHIR target is driven by
 their ordinal magnitude and both are archetype-scope mappings.
 
-**No ConceptMap resource, local `CodeSystem`, or local `ValueSet` is defined by
-this guide.** Terminology stays anchored in
+The guide publishes separate directional
+[ConceptMaps](mapping.html#conceptmap-resources) for the `null_flavour`
+correspondences with `data-absent-reason` and v3 `NullFlavor`. The v3 maps
+describe planned terminology support only; the reference implementation still
+does not emit or consume the v3 extension. The data-absent-reason maps preserve
+the open semantic choices and label their losses rather than treating every
+assignment as an equivalence.
+
+**No local `CodeSystem` or `ValueSet` is defined by this guide.** Terminology stays anchored in
 [terminology.hl7.org](https://terminology.hl7.org) or in openEHR's own published
-terminology. The correspondence tables here are the input to a later
-concept-map pass, not a substitute for one.
+terminology. These ConceptMaps do not fill in the unresolved instance-level
+representation of `TERM_MAPPING.match` or `.purpose`, and do not settle the
+`system`/`version` format question.
 
 See [Conventions](conventions.html) for how to read the tables.
 

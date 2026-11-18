@@ -52,7 +52,7 @@ stated as a *target* rather than an *observed* practice, it says so.
 
 | Path | Contents |
 |-|-|
-| `input/fsh/` | FSH source: profiles, extensions, concept maps, examples. The primary authoring surface. Currently empty. |
+| `input/fsh/` | FSH source: six terminology ConceptMaps, two directional model-element ConceptMaps, shared rules and versioned aliases. |
 | `input/pagecontent/` | Markdown narrative pages (one per entry in `sushi-config.yaml` `pages:`). The other primary authoring surface. |
 | `input/pagecontent/ig_changelog.md` | The IG change log. See [Commit conventions](#commit-conventions). |
 | `input/resources/` | Hand-authored ("pre-defined") JSON resources that SUSHI copies through verbatim. **Not present yet** — create it with the first such resource. Do not add a placeholder file: SUSHI warns about every non-JSON/XML file it finds there. |
@@ -237,6 +237,11 @@ Track 2 to be seen rendered.
   `input/fsh/` and as JSON in `input/resources/`. Exactly one of the two
   must define it.
 - A page listed in `sushi-config.yaml` `pages:` with no matching file in
+- The two model-element ConceptMaps use StructureDefinition implicit code
+  systems. The current R5 publisher resolves their element codes but reports
+  wrong-resource-type errors for the group canonicals, expecting CodeSystems.
+  Keep those errors visible; do not invent CodeSystems or suppressions.
+  This tooling limitation remains open and blocks clean publication.
   `input/pagecontent/` fails the publisher, not SUSHI. Add both together.
 
 ---
@@ -273,9 +278,21 @@ That instruction is the rule here, not a fallback.
 
 - **FSH** (`input/fsh/*.fsh`) — two-space indent for rule continuation, `//`
   comments, `^` caret rules for metadata, and `Title`/`Description` on every
-  definition. Keep artifact ids `lower-kebab-case`. Because the repository
-  has no FSH yet, the **first** files authored set the pattern for the rest
-  — be deliberate about naming.
+  definition. Keep artifact ids `lower-kebab-case`. Terminology ConceptMaps
+  are definition instances, with shared metadata and mapping rules in
+  `conceptmap-rules.fsh`; each direction is a separate resource. Reference
+  the existing openEHR and THO CodeSystems with explicit versions rather
+  than defining replacement vocabularies. Keep their code correspondences
+  synchronized with the normative field tables.
+  The two model-element maps share `model-conceptmap-rules.fsh`; their systems
+  are exact versioned StructureDefinition canonicals and their codes are
+  `snapshot.element.id` values, not paths or expressions. Do not invent IDs
+  missing from a snapshot. Author the reverse direction independently.
+  Targets use `related-to` and declare fidelity, maturity, scope and any
+  conditions. A pair with both lossless and lossy cases has conservative
+  `lossy` fidelity and comments distinguishing the cases. Unmapped reasons
+  use the published `note` extension on the resource, labelled by source ID,
+  not `element.display` (which must describe the actual source concept).
 - **Markdown pages** (`input/pagecontent/*.md`) — these render into the
   spec. Conformance verbs (`SHALL`, `SHOULD`, `MAY`, `SHALL NOT`) are
   **normative and uppercase**; never soften, strengthen, or case-fold one

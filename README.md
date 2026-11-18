@@ -35,6 +35,26 @@ which represents the openEHR Reference Model for FHIR tooling. The dependency
 is pinned in `sushi-config.yaml` and resolved through the FHIR package
 registry; no local `base-spec` checkout is required.
 
+`input/fsh/` defines six draft terminology ConceptMaps: both directions for
+null flavours and data-absent-reason, null flavours and v3 NullFlavor, and the
+documented H/L/N normal-status subset and ObservationInterpretation. They
+reference existing CodeSystems rather than replacing them. These are code
+relationships, not executable structural conversions; the v3 maps do not
+enable v3 extension handling in the external RI.
+
+Two further draft ConceptMaps, `openehr-model-to-fhir` and
+`fhir-to-openehr-model`, show type and field correspondences using versioned
+StructureDefinition canonicals as implicit code systems and exact snapshot
+element IDs as codes. They preserve directional losses, contextual choices
+and unmapped cases; they are not executable transforms. Coverage follows the
+available snapshots: Foundation numeric models are absent, and `DV_INTERVAL`
+has no bound element IDs. See the [mapping index](input/pagecontent/mapping.md).
+
+**Publisher limitation:** the current R5 validator rejects these
+StructureDefinition canonicals where it expects CodeSystems, even though it
+can resolve their element codes. The maps compile and render, but those
+validation errors remain visible and need resolution before publication.
+
 ## Repository layout
 
 | Path | Contents |
