@@ -20,8 +20,32 @@ data-type mapping between the openEHR Reference Model and FHIR R5, stated at
 **field level** and in **both directions**, with every claim backed by runnable
 code.
 
+*Dependencies*
+
+- Added the openEHR Base FHIR package, pinned to `openehr.base#0.1.0-snapshot`, as a
+  dependency so its openEHR Reference Model definitions are available to
+  guide tooling.
+
 *Structure*
 
+- Added six draft, experimental ConceptMaps: separate directions for openEHR
+  null flavours and FHIR `data-absent-reason`, null flavours and v3
+  `NullFlavor`, and the documented `H` / `L` / `N` normal-status subset and
+  `ObservationInterpretation`. Resources reference versioned openEHR and THO
+  CodeSystems, declare directional fidelity and maturity, and distinguish
+  exact correspondences from lossy semantic choices. The v3 resources
+  describe planned code support, not a change to the RI's unmapped extension
+  handling. Structural transforms and unresolved terminology choices remain
+  unchanged.
+- Added two further draft ConceptMaps for logical-model and FHIR
+  type/resource element correspondences, authored independently in each
+  direction using versioned StructureDefinition implicit code systems and
+  exact snapshot element IDs. They retain directional losses, archetype
+  context, applicability conditions and explicit unmapped cases. Missing
+  Foundation definitions and interval-bound IDs are documented rather than
+  invented. The current R5 publisher's rejection of the StructureDefinition
+  group canonicals remains an unsuppressed validation limitation; the maps
+  do not execute conversions or settle open mapping decisions.
 - **Eighteen pages**, up from four. Added `type-systems.html`,
   `conventions.html`, eight category pages (`mapping-boolean.html`,
   `mapping-numeric.html`, `mapping-reference.html`, `mapping-textual.html`,
@@ -42,11 +66,12 @@ code.
 
 *How the guide is produced*
 
-- Every mapping table and every worked example is **generated** from a single
-  machine-checked mapping ledger and written into sentinel-delimited managed
-  regions in the page sources. A published example *is* the fixture the
-  converters are tested against, so the two cannot drift.
-- Fidelity claims are **checked, not asserted**, within a scope the guide states
+- Every mapping table and every worked example is **maintained by hand in this
+  guide**, which is the source of truth for the mappings. The worked examples
+  began as the reference implementation's test fixtures.
+- Fidelity claims are **checked, not asserted**: the reference implementation
+  transcribes the tables into a ledger and tests its converters against them
+  within a scope the guide states
   rather than leaves implied: a `lossless` row must round-trip a paired instance
   unchanged and a `lossy` row must drop exactly what it declares — no more and
   no less — for every row at `datatype` scope. Rows at `archetype` scope are
@@ -127,8 +152,8 @@ code.
 
 *Not in this release*
 
-- No FHIR profile, extension, code system, value set, concept map, or
-  StructureMap is defined. `input/fsh/` is intentionally empty. Terminology
+- No FHIR profile, extension, code system, value set, or executable
+  StructureMap is defined. The ConceptMaps reference existing vocabularies. Terminology
   stays anchored in `terminology.hl7.org` or in openEHR's own published
   terminology. No archetype is authored; the guide links the ones a gap depends
   on and names who owns them.
@@ -939,6 +964,52 @@ otherwise.
 - **FHIR-55422 records that R6 keeps SHA-1.** `open-items.html`: the R6 drafts
   still define `Attachment.hash` as SHA-1, so the published `alternate-hash`
   extension remains the route for any other algorithm in R6 as well.
+
+- **HTA-170 is replaced by FHIR-59729.** `open-items.html`: HTA-170 was
+  archived and refiled as FHIR-59729 against the Extensions Registry, which is
+  triaged and waiting for work group review. `mapping-coded.html`: the
+  "Choosing the defining code" prose names the new ticket.
+
+- **FHIR-56001 and FHIR-56002 are recorded as published.** `open-items.html`
+  and `mapping-other.html`: the Extensions Registry 5.4.0 (October 2026)
+  publishes `rendered-value` on `Ratio`, `attachment-thumbnail`, and
+  `attachment-isThumbnail`, so only a validator still using 5.3.0 rejects the
+  instances that carry them.
+
+- **FHIR-56003 awaits a drafted resolution.** `open-items.html`: the ticket is
+  waiting on a resolution to be drafted for re-discussion.
+
+- **The mapping rows now carry the current ticket statuses.**
+  `mapping-coded.html` and `gaps.html`: the `defining_code` and
+  `defining_code[with-mappings]` rows cite FHIR-59729 rather than the archived
+  HTA-170. `mapping-other.html` and `mapping-quantity.html`: the
+  `thumbnail`, `attachment-isThumbnail`, and `DV_PROPORTION.type[fraction]`
+  rows say the Extensions Registry 5.4.0 publishes their extensions, rather
+  than that they await a release; the `compression_algorithm` rows, here and
+  on `gaps.html`, say FHIR-56003 is still open; and the `magnitude_status[~]`
+  row cites `quantity-confidenceInterval` as trial use in 5.4.0. No verdict
+  changed.
+
+*Guide ownership*
+
+- **The guide is the source of truth, and nothing in it is generated.** Every
+  mapping table, summary, worked example, and the ISO 8601 subset comparison
+  is now edited directly in this guide, as Gaps and Open Items already were,
+  so an editor can update a status or a note without the reference
+  implementation. The `mapping ledger` sentinel comments are removed from
+  every page; the content between them is unchanged. The reference
+  implementation follows the guide rather than rendering it.
+  - `conventions.html`: the editor note now covers every table, keeps the gap
+    and register sync duties, and adds a summary sync duty for the category
+    summaries and *All mappings*. It states how mapping and row anchors are
+    formed and that the category page declares them. The citation rules are
+    held by review rather than by the RI's ledger validation.
+  - `mapping.html` (*Where the tables come from*), `reference-implementation.html`
+    (*How the guide relates to it*, *A caveat on citations*),
+    `cross-cutting.html`, and `mapping-temporal.html` no longer describe any
+    table as generated.
+  - **No mapping, fidelity, maturity, citation, conformance verb, page, anchor,
+    canonical, or id changed.**
 
 *Page branding*
 
