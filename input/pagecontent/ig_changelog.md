@@ -66,11 +66,12 @@ code.
 
 *How the guide is produced*
 
-- Every mapping table and every worked example is **generated** from a single
-  machine-checked mapping ledger and written into sentinel-delimited managed
-  regions in the page sources. A published example *is* the fixture the
-  converters are tested against, so the two cannot drift.
-- Fidelity claims are **checked, not asserted**, within a scope the guide states
+- Every mapping table and every worked example is **maintained by hand in this
+  guide**, which is the source of truth for the mappings. The worked examples
+  began as the reference implementation's test fixtures.
+- Fidelity claims are **checked, not asserted**: the reference implementation
+  transcribes the tables into a ledger and tests its converters against them
+  within a scope the guide states
   rather than leaves implied: a `lossless` row must round-trip a paired instance
   unchanged and a `lossy` row must drop exactly what it declares — no more and
   no less — for every row at `datatype` scope. Rows at `archetype` scope are
@@ -977,6 +978,38 @@ otherwise.
 
 - **FHIR-56003 awaits a drafted resolution.** `open-items.html`: the ticket is
   waiting on a resolution to be drafted for re-discussion.
+
+- **The mapping rows now carry the current ticket statuses.**
+  `mapping-coded.html` and `gaps.html`: the `defining_code` and
+  `defining_code[with-mappings]` rows cite FHIR-59729 rather than the archived
+  HTA-170. `mapping-other.html` and `mapping-quantity.html`: the
+  `thumbnail`, `attachment-isThumbnail`, and `DV_PROPORTION.type[fraction]`
+  rows say the Extensions Registry 5.4.0 publishes their extensions, rather
+  than that they await a release; the `compression_algorithm` rows, here and
+  on `gaps.html`, say FHIR-56003 is still open; and the `magnitude_status[~]`
+  row cites `quantity-confidenceInterval` as trial use in 5.4.0. No verdict
+  changed.
+
+*Guide ownership*
+
+- **The guide is the source of truth, and nothing in it is generated.** Every
+  mapping table, summary, worked example, and the ISO 8601 subset comparison
+  is now edited directly in this guide, as Gaps and Open Items already were,
+  so an editor can update a status or a note without the reference
+  implementation. The `mapping ledger` sentinel comments are removed from
+  every page; the content between them is unchanged. The reference
+  implementation follows the guide rather than rendering it.
+  - `conventions.html`: the editor note now covers every table, keeps the gap
+    and register sync duties, and adds a summary sync duty for the category
+    summaries and *All mappings*. It states how mapping and row anchors are
+    formed and that the category page declares them. The citation rules are
+    held by review rather than by the RI's ledger validation.
+  - `mapping.html` (*Where the tables come from*), `reference-implementation.html`
+    (*How the guide relates to it*, *A caveat on citations*),
+    `cross-cutting.html`, and `mapping-temporal.html` no longer describe any
+    table as generated.
+  - **No mapping, fidelity, maturity, citation, conformance verb, page, anchor,
+    canonical, or id changed.**
 
 *Page branding*
 

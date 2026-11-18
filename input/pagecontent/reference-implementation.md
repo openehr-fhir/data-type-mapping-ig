@@ -2,17 +2,23 @@
 
 Every fidelity claim in this guide is backed by runnable code. The separate
 [reference implementation repository](https://github.com/openehr-fhir/data-type-mapping-ri)
-holds a TypeScript **mapping ledger** and a set of reference converters,
-together with the tests that substantiate what the mapping tables assert.
+holds a TypeScript **mapping ledger** — a machine-checkable transcription of
+this guide's mapping tables — and a set of reference converters, together with
+the tests that substantiate what the tables assert.
 Their [source](https://github.com/openehr-fhir/data-type-mapping-ri/tree/main/reference)
-is maintained independently of this guide's committed publication inputs.
+is maintained independently of this guide.
+
+**This guide is the source of truth.** Its tables, notes, and examples are
+edited here, and the reference implementation follows them; nothing in the
+guide is generated from it. Where the two disagree, the guide states the
+mapping, and the disagreement is a defect to be resolved in one or the other.
 
 #### Why it exists
 
-A mapping table that says `lossless` is an assertion. A mapping table generated
-from a ledger whose `lossless` rows must round-trip a paired instance unchanged
-— and whose `lossy` rows must drop **exactly** what they claim to drop, no more
-and no less — is a checked statement.
+A mapping table that says `lossless` is an assertion. A ledger transcribing that
+table whose `lossless` rows must round-trip a paired instance unchanged — and
+whose `lossy` rows must drop **exactly** what they claim to drop, no more and no
+less — turns the assertion into a checked statement.
 
 That is the whole point of the reference implementation. It is not a product.
 
@@ -26,8 +32,8 @@ The same converters and the same ledger this page describes also run as a
 Four things are worth knowing before you paste anything into it:
 
 - It runs the **RI's converters and ledger**, not a separate re-implementation.
-  Its build may use a different RI revision from the one behind a particular
-  guide snapshot; agreement is not automatic across revisions.
+  Its build may follow a different version of this guide from the one you are
+  reading; agreement is not automatic across revisions.
 - **Everything you paste stays in your browser.** There is no backend, no
   telemetry, and no network call after the page loads.
 - Its displayed **provenance** names the guide version and the independent
@@ -36,9 +42,9 @@ Four things are worth knowing before you paste anything into it:
   for the separate compatible-guide revision, which is not displayed in
   that provenance. A matching guide version alone does not establish
   revision parity with a guide snapshot.
-- The **RI build's worked examples load into it** as starting points, so you
-  can edit a real instance rather than inventing one. They correspond to the
-  examples published from that RI revision, not necessarily every guide version.
+- The **RI's test fixtures load into it** as starting points, so you can edit
+  a real instance rather than inventing one. The worked examples in this guide
+  began as those fixtures, but each is now maintained on its own side.
 
 When a conversion leaves something behind, each dropped field links back to the
 mapping row that declares the loss.
@@ -56,26 +62,16 @@ mapping row that declares the loss.
 
 #### How the guide relates to it
 
-The mapping tables on the category pages are **generated** from the external
-RI's ledger and committed in sentinel-delimited managed regions in the guide's
-markdown source. The worked examples are the test fixtures the converters are
-exercised against at the corresponding RI revision. These committed tables and
-examples are not automatically synchronized with the RI's current source or
-the hosted converter.
+Every table and worked example in this guide — the mapping tables on the
+category pages, the summaries, the ISO 8601 subset comparison, and the tables
+on [Gaps](gaps.html) and [Open Items](open-items.html) — is maintained by hand
+in this guide. [Conventions](conventions.html#editing-gaps-and-open-items) says
+how editors keep them in step with one another.
 
-The tables on [Gaps](gaps.html) and [Open Items](open-items.html) are not
-generated: they are maintained by hand in this guide, and the RI neither
-renders nor checks their content. Page-wide presentation and link checks still
-apply.
-[Conventions](conventions.html#editing-gaps-and-open-items) says how editors
-keep them in step.
-
-Generated regions remain owned by the RI's ledger and renderer, not by hand
-edits in this repository. The RI's documented authoring and compatibility
-process includes rendering and drift checking; an updated guide is reviewed
-separately. Every guide region has an external renderer definition, and every
-renderer output has a guide home. Publishing the committed guide needs no RI
-checkout and runs none of those implementation checks.
+The RI is a consumer of the guide. When a mapping changes here, the RI's ledger,
+converters, and fixtures are updated to match in the RI repository, and its
+tests then check the new claim. The RI does not write to this guide, and
+publishing the guide needs no RI checkout and runs none of its checks.
 
 #### The converter contract
 
@@ -119,7 +115,7 @@ of a numeric primitive is a JSON number, and a JavaScript number represents
 integers exactly only up to ±(2<sup>53</sup> − 1). A FHIR `integer64` beyond
 that range is read as the nearest representable value. Nothing in either
 standard makes that a loss — `Integer64` and `integer64` have the same range —
-so it is stated here rather than published as a ledger row.
+so it is stated here rather than published as a mapping row.
 
 #### A caveat on citations
 
@@ -128,16 +124,13 @@ mirror of the R5 specification, because that mirror contains no extension
 definitions. Those citations are taken on the working group's authority, and are
 marked as such. Citations to openEHR RM pages and to FHIR R5 core pages are held
 to two separate rules. A citation sitting on a **real endpoint** SHALL name an
-anchor rather than a bare page, with one written-down exception where the
-specification offers no anchor at all. For the generated mapping tables that
-rule is part of the external RI ledger's structural validation; the
-hand-maintained tables on [Gaps](gaps.html) — where that one exception is
-stated — and [Open Items](open-items.html) are held to it by review.
-Resolving those anchors against local copies
-of both specifications is a **second**, mirror-dependent check in the RI's
-release gate, and it skips when the mirrors are not configured. The RI's
-documentation owns execution of both checks; neither runs automatically when
-the guide is published.
+anchor rather than a bare page, with one written-down exception, stated on
+[Gaps](gaps.html), where the specification offers no anchor at all. In this
+guide, editors hold every table to that rule in review. In the RI, its ledger's
+structural validation holds the transcribed rows to it, and a **second**,
+mirror-dependent check in its release gate resolves those anchors against local
+copies of both specifications, skipping when the mirrors are not configured.
+Neither RI check runs when the guide is published.
 
 #### The commands
 
@@ -145,9 +138,8 @@ Implementation commands run in the separate RI checkout, not in this guide
 repository. Its maintained documentation supplies setup, invocation, and
 release requirements:
 
-- [RI operations and guide-content authoring](https://github.com/openehr-fhir/data-type-mapping-ri/blob/main/reference/README.md)
-  — ledger validation, conversion tests, rendering, drift checking, and guide
-  compatibility.
+- [RI operations](https://github.com/openehr-fhir/data-type-mapping-ri/blob/main/reference/README.md)
+  — ledger validation and conversion tests.
 - [Browser-converter operations](https://github.com/openehr-fhir/data-type-mapping-ri/blob/main/converter-site/README.md)
   — building, previewing, and understanding the hosted converter's provenance.
 

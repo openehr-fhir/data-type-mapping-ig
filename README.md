@@ -8,18 +8,18 @@ so that data captured in an openEHR system can be exchanged as FHIR, and data
 received as FHIR can be persisted in an openEHR system, without loss of
 meaning.
 
-This repository owns the guide and its committed publication inputs. The
+This repository owns the guide and is the **source of truth** for its
+mappings: every table, note, and worked example is edited here, including
+status updates, with no dependency on any other repository. The
 [separate reference implementation (RI)](https://github.com/openehr-fhir/data-type-mapping-ri)
-owns the mapping ledger, conversions, fixtures, renderer, and browser
+follows the guide: it holds a mapping ledger transcribed from the guide's
+tables, the reference converters, their fixtures and tests, and the browser
 converter. For implementation work, see the
 [RI operational documentation](https://github.com/openehr-fhir/data-type-mapping-ri/blob/main/reference/README.md)
 and [browser-converter documentation](https://github.com/openehr-fhir/data-type-mapping-ri/blob/main/converter-site/README.md).
-Guide publication needs no RI checkout or RI tooling. Future generated-content
-changes follow the RI's authoring and compatibility process and arrive here as
-separately reviewed guide updates; managed regions are not hand-edited.
-The Gaps and Open Items pages are the exception: they carry no managed
-region and are edited here directly, as the editor note on the Conventions
-page describes.
+Guide publication needs no RI checkout or RI tooling, and nothing in the guide
+is generated from the RI. The editor note on the Conventions page describes how
+editors keep the guide's tables in step with one another.
 
 ## About this guide
 

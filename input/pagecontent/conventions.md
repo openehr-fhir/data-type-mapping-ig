@@ -76,9 +76,12 @@ gap has somebody it belongs to.
 
 <a name="what-is-checked"></a>
 
-These are not editorial claims. Each is a machine-checked property of the
-[reference implementation](reference-implementation.html) — with two scoping
-rules that are part of the claim rather than exceptions to it:
+These are not editorial claims. Each is a property the
+[reference implementation](reference-implementation.html) tests its converters
+against — with two scoping rules that are part of the claim rather than
+exceptions to it. The mapping tables in this guide are the normative statement
+of each claim; the implementation follows them, and a disagreement between the
+two is a defect to resolve, not a silent override in either direction:
 
 - A `lossless` row must **round-trip a paired fixture unchanged**, and a `lossy`
   row must drop **exactly** what it says it drops — no more, and no less.
@@ -93,7 +96,7 @@ rules that are part of the claim rather than exceptions to it:
   producing nothing.
 
 Every fixture pair is additionally asserted to be a pair — each side producible
-from the other, modulo the drops the ledger declares — and a pair that holds in
+from the other, modulo the drops the mapping declares — and a pair that holds in
 one direction only says so, with a reason, in a marker beside it. A pair that
 holds in **neither** direction names the test that pins the behaviour instead,
 because a comparison asserted only to *differ* pins nothing about what differs.
@@ -203,34 +206,24 @@ rather than a core element, the citation is to the extension pack.
 
 <a name="citation-tiers"></a>
 
-Extension-pack citations are marked with a dagger — <sup>†</sup>. In the
-generated tables, these citations cannot be resolved against the RI's
-specification mirrors: those hold the openEHR Reference Model and the FHIR R5
-**core** specification, and neither contains extension definitions.
+Extension-pack citations are marked with a dagger — <sup>†</sup>. They cannot
+be checked against a copy of the openEHR Reference Model or the FHIR R5
+**core** specification, because neither contains extension definitions.
 A dagger therefore means *"this citation is taken on the working group's
 authority"*. Citations to openEHR RM pages and to FHIR R5 core pages carry no
 dagger. Where such a citation sits on a **real endpoint** — a field, an
 extension, or a resource element — it SHALL name a real **anchor** on the page,
-not merely the page. For the generated mapping tables, that rule is enforced by
-the external RI's ledger validation. The hand-maintained inventory on
-[Gaps](gaps.html) states the rule's one exception with its reason:
-`RelativeTime` is cited to the R5 data-type inventory page precisely because R5
-defines no such type and there is no anchor to point at. Separately, and
-**conditionally on the specification mirrors being configured**, each anchor in
-the generated tables is resolved against a local copy of the specification by the RI's
-citation suite. That check belongs to the external RI's documented release
-gate and skips for a contributor who has not set the mirrors up. Publishing
-this guide does not execute or prove either check.
+not merely the page. [Gaps](gaps.html) states the rule's one exception with its
+reason: `RelativeTime` is cited to the R5 data-type inventory page precisely
+because R5 defines no such type and there is no anchor to point at.
 
 Citations to [terminology.hl7.org](https://terminology.hl7.org) and to
-[jira.hl7.org](https://jira.hl7.org) are likewise verified as well-formed and
-host-allow-listed only by the RI's validation; they exist in neither mirror.
-Citations to `build.fhir.org` are **not permitted** anywhere in this guide, because a
-continuous-build snapshot is not a published specification.
+[jira.hl7.org](https://jira.hl7.org) follow the same rule of naming a published
+page. Citations to `build.fhir.org` are **not permitted** anywhere in this
+guide, because a continuous-build snapshot is not a published specification.
 
-These checks cover the generated tables. Citations in the hand-maintained
-tables on [Gaps](gaps.html) and [Open Items](open-items.html) follow the same
-rules and are checked by review.
+These rules apply to every table in this guide, and editors check them in
+review when a row is added or changed.
 
 #### Conformance language
 
@@ -241,32 +234,26 @@ normative wherever they appear in this guide. Lower-case "shall", "should", and
 
 #### A note for editors
 
-Most of the tables in this guide are **generated**. Each sits between a pair of
-HTML comments of the form:
+**Every table and worked example in this guide is edited here.** The mapping
+tables and summaries on the category pages, the [All mappings](mapping.html)
+table, the ISO 8601 subset comparison on
+[Cross-Cutting Concerns](cross-cutting.html), the worked examples, and the
+tables on [Gaps](gaps.html) and [Open Items](open-items.html) are all
+maintained by hand in this guide's page sources. Any editor can change a
+status, a verdict, or a note with an ordinary edit and no other checkout. The
+external [reference implementation](reference-implementation.html) does not
+generate, overwrite, or check any of this content.
 
-```
-<!-- >>> mapping ledger: <region-id> (generated by npm --prefix reference run render) >>> -->
-<!-- <<< mapping ledger: <region-id> (generated by npm --prefix reference run render) <<< -->
-```
+The mapping, summary, and inventory tables are HTML rather than Markdown. Keep
+each table's `grid` class and its scroll wrapper, and write HTML rather than
+Markdown inside the cells — those wrappers carry no `markdown="1"`, so
+`**bold**` would publish literally. Keep every mapping table's `id` and every
+row's `id`: they are the anchors other pages link to. After editing, run the IG
+Publisher build (Track 2 in the repository's build instructions) and read the
+rendered page to check table structure, escaping, and links.
 
-Everything between those two lines comes from the mapping ledger in the
-external [reference implementation](reference-implementation.html). **An edit
-made inside a region is lost on the next render.** To change a table, change
-the RI's ledger and follow its
-[authoring and compatibility process](https://github.com/openehr-fhir/data-type-mapping-ri/blob/main/reference/README.md),
-then review the generated guide update separately. To add prose, put it outside
-the sentinels, where nothing will touch it. The embedded command text in the
-delimiters is a serialization contract, not a command to run in this checkout.
-
-The drift check turns a hand edit into a loud failure rather than a silent loss,
-but it only helps if it is run. That check belongs to the external RI's
-documented process, not to the guide build.
-
-Generated table presentation is maintained in the RI's
-`reference\render\html.ts`; mapping content remains owned by its ledger.
-For hand-authored Markdown tables outside managed regions, retain the Markdown rows and
-give each table the `grid` class inside its own named, keyboard-focusable
-scrolling wrapper:
+For a new Markdown table, give the table the `grid` class inside its own named,
+keyboard-focusable scrolling wrapper:
 
 ```markdown
 <div markdown="1" style="max-width: 100%; overflow-x: auto;" tabindex="0" role="group" aria-label="Scrollable table">
@@ -286,32 +273,26 @@ actual column header, not for explanatory body labels such as those above.
 
 <a name="editing-gaps-and-open-items"></a>
 
-**Gaps and Open Items are hand-authored.** [Gaps](gaps.html) and
-[Open Items](open-items.html) carry no managed region, and the external RI
-neither generates nor checks their content: edit their tables directly in this
-guide. Page-wide presentation and link checks still apply.
-Their tables are HTML rather than Markdown. Keep each table's `grid` class and its
-scroll wrapper, and write HTML rather than Markdown inside the cells — the
-wrapper carries no `markdown="1"`, so `**bold**` would publish literally.
-After editing, run the IG Publisher build (Track 2 in the repository's build
-instructions) and read the rendered page to check table structure, escaping,
-and links.
-Two duties replace the automation that used to keep these pages in step with
-the mapping tables:
+**Keeping the pages in step.** A mapping is stated once, in its field table,
+and restated in several places. When a field table changes, update the
+restatements in the same change:
 
-- **Gap sync.** When a generated mapping table gains, loses, or changes a
-  `lossy` or `unmapped` verdict, update the matching row on Gaps in the same
-  change. The field table is the normative statement; the Gaps row restates
-  it.
+- **Summary sync.** When a change moves a mapping's aggregate verdict, maturity,
+  or scope, update the category page's summary and the
+  [All mappings](mapping.html) table.
+- **Gap sync.** When a mapping table gains, loses, or changes a `lossy` or
+  `unmapped` verdict, update the matching row on Gaps. The field table is the
+  normative statement; the Gaps row restates it.
 - **Register sync.** When a mapping row names an owner — an HL7 Jira ticket,
   `openehr-modelling`, `working-group`, or a session item — the register on
-  Open Items lists it. When a mapping is added, the reviewer-coverage table
+  Open Items lists it, and a ticket's status there matches what the mapping
+  rows say about it. When a mapping is added, the reviewer-coverage table
   gains its row.
 
-A hand-written link to a mapping table or row copies the anchor exactly as the
-category page publishes it, rather than reconstructing it from the mapping or
-row id, and names a category exactly as its page is titled. These are consumed,
-never declared: the RI's link surface remains their one source. The IG
-Publisher's Track 2 link inspection reports broken targets, including
-hand-written fragments, in its `broken-links` QA results; it does not keep a
-copy synchronized when RI mapping or row ids change.
+A mapping table's anchor is `mapping-` followed by its mapping id, and a row's
+is `row-`, the mapping id, `--`, and the row id; both are declared by the `id`
+attributes on the category page. A hand-written link copies the anchor exactly
+as the category page declares it and names a category exactly as its page is
+titled. Renaming an anchor breaks every inbound link. The IG Publisher's
+Track 2 link inspection reports broken targets, including hand-written
+fragments, in its `broken-links` QA results.
