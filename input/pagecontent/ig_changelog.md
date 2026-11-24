@@ -37,6 +37,21 @@ code.
   describe planned code support, not a change to the RI's unmapped extension
   handling. Structural transforms and unresolved terminology choices remain
   unchanged.
+  - New ids: `openehr-null-flavour-to-data-absent-reason`,
+    `data-absent-reason-to-openehr-null-flavour`,
+    `openehr-null-flavour-to-v3-nullflavor`,
+    `v3-nullflavor-to-openehr-null-flavour`,
+    `openehr-normal-status-to-observation-interpretation`, and
+    `observation-interpretation-to-openehr-normal-status`.
+  - `mapping.html` gains a *ConceptMap resources* section indexing them;
+    `mapping-coded.html` and `mapping-quantity.html` point to the null-flavour
+    and normal-status maps and say what they leave open; `index.html` lists
+    the terminology and model-element ConceptMaps as the guide's artifacts and
+    narrows *what this guide does not do* to executable StructureMaps and
+    whole-resource conversions.
+  - `open-items.html`: the null-flavour ConceptMap item and the v3
+    `NullFlavor` support item record the draft resources, and a new item
+    tracks review of the partial normal-status maps. No gap verdict changed.
 - Added two further draft ConceptMaps for logical-model and FHIR
   type/resource element correspondences, authored independently in each
   direction using versioned StructureDefinition implicit code systems and
@@ -46,6 +61,13 @@ code.
   invented. The current R5 publisher's rejection of the StructureDefinition
   group canonicals remains an unsuppressed validation limitation; the maps
   do not execute conversions or settle open mapping decisions.
+  - New ids: `openehr-model-to-fhir` and `fhir-to-openehr-model`.
+  - `mapping.html` (*Model-element maps*) states the element-ID, condition,
+    and `noMap` conventions and what the maps omit.
+  - `open-items.html`: a new item tracks the Publisher limitation and review
+    of the model correspondences. Reviewers should expect the QA report to
+    show one wrong-resource-type error for each group's source and target
+    canonical; no other QA message is new. No gap verdict changed.
 - **Eighteen pages**, up from four. Added `type-systems.html`,
   `conventions.html`, eight category pages (`mapping-boolean.html`,
   `mapping-numeric.html`, `mapping-reference.html`, `mapping-textual.html`,
@@ -116,10 +138,10 @@ code.
 
 *What is not settled, and is said to be not settled*
 
-- **Gaps.** `gaps.html` publishes four inventories, three of them **derived
-  from the whole ledger** rather than transcribed, so a gap cannot fall out of
-  step with the mapping it belongs to: openEHR → FHIR, FHIR → openEHR, and
-  not-yet-discussed. The fourth lists FHIR types with no openEHR counterpart at
+- **Gaps.** `gaps.html` publishes four inventories: openEHR → FHIR, FHIR →
+  openEHR, and not-yet-discussed, whose rows restate the field tables and are
+  kept in step with them by the gap sync duty on `conventions.html`. The
+  fourth lists FHIR types with no openEHR counterpart at
   all — `Address`, `HumanName`, `ContactPoint`, `Annotation`, `Signature`,
   `SampledData`, `RatioRange`, `Money`, `Meta`, `Narrative` — each citing the
   openEHR Data Types inventory page, so "no counterpart exists" stays a sourced
@@ -128,25 +150,30 @@ code.
   The `system` + `version` → `terminology_id` format (three candidates); the
   strategy for a missing mandatory `terminology_id` or `code_string`; the
   representation of `TERM_MAPPING.purpose`; openEHR `271` *no information*,
-  which has no `data-absent-reason` equivalent; the `~` approximate comparator
-  (R6, FHIR-56000); `Quantity.comparator = ad`; the `DV_PROPORTION` kind
-  discriminator (FHIR-56001); units on a `Ratio`; `Attachment` compression
-  (FHIR-56003), non-SHA-1 hashing (FHIR-55422), and thumbnails (FHIR-56002);
-  and the `normal_status` binding breadth.
+  which has no `data-absent-reason` equivalent; how a `Coding` marks the
+  defining code (FHIR-59729); the `~` approximate comparator, applied in R6
+  but unavailable in R5 (FHIR-56000); `Quantity.comparator = ad`; the
+  `DV_PROPORTION` kind discriminator, which the rendering FHIR-56001 publishes
+  does not carry; units on a `Ratio`; `Attachment`
+  compression (FHIR-56003); and the `normal_status` binding breadth. The
+  tickets since resolved and published — fraction renderings on `Ratio`
+  (FHIR-56001), non-SHA-1 hashing (FHIR-55422), and thumbnails (FHIR-56002) —
+  are recorded with their outcome on `open-items.html`.
 - **`not-discussed` rows carry no fidelity claim at all.** `DV_PARAGRAPH`,
   `DV_GENERAL_TIME_SPECIFICATION`, `DV_PERIODIC_TIME_SPECIFICATION`,
   `DV_ENCAPSULATED`, `EVENT`, `COMPOSITION`, `PARTY_RELATED`, and the *Media
   File* CLUSTER archetype are listed with a reason and nothing more.
 - **Reviewer coverage is published in full**, including the mappings reviewed
-  from neither side. Every `Owner` a mapping row blames is asserted to appear in
-  the open-items register.
+  from neither side. Every `Owner` a mapping row blames is listed in the
+  open-items register, which the register sync duty on `conventions.html`
+  keeps current.
 
 *Cross-cutting*
 
 - `cross-cutting.html` collects the terminology-identifier question with its
   three candidates and no decision, the character-encoding rule, the `DV_AMOUNT`
   pattern stated once for all four subtypes, the ISO 8601 subset comparison as a
-  **generated** table, the working group's position that validation is out of
+  table, the working group's position that validation is out of
   scope, and both halves of the bindings and process guidance the source
   documents left as empty headings.
 
