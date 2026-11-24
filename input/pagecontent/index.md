@@ -68,7 +68,10 @@ Reference Model is the authority** cited here.
 
 **Support**
 
-- **Artifacts** — the conformance resources defined by this guide.
+- **[Artifacts](artifacts.html)** — the directional terminology and
+  model-element ConceptMaps defined by this guide;
+  [Data Type Mapping](mapping.html#conceptmap-resources) describes their scope,
+  coverage and tooling limitations.
 - **[Reference Implementation](reference-implementation.html)** — the runnable
   code that substantiates the fidelity claims.
 - **[Downloads](downloads.html)** — machine-readable packages and definitions.
@@ -77,12 +80,15 @@ Reference Model is the authority** cited here.
 ### What this guide does not do
 
 - It does not define FHIR profiles, extensions, code systems, value sets, or
-  concept maps. Terminology stays anchored in
+  executable StructureMaps. Its terminology ConceptMaps reference existing
+  vocabularies, which stay anchored in
   [terminology.hl7.org](https://terminology.hl7.org) or in openEHR's own
-  published terminology.
+  published terminology. Its model-element ConceptMaps reference existing
+  StructureDefinition implicit code systems.
 - It does not author archetypes. Where the right answer to a gap is an
   archetype, the guide links it and names who owns it.
-- It does not map resources or profiles. `Observation`, `Composition`, and
+- It does not define whole-resource or whole-profile conversions.
+  `Observation`, `Composition`, and
   `Timing` appear only where a data-type mapping is unintelligible without them,
   and those rows are marked `archetype` scope.
 - It does not validate. See

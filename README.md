@@ -8,18 +8,18 @@ so that data captured in an openEHR system can be exchanged as FHIR, and data
 received as FHIR can be persisted in an openEHR system, without loss of
 meaning.
 
-This repository owns the guide and its committed publication inputs. The
+This repository owns the guide and is the **source of truth** for its
+mappings: every table, note, and worked example is edited here, including
+status updates, with no dependency on any other repository. The
 [separate reference implementation (RI)](https://github.com/openehr-fhir/data-type-mapping-ri)
-owns the mapping ledger, conversions, fixtures, renderer, and browser
+follows the guide: it holds a mapping ledger transcribed from the guide's
+tables, the reference converters, their fixtures and tests, and the browser
 converter. For implementation work, see the
 [RI operational documentation](https://github.com/openehr-fhir/data-type-mapping-ri/blob/main/reference/README.md)
 and [browser-converter documentation](https://github.com/openehr-fhir/data-type-mapping-ri/blob/main/converter-site/README.md).
-Guide publication needs no RI checkout or RI tooling. Future generated-content
-changes follow the RI's authoring and compatibility process and arrive here as
-separately reviewed guide updates; managed regions are not hand-edited.
-The Gaps and Open Items pages are the exception: they carry no managed
-region and are edited here directly, as the editor note on the Conventions
-page describes.
+Guide publication needs no RI checkout or RI tooling, and nothing in the guide
+is generated from the RI. The editor note on the Conventions page describes how
+editors keep the guide's tables in step with one another.
 
 ## About this guide
 
@@ -29,6 +29,31 @@ page describes.
 - FHIR version: R5 (5.0.0)
 - publisher: HL7 International / FHIR Infrastructure
 - license: [CC0-1.0](LICENSE)
+
+The guide depends on the openEHR Base FHIR package, `openehr.base#0.1.0-snapshot`,
+which represents the openEHR Reference Model for FHIR tooling. The dependency
+is pinned in `sushi-config.yaml` and resolved through the FHIR package
+registry; no local `base-spec` checkout is required.
+
+`input/fsh/` defines six draft terminology ConceptMaps: both directions for
+null flavours and data-absent-reason, null flavours and v3 NullFlavor, and the
+documented H/L/N normal-status subset and ObservationInterpretation. They
+reference existing CodeSystems rather than replacing them. These are code
+relationships, not executable structural conversions; the v3 maps do not
+enable v3 extension handling in the external RI.
+
+Two further draft ConceptMaps, `openehr-model-to-fhir` and
+`fhir-to-openehr-model`, show type and field correspondences using versioned
+StructureDefinition canonicals as implicit code systems and exact snapshot
+element IDs as codes. They preserve directional losses, contextual choices
+and unmapped cases; they are not executable transforms. Coverage follows the
+available snapshots: Foundation numeric models are absent, and `DV_INTERVAL`
+has no bound element IDs. See the [mapping index](input/pagecontent/mapping.md).
+
+**Publisher limitation:** the current R5 validator rejects these
+StructureDefinition canonicals where it expects CodeSystems, even though it
+can resolve their element codes. The maps compile and render, but those
+validation errors remain visible and need resolution before publication.
 
 ## Repository layout
 

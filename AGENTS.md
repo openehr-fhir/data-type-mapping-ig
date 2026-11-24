@@ -52,7 +52,7 @@ stated as a *target* rather than an *observed* practice, it says so.
 
 | Path | Contents |
 |-|-|
-| `input/fsh/` | FSH source: profiles, extensions, concept maps, examples. The primary authoring surface. Currently empty. |
+| `input/fsh/` | FSH source: six terminology ConceptMaps, two directional model-element ConceptMaps, shared rules and versioned aliases. |
 | `input/pagecontent/` | Markdown narrative pages (one per entry in `sushi-config.yaml` `pages:`). The other primary authoring surface. |
 | `input/pagecontent/ig_changelog.md` | The IG change log. See [Commit conventions](#commit-conventions). |
 | `input/resources/` | Hand-authored ("pre-defined") JSON resources that SUSHI copies through verbatim. **Not present yet** — create it with the first such resource. Do not add a placeholder file: SUSHI warns about every non-JSON/XML file it finds there. |
@@ -69,16 +69,17 @@ stated as a *target* rather than an *observed* practice, it says so.
 | `output/`, `temp/`, `template/`, `translations/` | IG Publisher output and scratch. **Ignored, and never hand-edited.** |
 | `scratch/` | `dev-*` skill slots. **Ignored.** |
 
-The [separate reference implementation (RI)](https://github.com/openehr-fhir/data-type-mapping-ri)
-owns the mapping ledger, converters, fixtures, renderer, implementation checks,
-and browser converter with its deployment. See its
+**This guide is the source of truth for the mappings.** Every table, note,
+and worked example under `input/pagecontent/` is hand-authored and edited
+here; nothing is generated from another repository. The
+[separate reference implementation (RI)](https://github.com/openehr-fhir/data-type-mapping-ri)
+follows the guide: it owns a mapping ledger transcribed from the guide's
+tables, the converters, fixtures, implementation checks, and the browser
+converter with its deployment. See its
 [RI operational documentation](https://github.com/openehr-fhir/data-type-mapping-ri/blob/main/reference/README.md)
 and [browser-converter documentation](https://github.com/openehr-fhir/data-type-mapping-ri/blob/main/converter-site/README.md)
-for work in that repository. This guide owns the committed publication inputs;
-publishing them requires no RI checkout or RI dependencies. The Gaps and Open
-Items pages (`input/pagecontent/gaps.md`, `input/pagecontent/open-items.md`)
-are guide content: the RI neither generates nor checks their content.
-Page-wide presentation and link checks still apply.
+for work in that repository. Editing or publishing the guide requires no RI
+checkout or RI dependencies, and the RI never writes to this repository.
 
 Ignored paths are listed in `.gitignore`. Anything under `fsh-generated/`,
 `output/`, `temp/`, `template/`, or `input-cache/` is a build artifact:
@@ -90,7 +91,9 @@ editing it is always wrong, and the edit is destroyed on the next build.
 
 - **SUSHI** — installed globally via `npm install -g fsh-sushi`. No pin is
   checked in; the repository tracks the current SUSHI release. Verified
-  working with **SUSHI v3.20.1** (FSH spec v3.0.0). Requires Node.js.
+  working with **SUSHI v3.21.1** (FSH spec v3.0.0); earlier releases emit
+  `href="#"` on menu dropdowns, which the IG Publisher now reports as an
+  error. Requires Node.js.
 - **Node.js** — no `.nvmrc` and no pin. Verified working with **Node
   v26.7.0**. Needed to run SUSHI.
 - **npm** — no pin. Verified working with **npm 11.19.0**. Used to install
@@ -110,10 +113,10 @@ editing it is always wrong, and the edit is destroyed on the next build.
   template changes can alter rendering without any repo change.
 - **FHIR version** — `fhirVersion: 5.0.0` in `sushi-config.yaml`. R5 only;
   there is no `generate-version` cross-version generation in this IG.
-- **Package dependencies** — the `dependencies:` block in
-  `sushi-config.yaml` is currently commented out. When a dependency is
-  added it **must be pinned to an exact version**: a floating dependency can
-  move generated URLs and QA output without any change in this repo.
+- **Package dependencies** — `sushi-config.yaml` depends on the openEHR Base
+  package, `openehr.base#0.1.0-snapshot`. Every dependency **must be pinned to
+  an exact version**: a floating dependency can move generated URLs and QA
+  output without any change in this repo.
 - **Ruby + Jekyll** — only needed for the publisher's local page rendering;
   see `INSTALLATION.md`. Not needed to run SUSHI alone.
 
@@ -128,7 +131,7 @@ explaining why**.
 
 There are two IG build tracks. They catch different things, and the fast one
 does not subsume the slow one. Both consume committed guide inputs; neither
-runs the external RI's renderer or checks.
+runs the external RI's checks.
 
 ### Track 1 — SUSHI only (fast inner loop)
 
@@ -202,13 +205,11 @@ one, and do not add one.** Verification for the guide is:
 4. The rendered pages under `output/` say what the change intended, read in
    a browser.
 
-The external RI's suites substantiate the fidelity claims and converter
-behavior; its documentation owns their execution and release gates, including
-renderer drift and mirror-dependent citation resolution. Ordinary guide
-publication runs none of these checks and does not prove an RI-suite result.
-The guide's citation and generated-content requirements remain unchanged:
-citations are published URLs, never machine-local paths, and managed regions
-are not hand-authored.
+The external RI's suites test its converters against the fidelity claims;
+its documentation owns their execution and release gates, including
+mirror-dependent citation resolution. Ordinary guide publication runs none of
+these checks and does not prove an RI-suite result. Citations are published
+URLs, never machine-local paths.
 
 ### Full
 
@@ -238,6 +239,11 @@ Track 2 to be seen rendered.
   must define it.
 - A page listed in `sushi-config.yaml` `pages:` with no matching file in
   `input/pagecontent/` fails the publisher, not SUSHI. Add both together.
+- The two model-element ConceptMaps use StructureDefinition implicit code
+  systems. The current R5 publisher resolves their element codes but reports
+  wrong-resource-type errors for the group canonicals, expecting CodeSystems.
+  Keep those errors visible; do not invent CodeSystems or suppressions.
+  This tooling limitation remains open and blocks clean publication.
 
 ---
 
@@ -273,49 +279,46 @@ That instruction is the rule here, not a fallback.
 
 - **FSH** (`input/fsh/*.fsh`) — two-space indent for rule continuation, `//`
   comments, `^` caret rules for metadata, and `Title`/`Description` on every
-  definition. Keep artifact ids `lower-kebab-case`. Because the repository
-  has no FSH yet, the **first** files authored set the pattern for the rest
-  — be deliberate about naming.
+  definition. Keep artifact ids `lower-kebab-case`. Terminology ConceptMaps
+  are definition instances, with shared metadata and mapping rules in
+  `conceptmap-rules.fsh`; each direction is a separate resource. Reference
+  the existing openEHR and THO CodeSystems with explicit versions rather
+  than defining replacement vocabularies. Keep their code correspondences
+  synchronized with the normative field tables.
+  The two model-element maps share `model-conceptmap-rules.fsh`; their systems
+  are exact versioned StructureDefinition canonicals and their codes are
+  `snapshot.element.id` values, not paths or expressions. Do not invent IDs
+  missing from a snapshot. Author the reverse direction independently.
+  Targets use `related-to` and declare fidelity, maturity, scope and any
+  conditions. A pair with both lossless and lossy cases has conservative
+  `lossy` fidelity and comments distinguishing the cases. Unmapped reasons
+  use the published `note` extension on the resource, labelled by source ID,
+  not `element.display` (which must describe the actual source concept).
 - **Markdown pages** (`input/pagecontent/*.md`) — these render into the
   spec. Conformance verbs (`SHALL`, `SHOULD`, `MAY`, `SHALL NOT`) are
   **normative and uppercase**; never soften, strengthen, or case-fold one
   without it being the point of the change. Cross-page links are to the
   generated `*.html` name, not the `.md` source. Pages start at heading
   level `###` — the template supplies the page title.
-- **Managed regions** inside `input/pagecontent/*.md` — content between a
-  pair of `mapping ledger` sentinels is **generated from the external RI's
-  `reference/ledger/`**. Do not hand-edit it: use the RI's documented
-  authoring and compatibility process, then review the generated guide update
-  separately. The sentinels are the pattern this file already uses for its own
-  `## GitHub Integration` block, and this section is their **normative
-  definition**. Every tool that reads or writes one reproduces both strings
-  byte-for-byte from here and never re-derives, paraphrases, or reformats them:
-
-  ```
-  <!-- >>> mapping ledger: <region-id> (generated by npm --prefix reference run render) >>> -->
-  <!-- <<< mapping ledger: <region-id> (generated by npm --prefix reference run render) <<< -->
-  ```
-
-  The embedded command text is a **serialization contract**, not a command to
-  run in this checkout. Ledger and renderer ownership stays in the RI.
-  Hand-written prose **outside** the sentinels is never touched by a
-  render. A region id is one of `mapping:<mapping-id>`,
-  `summary:<category>`, `summary:all`, `iso8601-subset`, or
-  `example:<fixture-path>`.
-- **Gaps and Open Items** (`gaps.md`, `open-items.md`) — hand-authored, with
-  no managed region. Their tables are final HTML carried over from the
-  retired renderers. Keep each table's `grid` class and its scroll wrapper,
-  and write HTML, not Markdown, inside the cells: the wrapper has no
-  `markdown="1"`. After editing, run the Track 2 build and read the rendered
-  page to check table structure, escaping, and links. Two editorial duties
-  replace the retired automation, and
-  `conventions.html` states them for editors:
-  - the **gap sync duty**: a generated mapping table that gains, loses, or
-    changes a `lossy` / `unmapped` verdict updates the matching Gaps row in
-    the same commit, and the field table is normative;
+- **Tables and worked examples** in `input/pagecontent/*.md` —
+  hand-authored, and edited directly. The mapping, summary, and inventory
+  tables are HTML: keep each table's `grid` class and its scroll wrapper, keep
+  every table `id` (`mapping-<mapping-id>`) and row `id`
+  (`row-<mapping-id>--<row-id>`), and write HTML, not Markdown, inside the
+  cells, because the wrapper has no `markdown="1"`. After editing, run the
+  Track 2 build and read the rendered page to check table structure, escaping,
+  and links. A mapping is stated once, in its field table, which is
+  normative, and restated elsewhere; `conventions.html` states the editorial
+  duties that keep the restatements in the same commit:
+  - the **summary sync duty**: a change that moves a mapping's aggregate
+    verdict, maturity, or scope updates the category summary and the
+    *All mappings* table on `mapping.html`;
+  - the **gap sync duty**: a mapping table that gains, loses, or changes a
+    `lossy` / `unmapped` verdict updates the matching Gaps row;
   - the **register sync duty**: every owner a mapping row names (an HL7
     Jira ticket, `openehr-modelling`, `working-group`, or a session item) is
-    listed in the register, and a new mapping gains a reviewer-coverage row.
+    listed in the register, its status there agrees with the rows, and a new
+    mapping gains a reviewer-coverage row.
 - **YAML** (`sushi-config.yaml`) — two-space indent. The decorative
   box-drawing comment banners are SUSHI scaffolding; leave them alone.
 - **JSON** (`input/resources/*.json`) — two-space indent.
@@ -342,44 +345,24 @@ These are decisions, not preferences. Violating one is a review Blocker.
 - **A new page means two edits.** Adding `input/pagecontent/foo.md` requires
   adding `foo.md` to **both** `pages:` and `menu:` in `sushi-config.yaml`.
   A page missing from `pages:` is not rendered at all.
-  The external RI's `reference/test/pages.test.ts` checks this in both
-  directions; that check is not part of the IG build.
-- **A managed region is generated, and hand-editing one is a Blocker.**
-  Content between a `mapping ledger` sentinel pair belongs to the external
-  RI's ledger and renderer. Its drift check rejects hand edits, and the next
-  render destroys them; guide publication does not run that check.
-- **A guide region and its external renderer must correspond.** Every guide
-  region has a renderer definition in the RI, and every renderer output has a
-  guide home. Future changes use the RI's existing authoring and compatibility
-  process and a separately reviewed IG update, not local replacement
-  automation.
-- **Gaps and Open Items are guide-owned, and carry no managed region.**
-  Planting a `mapping ledger` sentinel on either page is a Blocker. A retired
-  region id fails the RI's render and drift check; reusing a registered id
-  can silently re-couple the page, so review must reject either case. The RI
-  may link to `gaps.html` and `open-items.html`; it neither authors nor checks
-  their content, but page-wide presentation and link checks still apply.
+- **The guide is the source of truth, and nothing in it is generated.**
+  Do not reintroduce generated regions, sentinel comments, or a render step
+  that writes into `input/pagecontent/`. A change to a mapping is made here
+  first; the RI follows it in its own repository.
 - **Every mapping row cites both specifications.** The openEHR RM attribute
   it maps from and the FHIR R5 element it maps to. A row whose side has no
   counterpart cites the *inventory* page of the standard that lacks it, so
   both citations stay real. `build.fhir.org` is never cited — a
   continuous-build snapshot is not a published specification.
-- **Guide links have one source.** The page a mapping is published on, the
-  category labels, the direction labels, and the anchor ids the renderer emits
-  live in the external RI's `reference/src/publish/guide-links.ts`. A second
-  declaration — in this guide, the renderer, or the browser converter — is a
-  Blocker.
-  A link may carry a **fragment only when the renderer actually publishes
-  that anchor**. Every ledger mapping has a field table, so every
-  RI-emitted mapping link carries one. Hand-authored tables (Gaps and Open
-  Items) **consume** the RI's anchors and category labels as text and never
-  declare them: a hand-written link to a mapping table copies the anchor
-  exactly as the category page publishes it. The IG Publisher's Track 2 link
-  inspection reports broken targets, including hand-written fragments; it
-  does not keep the copy synchronized when RI mapping or row ids change.
+- **Anchors are declared once, on the category page.** A mapping table's
+  `id` and each row's `id` are the only declarations of those anchors. Every
+  other link — from Gaps, Open Items, another category page, or the RI —
+  copies the anchor exactly as the category page declares it. Renaming one
+  breaks inbound links, including the RI's. The IG Publisher's Track 2 link
+  inspection reports broken targets, including hand-written fragments.
 - **Generated trees are never hand-edited** — `fsh-generated/`, `output/`,
   `temp/`, `template/`, `input-cache/`. Fix the FSH, the config, or the
-  responsible external generator instead.
+  page source instead.
 - **The HL7 build scripts are upstream files.** `_build.*`, `_genonce.*`,
   `_gencontinuous.*`, `_genclean.bat`, `_updatePublisher.*` come from
   `HL7/ig-publisher-scripts` and are overwritten by `_updatePublisher`.
