@@ -91,7 +91,9 @@ editing it is always wrong, and the edit is destroyed on the next build.
 
 - **SUSHI** — installed globally via `npm install -g fsh-sushi`. No pin is
   checked in; the repository tracks the current SUSHI release. Verified
-  working with **SUSHI v3.20.1** (FSH spec v3.0.0). Requires Node.js.
+  working with **SUSHI v3.21.1** (FSH spec v3.0.0); earlier releases emit
+  `href="#"` on menu dropdowns, which the IG Publisher now reports as an
+  error. Requires Node.js.
 - **Node.js** — no `.nvmrc` and no pin. Verified working with **Node
   v26.7.0**. Needed to run SUSHI.
 - **npm** — no pin. Verified working with **npm 11.19.0**. Used to install
